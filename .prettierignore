@@ -1,0 +1,7 @@
+dist
+shots
+node_modules
+docs/progress
+package-lock.json
+# Sprite grids are hand-aligned; never reflow them.
+src/art/**/*.grid.ts

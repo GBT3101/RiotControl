@@ -1,0 +1,140 @@
+:root {
+  --bg: #1e1b28;
+  --card: #2b2538;
+  --line: #3d364b;
+  --text: #f3e8c8;
+  --muted: #a39ea8;
+  --accent: #dca848;
+}
+body.light {
+  --bg: #d8d4cc;
+  --card: #c4bfc0;
+  --line: #a39ea8;
+  --text: #1a1424;
+  --muted: #4f475d;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font:
+    12px/1.4 ui-monospace,
+    'SFMono-Regular',
+    Menlo,
+    Consolas,
+    monospace;
+}
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  padding: 10px 16px;
+  background: var(--card);
+  border-bottom: 2px solid var(--line);
+}
+.bar h1 {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: 2px;
+  color: var(--accent);
+}
+.bar h1 span {
+  color: var(--muted);
+  letter-spacing: 0;
+  font-weight: normal;
+}
+nav a,
+button {
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--line);
+  padding: 2px 8px;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+nav a.on {
+  background: var(--accent);
+  color: #1a1424;
+  border-color: var(--accent);
+}
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.tools {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: auto;
+}
+main {
+  padding: 8px 16px 32px;
+}
+h2 {
+  margin: 20px 0 8px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--accent);
+  border-bottom: 1px solid var(--line);
+}
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.card .views {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+.card canvas {
+  image-rendering: pixelated;
+  display: block;
+}
+.card .name {
+  font-weight: bold;
+}
+.card .meta {
+  color: var(--muted);
+}
+.palette .ramp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0;
+}
+.palette .ramp b {
+  width: 130px;
+  font-weight: normal;
+  color: var(--muted);
+}
+.palette .sw {
+  width: 22px;
+  height: 22px;
+  display: inline-block;
+}
+.palette .all {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.palette .all .sw {
+  width: 30px;
+  height: 30px;
+}
