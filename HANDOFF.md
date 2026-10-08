@@ -8,14 +8,14 @@ Update this file at the end of every milestone.
 |---|---|---|
 | M0 Plan & handoff | ✅ done | PLAN.md, HANDOFF.md, CLAUDE.md |
 | M1 Foundation & pipelines | ✅ done | Vite/TS/Pixi 8 scaffold, core (loop/rng/events/iso), pixel-perfect stage + camera, art pipeline (palette, grids, paper-doll, atlas), gallery, shots/smoke tools, 72×72 test map with 50 officers, CI + Pages. Screens: `docs/progress/m1-*.png` |
-| M2 City blueprints | ⬜ | |
-| M3a Environment art | ⬜ | |
-| M3b Capitols & landmarks art | ⬜ | |
-| M4a Ministry units art | ⬜ | |
-| M4b Protesters art & variation | ⬜ | |
-| M4c Vehicles art | ⬜ | |
-| M5 FX & UI kit art | ⬜ | |
-| M6 Simulation core | ⬜ | |
+| M2 City blueprints | 🔄 in progress | |
+| M3a Environment art | 🔄 in progress | |
+| M3b Capitols & landmarks art | 🔄 in progress | |
+| M4a Ministry units art | 🔄 in progress | |
+| M4b Protesters art & variation | 🔄 in progress | |
+| M4c Vehicles art | 🔄 in progress | |
+| M5 FX & UI kit art | 🔄 in progress | |
+| M6 Simulation core | 🔄 in progress | |
 | M7 Behaviours | ⬜ | |
 | M8 Integration & game feel | ⬜ | |
 | M9 UI/UX & screens | ⬜ | |
