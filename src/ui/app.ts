@@ -46,6 +46,8 @@ import { TitleScreen } from './screens/title';
 import { loadGameSettings, resolveQuality, saveGameSettings, type GameSettings } from './settings';
 import { CITY_COPY } from './strings';
 import { Advisor } from './widgets/advisor';
+import { Hints } from './hints/hints';
+import { Tutorial } from './tutorial/tutorial';
 import { Moments } from './widgets/moments';
 import { Tooltip } from './widgets/tooltip';
 import { totalFallen } from '../sim/stats';
@@ -74,6 +76,10 @@ export class UiApp {
   readonly tooltip: Tooltip;
   readonly moments: Moments;
   readonly advisor: Advisor;
+  /** First-run briefing (M10). */
+  readonly tutorial: Tutorial;
+  /** Contextual hints (M10). */
+  readonly hints: Hints;
   readonly toast = { info: (text: string): void => this.moments.infoToast(text) };
   readonly art: ArtStore;
   readonly settings: GameSettings;
@@ -118,7 +124,9 @@ export class UiApp {
     this.tooltip = new Tooltip(this);
     this.moments = new Moments(this);
     this.advisor = new Advisor(this);
-    this.hudLayer.addChild(this.moments.root, this.advisor.root);
+    this.tutorial = new Tutorial(this);
+    this.hints = new Hints(this);
+    this.hudLayer.addChild(this.tutorial.root, this.moments.root, this.advisor.root);
     this.topLayer.addChild(this.tooltip.root);
     stage.app.stage.addChild(this.hudLayer, this.topLayer);
     this.overlay = new DebugOverlay(document.body, params.debug);
@@ -251,11 +259,15 @@ export class UiApp {
   private frame(dt: number): void {
     this.hud?.update(dt);
     this.moments.update(dt);
+    this.tutorial.update(dt);
+    this.hints.update(dt);
     this.advisor.update(dt);
     if (this.hud) {
       const info = this.hud.info.root;
       const bottom = info.visible ? info.y - 4 : this.layout.advisor.bottom;
-      this.advisor.place(this.layout.advisor.x, bottom, this.layout.advisor.maxW);
+      const def = { x: this.layout.advisor.x, bottom, maxW: this.layout.advisor.maxW };
+      const spot = this.tutorial.advisorPlacement(def) ?? def;
+      this.advisor.place(spot.x, spot.bottom, spot.maxW);
     }
     for (const sc of this.screens) sc.update(dt);
     this.tooltip.update(dt);
@@ -351,6 +363,8 @@ export class UiApp {
 
   /** Destroy the running game (art stays). */
   private endGame(): void {
+    this.tutorial.stop();
+    this.hints.unbind();
     this.hud?.destroy();
     this.hud = null;
     this.moments.clear();
@@ -512,6 +526,8 @@ export class UiApp {
       hud: this.hud,
     });
     game.bus.emit('ready', { city, bootMs: performance.now() });
+    this.hints.bind(game);
+    this.tutorial.onRunStart(city, game, debugParams);
     this.bus.emit('runStart', { city, game });
     this.bus.emit('screen', { name: 'game' });
     this.markReadyWhenComplete();

@@ -16,7 +16,7 @@ import { deployCard } from '../../art/uikit/cards';
 import { ICONS } from '../../art/uikit/icons';
 import { PAPERCLIP, folderTab, panel } from '../../art/uikit/panels';
 import { bretaPortrait } from '../../art/uikit/portraits';
-import { FONTS, drawText, measureText } from '../../art/uikit/text';
+import { FONTS, drawText, measureText, textSprite } from '../../art/uikit/text';
 import { LEVELS } from '../../data/levels';
 import { protesterDef, type ProtesterId } from '../../data/protesters';
 import { UNITS, type UnitId } from '../../data/units';
@@ -25,7 +25,7 @@ import { protesterFigure, scaleUp, unitPortrait } from '../art';
 import { ease, prog, stampDrop } from '../core/anim';
 import { makeInteractive } from '../core/node';
 import { ownTex, uiTex } from '../core/tex';
-import { PROTESTER_COPY, UI_TEXT, UNIT_COPY } from '../strings';
+import { CAPITOL_COPY, PROTESTER_COPY, UI_TEXT, UNIT_COPY, waveLine } from '../strings';
 import type { UiApp } from '../app';
 
 /* ── Pixel compositions ───────────────────────────────────────────────────────────── */
@@ -219,14 +219,18 @@ export class Moments {
     const root = new Container({ label: 'wave-banner' });
     const t = ownTex(waveBanner(n), 'wave:banner');
     const s = new Sprite(t);
-    root.addChild(s);
+    // M10: a dry sub-line under the banner (outlined small text, no panel).
+    const sub = textSprite(FONTS.small, waveLine(n), 'stone5', { outline: 'ink', outlineThin: true });
+    const st = ownTex(sub, 'wave:sub');
+    const subS = new Sprite(st);
+    root.addChild(s, subS);
     return {
       kind: 'wave',
       t0: this.now,
-      dur: 2.4,
+      dur: 2.8,
       root,
-      parts: { banner: s },
-      owned: [t],
+      parts: { banner: s, sub: subS },
+      owned: [t, st],
       dismissed: false,
     };
   }
@@ -248,6 +252,13 @@ export class Moments {
       else if (t < st.dur - 0.35) x = cx;
       else x = Math.round(cx + (l.W - cx) * ease.inCubic((t - (st.dur - 0.35)) / 0.35));
       s.position.set(x, l.bannerY + 4);
+      const sub = st.parts.sub;
+      if (sub) {
+        const sw = sub.texture.width;
+        const sx = Math.floor((l.W - sw) / 2) + (x - cx);
+        sub.position.set(sx, l.bannerY + 4 + s.texture.height + 2);
+        sub.visible = t > 0.25;
+      }
       return t < st.dur;
     }
     const rib = st.parts.ribbon!;
@@ -334,7 +345,7 @@ export class Moments {
     const icon = fig ? scaleUp(fig, fig.h <= 22 ? 1 : 1) : null;
     this.alert(
       'threat',
-      `NEW THREAT: ${protesterDef(p).name.toUpperCase()}`,
+      UI_TEXT.newThreat(protesterDef(p).name),
       PROTESTER_COPY[p].line,
       icon,
       {
@@ -347,8 +358,8 @@ export class Moments {
   breta(onTap?: () => void): void {
     this.alert(
       'breta',
-      'BRETA SIGHTED!',
-      'Worth +100 Hate if downed. Paparazzi included.',
+      UI_TEXT.bretaTitle,
+      UI_TEXT.bretaLine,
       bretaPortrait(),
       {
         ttl: 8,
@@ -360,8 +371,8 @@ export class Moments {
   prophets(onTap?: () => void): void {
     this.alert(
       'prophets',
-      'THE PROPHETS ARE COMING',
-      'They explode on contact. Keep them off your men.',
+      UI_TEXT.prophetsTitle,
+      UI_TEXT.prophetsLine,
       ICONS.prophets(),
       {
         ttl: 7,
@@ -371,17 +382,8 @@ export class Moments {
   }
 
   capitol(state: number, onTap?: () => void): void {
-    const names = [
-      '',
-      'GRAFFITI ON THE CAPITOL',
-      'WINDOWS SMASHED',
-      'THE CAPITOL IS ON FIRE',
-      'STATUES TOPPLED',
-      'THE CAPITOL IS COLLAPSING',
-    ];
-    const line =
-      state >= 4 ? 'Integrity critical. Hold them back!' : 'Protesters are damaging the Capitol.';
-    this.alert('capitol', names[state] ?? 'CAPITOL DAMAGED', line, ICONS.capitol(), {
+    const c = CAPITOL_COPY[state];
+    this.alert('capitol', c?.title ?? 'CAPITOL DAMAGED', c?.line ?? '', ICONS.capitol(), {
       ttl: 6,
       onTap,
       key: 'capitol',

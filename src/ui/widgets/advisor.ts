@@ -112,6 +112,16 @@ export class Advisor {
     return !!this.line;
   }
 
+  /** UI rect covered by the portrait box, name plate and bubble (null when silent). M10. */
+  extent(): { x: number; y: number; w: number; h: number } | null {
+    if (!this.line || !this.root.visible) return null;
+    const boxH = this.box.texture.height || 64;
+    const bh = this.bubble.texture.height;
+    const top = Math.min(this.bottom - boxH - 10, this.bottom - bh);
+    const w = (this.box.texture.width || 58) + 8 + this.bubbleW;
+    return { x: this.x, y: top, w, h: this.bottom - top };
+  }
+
   private next(): void {
     this.line?.resolve();
     this.line = this.queue.shift() ?? null;

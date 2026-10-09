@@ -18,10 +18,10 @@ Update this file at the end of every milestone.
 | M6 Simulation core | ✅ done | deterministic SoA sim, flow fields, combat, economy, director, most M7 specials. Docs `docs/M6.md` |
 | M7 Behaviours | ✅ done (M6 + M8) | rally points, rooftop defence, unit avoidance | |
 | M8 Integration & game feel | ✅ done | lazy worker art + IndexedDB cache, map rendering, depth slicing, views, FX, juice, day/night, controller API. Docs `docs/M8.md` |
-| M9 UI/UX & screens | ⬜ | |
-| M10 Tutorial, hints & writing | ⬜ | |
+| M9 UI/UX & screens | ✅ done | title over live city, city select, HUD, deploy bar, minimap, moments, advisor API, newspapers + ledger, settings. Docs `docs/M9.md` |
+| M10 Tutorial, hints & writing | 🔄 in progress | |
 | M11 Audio | ✅ done | procedural SFX/crowd/music, wired via `boot.ts wireAudio`. Docs `docs/M11.md` |
-| M12 Balance | ⬜ | |
+| M12 Balance | ✅ done | bots + `npm run playtest`; balanced wins 33–39 min, passive loses ~wave 10, peak crowd ~2300–2450. Docs `docs/M12.md` |
 | M13 Performance & polish | ⬜ | |
 | M14 Release | ⬜ | |
 
@@ -109,9 +109,12 @@ Naming: `<category>.<subject>.<anim>.<facing>` (`unit.*`, `prot.*`, `veh.*`, `ti
 - 2026-10-08 — Values not in the brief (flagged for owner): Mounted Riot Police grants 15 Legitimacy; Helicopter grants none (it cannot die).
 
 ## Open questions for the owner
+- M12: "cheap" (spam cheapest units) also wins — acceptable given the owner-fixed economy? Breathers lengthened to 16–24 s.
 - Paris Capitol: Assemblée nationale (Palais Bourbon) assumed; Madrid: Congreso de los Diputados; London: Palace of Westminster.
 
 ## Known issues
+- M9: Legitimacy seal level number crowded; small-font "+" reads as a dot; phone-portrait camera quite zoomed in; verify ledger "Hate spent" vs "Hate earned" accounting.
+- M12: bot decisions can take ~20 ms once per sim second (`?autoplay` / title-screen bot may hitch).
 - Sample officer (M1 pipeline proof) has idle SE + walk SE/NE (+ mirrors); there is no idle NE, so the demo shows NE/NW idlers with the SE/SW idle. No blink (a blink in a 4-frame 5 fps idle flashes every 0.8 s — M4a should use a longer idle or a separate blink anim). M4a redraws all units.
 - Stub tiles/buildings are placeholders (no kerbs/transitions, square footprints only).
 - Two-finger trackpad *pan* on desktop arrives as wheel events and zooms; drag with the mouse to pan.

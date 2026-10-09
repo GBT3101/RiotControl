@@ -142,6 +142,21 @@ export class TopBar {
     return { x: this.hateX + 6, y: this.hateY + 6 };
   }
 
+  /** UI rects for tutorial pointers (M10): Hate counter, Legitimacy seal + bar, integrity. */
+  hateRect(): { x: number; y: number; w: number; h: number } {
+    return { x: this.hateX - 2, y: this.hateY - 3, w: 18 + this.hateLabel.textWidth, h: 18 };
+  }
+
+  legitRect(): { x: number; y: number; w: number; h: number } {
+    const t = this.legit.texture;
+    return { x: this.legit.x - 1, y: this.legit.y - 1, w: t.width + 2, h: t.height + 2 };
+  }
+
+  integRect(): { x: number; y: number; w: number; h: number } {
+    const t = this.integ.texture;
+    return { x: this.integX - 1, y: this.integY - 1, w: t.width + 2, h: t.height + 2 };
+  }
+
   layout(l: HudLayout): void {
     const key = `${l.W}x${l.H}:${l.topRows}:${l.safe.top}:${l.safe.left}:${l.safe.right}`;
     if (key === this.layoutKey) return;

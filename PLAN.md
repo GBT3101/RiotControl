@@ -67,6 +67,8 @@ Start: **100 Hate, 0 Legitimacy, Level 0**, Capitol Integrity 100%.
 Special (any level, **1% per spawn-group roll**, max 1 alive): **Breta** + paparazzi entourage.
 
 ### 1.3 Player units (baseline numbers — tuned in M12)
+
+> **Tuned values live in `src/data/*` and `docs/M12.md`** (authoritative). Notable M12 changes beyond the brief: Capitol 18000 HP; breathers 16–24 s; per-type protester resistances to non-lethal damage (cultists/prophets shrug off rubber & gas); Capitol steps deployable for ground units; gas stuns once on entry. Owner-fixed numbers (costs, Legitimacy, Hate payouts, thresholds, start values, win at 5000) are unchanged and test-pinned.
 "Legit" = Legitimacy granted when the unit dies. All deaths also grant **+10 Hate**.
 
 | Unit | Cost | Legit | Placement | HP | Attack | Notes |
@@ -118,7 +120,7 @@ toppled statues → collapsing).
 - Spawn districts unlock progressively (1–2 at start → all 5–7 by mid game). Protesters exit
   residential doors (door-open animation), mill briefly, then join the flow.
 - Composition draws from unlocked types with weights shifting toward newest types.
-- Between waves: breather 12–20 s; "Call early" button grants bonus Hate (= seconds remaining / 2).
+- Between waves: breather 16–24 s (M12; brief draft said 12–20 s); "Call early" button grants bonus Hate (= seconds remaining / 2).
 - Target run length to 5000 Legitimacy: **35–50 minutes** at 1× speed. Speed toggle 1×/2×(/3×).
 
 ### 1.6 Economy rules (exact)

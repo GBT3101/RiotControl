@@ -32,7 +32,7 @@ import { Button, stampFaces } from '../core/button';
 import { makeInteractive } from '../core/node';
 import { ownTex } from '../core/tex';
 import { formatDuration, formatNumber } from '../records';
-import { CITY_COPY, UI_TEXT } from '../strings';
+import { CITY_COPY, UI_TEXT, closingLine, pickVariant } from '../strings';
 import type { HudLayout } from '../layout';
 import type { UiApp } from '../app';
 import { dossier } from './common';
@@ -321,6 +321,7 @@ export class EndScreen implements Screen {
   private totalRows = 0;
   private lineChars = 0;
   private lineText: string;
+  private readonly deck: string;
   private lineKey = '';
   private sideBySide = false;
   private l: HudLayout | null = null;
@@ -344,7 +345,11 @@ export class EndScreen implements Screen {
       unit: (u) => miniHead(unitPortrait(u), 10, 7),
     });
     this.totalRows = this.sections.reduce((n, x) => n + x.rows.length, 0);
-    this.lineText = victory ? UI_TEXT.atWhatCost : UI_TEXT.defeatCost;
+    // Copy variants (M10): seeded by the run so a relayout keeps the same picks.
+    const seed = Math.floor(game.world.tick + game.world.stats.time * 7);
+    this.lineText = closingLine(victory, seed);
+    const copy = CITY_COPY[game.world.map.city];
+    this.deck = pickVariant(victory ? copy.victoryDecks : copy.defeatDecks, seed >> 1);
     this.stamp = victory
       ? rubberStamp('APPROVED', 'green2', { tilt: -0.1 })
       : rubberStamp('DENIED', 'crim1', { tilt: -0.1 });
@@ -406,8 +411,7 @@ export class EndScreen implements Screen {
     const w = this.sideBySide ? Math.min(280, l.W - this.ledgerW - 36) : Math.min(300, l.W - 12);
     const h = Math.min(Math.round(w * 0.76), l.H - l.safe.top - l.safe.bottom - 16);
     const headline = this.victory ? UI_TEXT.victoryHeadline : UI_TEXT.defeatHeadline;
-    const copy = CITY_COPY[city];
-    const deck = this.victory ? copy.victoryDeck : copy.defeatDeck;
+    const deck = this.deck;
     const page = frontPage(city, headline, deck, w, h);
     const box = frontPageBox(city, headline, deck, w, h);
     // Live photo of the Capitol.

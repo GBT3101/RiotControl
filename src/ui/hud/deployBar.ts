@@ -16,7 +16,7 @@ import { makeInteractive } from '../core/node';
 import { swapOwned, uiTex } from '../core/tex';
 import { clampScroll, scrollToCard, type HudLayout } from '../layout';
 import { cardState } from '../model';
-import { UNIT_COPY } from '../strings';
+import { UI_TEXT, UNIT_COPY } from '../strings';
 import type { UiApp } from '../app';
 
 interface CardView {
@@ -91,13 +91,13 @@ export class DeployBar {
     if (!o.unlocked) {
       cv.shake = 0.35;
       this.app.sfx('error');
-      this.app.toast.info(`${UNITS[unit].name.toUpperCase()}: APPROVED AT LEVEL ${o.level}`);
+      this.app.toast.info(UI_TEXT.approvedAt(UNITS[unit].name, o.level));
       return;
     }
     if (!o.affordable && this.game.deployUnit !== unit) {
       cv.shake = 0.35;
       this.app.sfx('error');
-      this.app.toast.info(`NOT ENOUGH HATE (${o.cost} NEEDED)`);
+      this.app.toast.info(UI_TEXT.notEnoughHate(o.cost));
       return;
     }
     this.game.beginDeploy(unit);
