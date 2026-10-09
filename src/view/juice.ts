@@ -2,10 +2,11 @@
  * Game feel: integer-pixel screen shake, hit-stop, floating "+1" Hate fists flying to the HUD,
  * Legitimacy wax-seal pops, level-up confetti.
  *
- * Hate pickups live in screen space (UI scale): they pop at the death's screen position,
- * hover, then fly to `hateTarget` (a screen point the UI provides; top-left by default) and
- * emit `onArrive(amount)` when they land. At most `maxPickups` fly at once; overflow Hate is
- * folded into the next pickup.
+ * Hate pickups live in screen space (UI scale): a fist pops up at the death's screen position
+ * (0.16 s), then flies (0.6 s, eased in-out along a small arc) to `hateTarget` (a screen point
+ * the UI provides; top-left by default), vanishes and emits `onArrive(amount)`. Deaths close
+ * together while a fist is still popping merge into it ("+12"); at most `maxPickups` fly at
+ * once — overflow Hate is added to the youngest fist.
  */
 import { Container, Sprite } from 'pixi.js';
 import { art } from '../art/lib/atlas';
@@ -21,9 +22,16 @@ interface Pickup {
   y0: number;
   t0: number;
   amount: number;
-  hover: number;
+  shown: number;
   dur: number;
 }
+
+/** Pop (rise) phase of a pickup, s. */
+const POP = 0.16;
+/** Flight to the HUD, s. */
+const FLY = 0.6;
+/** Pickups spawned within this many UI px (while still popping) merge into one. */
+const MERGE_R = 48;
 
 export class Juice {
   /** Screen-space container (UI scale applied by the owner). */
@@ -33,11 +41,10 @@ export class Juice {
   private stopUntil = 0;
   private readonly pickups: Pickup[] = [];
   private readonly free: Pickup[] = [];
-  private pendingHate = 0;
   private readonly labels = new Map<number, Texture>();
   /** UI px. */
   hateTarget = { x: 18, y: 14 };
-  maxPickups = 28;
+  maxPickups = 10;
   reducedMotion = false;
   onArrive: ((amount: number) => void) | null = null;
   /** Screen shake offset in world px (integer). */
@@ -74,14 +81,21 @@ export class Juice {
 
   /** A Hate pickup at screen point (sx, sy) in UI px. */
   hate(amount: number, sx: number, sy: number, realNow: number): void {
-    if (this.pickups.length >= this.maxPickups) {
-      this.pendingHate += amount;
-      return;
-    }
-    amount += this.pendingHate;
-    this.pendingHate = 0;
     if (!art.has('fx.pickup.hate')) {
       this.onArrive?.(amount);
+      return;
+    }
+    // Merge into a fist that is still popping nearby; at the cap, into the youngest one.
+    let youngest: Pickup | null = null;
+    for (const q of this.pickups) {
+      if (!youngest || q.t0 > youngest.t0) youngest = q;
+      if (realNow - q.t0 < POP && Math.abs(q.x0 - sx) < MERGE_R && Math.abs(q.y0 - sy) < MERGE_R) {
+        q.amount += amount;
+        return;
+      }
+    }
+    if (youngest && this.pickups.length >= this.maxPickups) {
+      youngest.amount += amount;
       return;
     }
     let p = this.free.pop();
@@ -93,7 +107,7 @@ export class Juice {
         y0: 0,
         t0: 0,
         amount: 0,
-        hover: 0,
+        shown: 0,
         dur: 0,
       };
       p.label.anchor.set(0, 0.5);
@@ -104,9 +118,8 @@ export class Juice {
     p.y0 = sy;
     p.t0 = realNow;
     p.amount = amount;
-    p.hover = 0.35 + ((sx * 7 + sy) % 10) / 50;
-    p.dur = 0.55 + Math.min(0.35, Math.hypot(sx - this.hateTarget.x, sy - this.hateTarget.y) / 900);
-    p.label.texture = this.labelTex(Math.min(amount, 999));
+    p.shown = -1;
+    p.dur = FLY;
     this.pickups.push(p);
   }
 
@@ -130,17 +143,19 @@ export class Juice {
       const age = realNow - p.t0;
       let x: number;
       let y: number;
-      if (age < p.hover) {
-        const f = age / p.hover;
+      if (age < POP) {
+        // Pop: quick ease-out rise.
+        const f = age / POP;
         x = p.x0;
-        y = p.y0 - 10 * Math.sin(f * Math.PI * 0.5);
+        y = p.y0 - 8 * (1 - (1 - f) * (1 - f));
       } else {
-        const f = Math.min(1, (age - p.hover) / p.dur);
-        const e = f * f * (3 - 2 * f);
+        const f = Math.min(1, (age - POP) / p.dur);
+        // Ease in-out (cubic): leaves gently, accelerates, lands softly.
+        const e = f < 0.5 ? 4 * f * f * f : 1 - (-2 * f + 2) ** 3 / 2;
         const sx = p.x0;
-        const sy = p.y0 - 10;
+        const sy = p.y0 - 8;
         x = sx + (this.hateTarget.x - sx) * e;
-        y = sy + (this.hateTarget.y - sy) * e - Math.sin(f * Math.PI) * 30;
+        y = sy + (this.hateTarget.y - sy) * e - Math.sin(f * Math.PI) * 18;
         if (f >= 1) {
           p.icon.visible = p.label.visible = false;
           this.pickups.splice(k, 1);
@@ -149,10 +164,15 @@ export class Juice {
           continue;
         }
       }
+      if (p.shown !== p.amount) {
+        p.shown = p.amount;
+        p.label.texture = this.labelTex(Math.min(p.amount, 9999));
+      }
       if (clip) setTex(p.icon, clip.frames[clip.frameAt(age)]!);
       p.icon.position.set(Math.round(x), Math.round(y));
       p.label.position.set(Math.round(x) + 7, Math.round(y));
-      p.label.visible = age < p.hover + 0.15;
+      // The amount reads during the pop and the first part of the flight.
+      p.label.visible = age < POP + FLY * 0.45;
     }
   }
 

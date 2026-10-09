@@ -64,8 +64,11 @@ export class CombatView {
   private readonly areas = new Map<number, AreaEnt>();
   private readonly spritePool: Sprite[] = [];
   grade = 0xffffff;
+  /** Tear gas stays gas-green at night: graded only part of the way. */
+  gasTint = 0xffffff;
   darkness = 0;
   private readonly tmp = { x: 0, y: 0 };
+  private readonly litXY: number[] = [];
   /** Tracers spawned this frame (budget). */
   private tracerBudget = 0;
 
@@ -208,7 +211,12 @@ export class CombatView {
     switch (e.kind) {
       case 'molotov':
         this.fx.spawn('fx.molotov.shatter', x, y, now, { layer: 'entity', emissive: true });
-        this.fx.spawn('fx.light.fire', x, y, now, { layer: 'light', life: 0.5, fade: 0.3 });
+        this.fx.spawn('fx.light.fire', x, y, now, {
+          layer: 'light',
+          life: 0.4,
+          fade: 0.3,
+          alpha: 0.3,
+        });
         break;
       case 'bazooka':
         this.fx.spawn('fx.explosion.medium', x, y, now, {
@@ -221,7 +229,7 @@ export class CombatView {
           layer: 'light',
           life: 0.15,
           fade: 0.1,
-          alpha: 0.45,
+          alpha: 0.35,
         });
         this.decals.bake(`decal.scorch.${(e.tick % 3) as number}`, x, y);
         if (near) this.juice.shake(2, 0.25);
@@ -237,7 +245,7 @@ export class CombatView {
           layer: 'light',
           life: 0.2,
           fade: 0.15,
-          alpha: 0.5,
+          alpha: 0.4,
         });
         this.decals.bake(`decal.scorch.${e.tick % 3}`, x, y);
         if (near) {
@@ -256,7 +264,7 @@ export class CombatView {
           layer: 'light',
           life: 0.25,
           fade: 0.2,
-          alpha: 0.5,
+          alpha: 0.4,
         });
         this.decals.bake(`decal.scorch.${e.tick % 3}`, x, y);
         if (near) {
@@ -341,7 +349,10 @@ export class CombatView {
 
   private updateAreas(now: number, view: ViewRect): void {
     for (const a of this.areas.values()) a.seen = false;
-    let lights = 0;
+    // Fire glows placed this frame (x, y pairs): nearby fires share one glow — overlapping
+    // additive pools blow out to pink/white.
+    const lit = this.litXY;
+    lit.length = 0;
     for (const a of this.world.areas.active) {
       let ae = this.areas.get(a.id);
       if (!ae) {
@@ -420,7 +431,8 @@ export class CombatView {
             clip = art.anim(`fx.gas.puff.${pf.variant}.loop`);
             fi = clip.frameAt(age + pf.dx * 0.01);
           }
-          s.tint = this.grade;
+          s.tint = this.gasTint;
+          s.alpha = 0.9;
         } else {
           clip = art.anim(`fx.fire.patch.${pf.variant}`);
           fi = clip.frameAt(now - pf.start);
@@ -435,9 +447,13 @@ export class CombatView {
         const lc = art.anim('fx.light.fire');
         setTex(ae.light, lc.frames[lc.frameAt(now)]!);
         ae.light.position.set(cx, cy);
-        // A dozen fire glows is plenty (overlapping additive pools wash out to white).
-        ae.light.visible = visible && lights++ < 12;
-        ae.light.alpha = (0.06 + 0.45 * this.darkness) * Math.min(1, left / 0.5);
+        let show = visible && lit.length < 16;
+        for (let k = 0; show && k < lit.length; k += 2) {
+          if (Math.abs(lit[k]! - cx) < 40 && Math.abs(lit[k + 1]! - cy) < 22) show = false;
+        }
+        if (show) lit.push(cx, cy);
+        ae.light.visible = show;
+        ae.light.alpha = (0.03 + 0.24 * this.darkness) * Math.min(1, left / 0.5);
       }
       // Big fires (wrecks) smoke.
       if (ae.kind === 'fire' && a.r >= 1.4 && visible && now - ae.smokeT > 1.4) {

@@ -30,8 +30,10 @@ export function covers(b: Box, x: number, y: number): boolean {
 }
 
 /**
- * Per tile (row-major): 1 when a person standing on that tile is hidden by a box in front of
- * it — tested just above the feet, so people who are only cut at the head stay unghosted.
+ * Per tile (row-major): 2 when a person standing on that tile is completely hidden by boxes in
+ * front of it (feet, head and both shoulders covered), 1 when only the feet are hidden
+ * (partly visible), 0 otherwise. Silhouettes are only drawn for 2 — a flat silhouette over a
+ * partly visible sprite would hide the real art.
  */
 export function occlusionGrid(
   w: number,
@@ -47,17 +49,29 @@ export function occlusionGrid(
       for (let i = b.i; i < b.i + b.w; i++)
         if (i >= 0 && j >= 0 && i < w && j < h) at[j * w + i] = k;
   });
+  const front: Box[] = [];
   const seen = new Set<number>();
+  // Sample points relative to the tile centre's feet: feet, head, shoulders.
+  const PTS: ReadonlyArray<readonly [number, number]> = [
+    [0, -4],
+    [0, -19],
+    [-5, -12],
+    [5, -12],
+  ];
+  const hidden = (x: number, y: number): boolean => {
+    for (const b of front) if (covers(b, x, y)) return true;
+    return false;
+  };
   for (let j = 0; j < h; j++) {
     for (let i = 0; i < w; i++) {
       const t = j * w + i;
       if (blocked(t)) continue;
       const x = (i - j) * 16;
-      const y = (i + j + 1) * 8 - 4;
+      const y = (i + j + 1) * 8;
       seen.clear();
-      let occ = 0;
+      front.length = 0;
       // Boxes in front on screen: walk down the screen column (i+k, j+k) and its neighbours.
-      for (let k = 1; k <= 14 && !occ; k++) {
+      for (let k = 1; k <= 14; k++) {
         for (const [di, dj] of [
           [k, k],
           [k, k - 1],
@@ -69,13 +83,18 @@ export function occlusionGrid(
           const bk = at[jj * w + ii]!;
           if (bk < 0 || seen.has(bk)) continue;
           seen.add(bk);
-          if (covers(boxes[bk]!, x, y)) {
-            occ = 1;
-            break;
-          }
+          front.push(boxes[bk]!);
         }
       }
-      out[t] = occ;
+      if (front.length === 0 || !hidden(x, y - 4)) continue;
+      let all = true;
+      for (const [dx, dy] of PTS) {
+        if (!hidden(x + dx, y + dy)) {
+          all = false;
+          break;
+        }
+      }
+      out[t] = all ? 2 : 1;
     }
   }
   return out;

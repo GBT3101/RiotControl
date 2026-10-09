@@ -318,7 +318,7 @@ export class AmbientView {
             this.fx.spawn('fx.light.fire', c.x, c.y, now, {
               layer: 'light',
               life: 0.4,
-              alpha: 0.6,
+              alpha: 0.3,
               priority: 0,
             });
           }

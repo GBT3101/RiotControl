@@ -6,8 +6,9 @@
  * impact frame lands on the damage tick, molotov/bazooka throws, climb up the facade, fighting
  * on a roof, heave when a sniper goes over the edge, door exit, hit flash, paparazzi flash …),
  * with a per-protester phase offset so crowds never march in sync. Looks come from the city's
- * paper-doll variants (cultists by loadout). People hidden behind buildings get a red x-ray
- * silhouette. At far zoom with huge crowds, animation frames update at half rate (LOD).
+ * paper-doll variants (cultists by loadout). Prophets/cultists hidden behind buildings get a
+ * crisp red x-ray silhouette (capped). At far zoom with huge crowds, animation frames update
+ * at half rate (LOD).
  *
  * No allocation in the per-frame loop.
  */
@@ -19,6 +20,7 @@ import type { ProtesterManifest } from '../art/protesters';
 import { depthKey, HALF_TH, HALF_TW } from '../core/iso';
 import { PANIM, PS } from '../sim/crowd';
 import type { World } from '../sim/world';
+import { silhouetteOf } from './silhouette';
 import { setTex } from './sprites';
 import type { RoofInfo } from './staticView';
 import type { ViewRect } from './terrainView';
@@ -52,11 +54,25 @@ export interface ClipRef {
   key: number;
 }
 
-/** Variant registry: art variants → per (anim, facing) clips, resolved lazily. */
+/** Share of protesters (of types that have both) drawn with a raised sign / placard. */
+export const SIGN_SHARE = 0.12;
+
+/** Does this variant hold up a sign, placard or flag? */
+function holdsSign(v: { idle: string; loadout: string }): boolean {
+  return v.idle === 'sign' || v.idle === 'card' || v.loadout === 'sign';
+}
+
+/**
+ * Variant registry: art variants → per (anim, facing) clips, resolved lazily. Variants are
+ * split into sign carriers and the rest so only ≈1 in 4–5 protesters raises a sign (a crowd
+ * where everyone does reads as a wall of rectangles).
+ */
 export class VariantTable {
   readonly prefixes: string[] = [];
   private readonly clips: Array<Array<ClipRef | null> | null> = [];
   private readonly byType = new Map<string, number[]>();
+  private readonly signed = new Set<number>();
+  private readonly split = new Map<number[], { sign: number[]; plain: number[] }>();
   private manifest: ProtesterManifest;
 
   constructor(manifest: ProtesterManifest) {
@@ -73,6 +89,7 @@ export class VariantTable {
         const vi = this.prefixes.length;
         this.prefixes.push(v.prefix);
         this.clips.push(null);
+        if (holdsSign(v)) this.signed.add(vi);
         const all = this.byType.get(type) ?? [];
         all.push(vi);
         this.byType.set(type, all);
@@ -82,6 +99,17 @@ export class VariantTable {
         this.byType.set(lk, byLoad);
       }
     }
+    this.split.clear();
+  }
+
+  private splitOf(list: number[]): { sign: number[]; plain: number[] } {
+    let sp = this.split.get(list);
+    if (!sp) {
+      sp = { sign: list.filter((v) => this.signed.has(v)), plain: [] };
+      sp.plain = list.filter((v) => !this.signed.has(v));
+      this.split.set(list, sp);
+    }
+    return sp;
   }
 
   /** Variant index for a sim protester (type index, look seed, loadout index). */
@@ -94,7 +122,11 @@ export class VariantTable {
     // Deferred types not built yet: borrow the closest available look.
     if (!list || list.length === 0) list = this.byType.get('mob') ?? this.byType.get('student');
     if (!list || list.length === 0) return -1;
-    return list[(seed >>> 3) % list.length]!;
+    const sp = this.splitOf(list);
+    const h = seed >>> 3;
+    const useSign = sp.plain.length === 0 || (sp.sign.length > 0 && h % 100 < SIGN_SHARE * 100);
+    const from = useSign ? sp.sign : sp.plain;
+    return from[(h >>> 7) % from.length]!;
   }
 
   get(vi: number, anim: number, facing: number): ClipRef | null {
@@ -130,8 +162,14 @@ interface PoolEntry {
 }
 
 const PROPHET = PROTESTER_TYPES.indexOf('prophet');
-/** Enemy silhouettes are capped (a whole horde behind a block would just smear red). */
-const MAX_GHOSTS = 40;
+/** `vHandle` of a slot not bound to any protester yet (handle 0 is a real handle). */
+const UNBOUND = 0xffffffff;
+const CULTIST = PROTESTER_TYPES.indexOf('cultist');
+/**
+ * Enemy silhouettes: only the dangerous ones (prophets, armed cultists) and only a few — a
+ * whole horde behind a block would just paint the building red.
+ */
+const MAX_GHOSTS = 8;
 
 export interface ProtesterViewOpts {
   /** Ghost silhouettes for occluded protesters. */
@@ -169,7 +207,7 @@ export class ProtesterView {
   ) {
     this.variants = new VariantTable(manifest);
     const cap = world.crowd.capacity;
-    this.vHandle = new Uint32Array(cap);
+    this.vHandle = new Uint32Array(cap).fill(UNBOUND);
     this.vVariant = new Int32Array(cap).fill(-1);
     this.vHitT = new Float64Array(cap).fill(-99);
     this.vDoorT = new Float64Array(cap).fill(-99);
@@ -187,6 +225,21 @@ export class ProtesterView {
     this.vVariant[s] = this.variants.pick(c.type[s]!, c.variant[s]!, c.loadout[s]!);
     this.vHitT[s] = this.vDoorT[s] = this.vFlashT[s] = this.vHeaveT[s] = -99;
     this.vPhase[s] = ((c.variant[s]! >>> 11) & 1023) / 512;
+  }
+
+  /**
+   * New looks arrived: protesters drawn with a borrowed look (their type was not built yet)
+   * pick again on their next frame. Everyone else keeps their look.
+   */
+  refreshLooks(): void {
+    const c = this.world.crowd;
+    const vt = this.variants;
+    for (let s = 0; s < c.hi; s++) {
+      const vi = this.vVariant[s]!;
+      if (vi < 0 || this.vHandle[s] === UNBOUND) continue;
+      const type = PROTESTER_TYPES[c.type[s]!] ?? 'student';
+      if (!vt.prefixes[vi]!.startsWith(`prot.${type}.`)) this.vHandle[s] = UNBOUND;
+    }
   }
 
   /** Variant index of a (possibly just dead) protester handle, -1 if unknown. */
@@ -246,9 +299,11 @@ export class ProtesterView {
       this.ghostLayer.addChild(g);
       this.ghosts.push(g);
     }
+    const sil = silhouetteOf(tex.texture);
+    if (!sil) return;
     this.ghostUsed++;
     g.visible = true;
-    setTex(g, tex.texture);
+    setTex(g, sil);
     g.position.copyFrom(tex.position);
     g.scale.x = tex.scale.x;
   }
@@ -413,7 +468,15 @@ export class ProtesterView {
         e.tint = grade;
         sp.tint = grade;
       }
-      if (occluded && lift === 0 && this.ghostUsed < MAX_GHOSTS && occluded(x, y)) this.ghost(sp);
+      if (
+        occluded &&
+        lift === 0 &&
+        this.ghostUsed < MAX_GHOSTS &&
+        (c.type[s] === PROPHET || c.type[s] === CULTIST) &&
+        occluded(x, y)
+      ) {
+        this.ghost(sp);
+      }
     }
     for (let k = this.used; k < prevUsed; k++) this.pool[k]!.sprite.visible = false;
     for (let k = this.ghostUsed; k < prevGhosts; k++) this.ghosts[k]!.visible = false;

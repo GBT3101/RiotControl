@@ -119,6 +119,9 @@ export class FxSystem {
     }
     const clip = art.anim(name);
     const layer = o.layer ?? 'entity';
+    // Additive lights never stack: a glow of the same kind nearby already lights the spot
+    // (overlapping additive pools blow out to pink/white over the night grade).
+    if (layer === 'light' && this.lightNear(clip, x, y)) return null;
     let f = this.free[layer].pop();
     if (!f) {
       f = new Fx();
@@ -160,6 +163,15 @@ export class FxSystem {
     this.active.push(f);
     this.place(f, now);
     return f;
+  }
+
+  private lightNear(clip: AnimClip, x: number, y: number): boolean {
+    const r = Math.max(12, clip.width * 0.4);
+    for (const f of this.active) {
+      if (f.layer !== 'light' || f.clip !== clip) continue;
+      if (Math.abs(f.x - x) < r && Math.abs(f.y - y) < r * 0.6) return true;
+    }
+    return false;
   }
 
   kill(f: Fx): void {

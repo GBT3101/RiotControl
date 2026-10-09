@@ -1,10 +1,15 @@
 /**
  * Lazy art boot: which jobs to run when, and installing their results into the global `art`.
  *
- * - **critical** (before the first game frame): units, FX/UI/props/decals, the city's terrain,
- *   buildings, landmarks and the protester types that can appear early.
- * - **deferred** (background, after the first frame): vehicles (L7+ units and street decor) and
- *   late protester types (L6+). Views tolerate their absence until they arrive.
+ * - **critical** (before the first game frame): units, FX/UI/props/decals, buildings, the
+ *   Capitol, landmarks, the ground around the camera start and a few looks of the first-wave
+ *   protester types (a run opens in the prep phase — no protesters on screen yet).
+ * - **deferred** (background, after the first frame), in two stages: (1) the rest of the
+ *   ground and every protester look; (2) vehicles (L7+ units, street decor), the UI kit and
+ *   Capitol damage states. Views tolerate their absence until they arrive.
+ *
+ * `lean: false` (debug skips / scenes / custom camera) puts all ground and 8 looks of every
+ * early type into the critical set, since the first frame may be mid-battle anywhere.
  */
 import { installPacked, type AtlasPage } from '../../art/lib/atlas';
 import type { ProtesterManifest, ProtesterType } from '../../art/protesters';
@@ -25,6 +30,8 @@ export interface CityArtOptions {
   mapSeed: number;
   seed: number;
   quality: QualityTier;
+  /** Smallest critical set (normal play: the run opens at the camera start, prep phase). */
+  lean?: boolean;
 }
 
 /** Protester types that can appear before level 6 (built before the first frame). */
@@ -37,6 +44,9 @@ const EARLY: ProtesterType[][] = [
 const LATE: ProtesterType[][] = [['crazy'], ['cultist'], ['prophet']];
 /** Variants per type built before the first frame (the rest stream in afterwards). */
 const FIRST_VARIANTS = 8;
+/** Lean boot: first-wave types only, a few looks each. */
+const LEAN_TYPES: ProtesterType[][] = [['student'], ['woke'], ['mob']];
+const LEAN_VARIANTS = 3;
 
 function variantsFor(q: QualityTier): number | undefined {
   return q === 'desktop' ? undefined : q === 'mobile' ? 12 : 8;
@@ -58,26 +68,62 @@ export function criticalJobs(o: CityArtOptions): ArtJob[] {
   const jobs: ArtJob[] = [
     { kind: 'units' },
     { kind: 'fx' },
-    ...EARLY.map((t) => prot(o, t, 0, FIRST_VARIANTS)),
+    ...(o.lean
+      ? LEAN_TYPES.map((t) => prot(o, t, 0, LEAN_VARIANTS))
+      : EARLY.map((t) => prot(o, t, 0, FIRST_VARIANTS))),
     { kind: 'capitol', city: o.city, states: [0] },
     { kind: 'landmarks', city: o.city, mapSeed: o.mapSeed },
   ];
   for (let p = 0; p < 3; p++)
     jobs.push({ kind: 'buildings', city: o.city, mapSeed: o.mapSeed, part: p, parts: 3 });
-  for (let p = 0; p < 5; p++)
-    jobs.push({ kind: 'terrain', city: o.city, mapSeed: o.mapSeed, part: p, parts: 5 });
+  const tp = o.lean ? 2 : 5;
+  for (let p = 0; p < tp; p++) {
+    jobs.push({
+      kind: 'terrain',
+      city: o.city,
+      mapSeed: o.mapSeed,
+      part: p,
+      parts: tp,
+      region: o.lean ? 'near' : undefined,
+    });
+  }
   return jobs;
 }
 
-export function deferredJobs(o: CityArtOptions): ArtJob[] {
+/** Background jobs in stages (each stage is one batch; views refresh after each). */
+export function deferredStages(o: CityArtOptions): ArtJob[][] {
+  const first: ArtJob[] = [];
+  if (o.lean) {
+    for (let p = 0; p < 4; p++) {
+      first.push({
+        kind: 'terrain',
+        city: o.city,
+        mapSeed: o.mapSeed,
+        part: p,
+        parts: 4,
+        region: 'far',
+      });
+    }
+    first.push(
+      ...LEAN_TYPES.map((t) => prot(o, t, LEAN_VARIANTS, 99)),
+      prot(o, ['breta'], 0, 99),
+      prot(o, ['violent', 'paparazzi'], 0, 99),
+    );
+  } else first.push(...EARLY.map((t) => prot(o, t, FIRST_VARIANTS, 99)));
+  first.push(...LATE.map((t) => prot(o, t, 0, 99)));
   return [
-    { kind: 'vehicles' },
-    { kind: 'uikit' },
-    { kind: 'capitol', city: o.city, states: [1, 2] },
-    { kind: 'capitol', city: o.city, states: [3, 4] },
-    ...EARLY.map((t) => prot(o, t, FIRST_VARIANTS, 99)),
-    ...LATE.map((t) => prot(o, t, 0, 99)),
+    first,
+    [
+      { kind: 'vehicles' },
+      { kind: 'uikit' },
+      { kind: 'capitol', city: o.city, states: [1, 2] },
+      { kind: 'capitol', city: o.city, states: [3, 4] },
+    ],
   ];
+}
+
+export function deferredJobs(o: CityArtOptions): ArtJob[] {
+  return deferredStages(o).flat();
 }
 
 /** Everything the world view needs from the city's art jobs. */

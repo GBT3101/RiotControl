@@ -73,7 +73,15 @@ export type ArtJob =
   | { kind: 'buildings'; city: CityId; mapSeed: number; part: number; parts: number }
   | { kind: 'capitol'; city: CityId; states: number[] }
   | { kind: 'landmarks'; city: CityId; mapSeed: number }
-  | { kind: 'terrain'; city: CityId; mapSeed: number; part: number; parts: number };
+  | {
+      kind: 'terrain';
+      city: CityId;
+      mapSeed: number;
+      part: number;
+      parts: number;
+      /** Only the chunks around the map's camera start ('near') or all the others ('far'). */
+      region?: 'near' | 'far';
+    };
 
 /** Rough relative cost (progress bar weights / scheduling: longest first). */
 export function jobCost(job: ArtJob): number {
@@ -205,7 +213,7 @@ export function runJob(job: ArtJob): JobResult {
       r.landmarks = buildLandmarks(reg, loadMap(job.city, job.mapSeed));
       break;
     case 'terrain':
-      r.terrain = buildTerrain(loadMap(job.city, job.mapSeed), job.part, job.parts);
+      r.terrain = buildTerrain(loadMap(job.city, job.mapSeed), job.part, job.parts, job.region);
       break;
   }
   const defs = reg.list() as PackableDef[];
@@ -513,7 +521,37 @@ function sprinkleDecal(map: MapData, i: number, j: number): string | null {
   return null;
 }
 
-function buildTerrain(map: MapData, part: number, parts: number): TerrainChunkData[] {
+/** Half-size (world px) of the area around the camera start whose ground is baked first. */
+const NEAR_HALF_W = 600;
+const NEAR_HALF_H = 420;
+
+/** Is chunk (ci, cj) on screen around the map's camera start (any common viewport)? */
+export function chunkNearStart(map: MapData, ci: number, cj: number): boolean {
+  const cs = map.cameraStart;
+  const cx = (cs.i - cs.j) * 16;
+  const cy = (cs.i + cs.j + 1) * 8 - 30;
+  const i0 = ci * CHUNK;
+  const j0 = cj * CHUNK;
+  const i1 = Math.min(i0 + CHUNK, map.w);
+  const j1 = Math.min(j0 + CHUNK, map.h);
+  const minX = (i0 - j1) * 16;
+  const maxX = (i1 - j0) * 16;
+  const minY = (i0 + j0) * 8 - TOP_MARGIN;
+  const maxY = (i1 + j1) * 8;
+  return (
+    maxX > cx - NEAR_HALF_W &&
+    minX < cx + NEAR_HALF_W &&
+    maxY > cy - NEAR_HALF_H &&
+    minY < cy + NEAR_HALF_H
+  );
+}
+
+function buildTerrain(
+  map: MapData,
+  part: number,
+  parts: number,
+  region?: 'near' | 'far',
+): TerrainChunkData[] {
   const out: TerrainChunkData[] = [];
   const nu = Math.ceil(map.w / CHUNK);
   const nv = Math.ceil(map.h / CHUNK);
@@ -534,8 +572,9 @@ function buildTerrain(map: MapData, part: number, parts: number): TerrainChunkDa
   };
   let k = 0;
   for (let cj = 0; cj < nv; cj++) {
-    for (let ci = 0; ci < nu; ci++, k++) {
-      if (k % parts !== part) continue;
+    for (let ci = 0; ci < nu; ci++) {
+      if (region && chunkNearStart(map, ci, cj) !== (region === 'near')) continue;
+      if (k++ % parts !== part) continue;
       const i0 = ci * CHUNK;
       const j0 = cj * CHUNK;
       const i1 = Math.min(i0 + CHUNK, map.w);

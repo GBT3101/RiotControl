@@ -203,8 +203,9 @@ export function label(job: ArtJob): string {
     case 'protesters':
       return `protesters(${job.types.join(',')})`;
     case 'buildings':
-    case 'terrain':
       return `${job.kind}[${job.part}/${job.parts}]`;
+    case 'terrain':
+      return `terrain${job.region ? `:${job.region}` : ''}[${job.part}/${job.parts}]`;
     default:
       return job.kind;
   }

@@ -27,6 +27,7 @@ import { US, type Unit } from '../sim/units';
 import type { World } from '../sim/world';
 import { pieceDepthKey } from './depth';
 import type { ViewLayers } from './layers';
+import { silhouetteOf } from './silhouette';
 import { setTex } from './sprites';
 import type { RoofInfo } from './staticView';
 import type { ViewRect } from './terrainView';
@@ -86,6 +87,8 @@ class UnitEnt {
   y = 0;
   /** Height of the drawn body above the ground point (roof / air). */
   lift = 0;
+  /** Sort key of the body (rooftop units: just in front of their building). */
+  key = 0;
   /** Vehicles */
   lastDir = 1;
   dirChangeT = -99;
@@ -99,8 +102,12 @@ class UnitEnt {
   ) {}
 }
 
+/** Ally x-ray silhouettes drawn per frame (people fully hidden behind buildings). */
+const MAX_ALLY_GHOSTS = 16;
+
 export class UnitView {
   private readonly ents = new Map<number, UnitEnt>();
+  private ghosts = 0;
   private readonly seen = new Set<number>();
   grade = 0xffffff;
   darkness = 0;
@@ -126,7 +133,7 @@ export class UnitView {
     if (e) e.throwT = now;
   }
 
-  entity(id: number): { x: number; y: number; lift: number } | undefined {
+  entity(id: number): { x: number; y: number; lift: number; key: number } | undefined {
     return this.ents.get(id);
   }
 
@@ -224,6 +231,7 @@ export class UnitView {
   update(now: number, alpha: number, view: ViewRect): void {
     const list = this.world.units.active;
     this.seen.clear();
+    this.ghosts = 0;
     for (let k = 0; k < list.length; k++) {
       const u = list[k]!;
       if (!u.alive) continue;
@@ -247,8 +255,8 @@ export class UnitView {
       }
       if (u.lastHurt !== e.hurtSeen) {
         e.hurtSeen = u.lastHurt;
-        // Flash at most every ~0.6 s (units under constant attack would stay white).
-        if (now - e.hurtT > 0.6) e.hurtT = now;
+        // Flash at most every ~1.2 s (units in constant melee would strobe white).
+        if (now - e.hurtT > 1.2) e.hurtT = now;
       }
       switch (u.type) {
         case 'blockade':
@@ -346,6 +354,7 @@ export class UnitView {
         key = roof.frontKey + 2;
       }
     }
+    e.key = key;
     const n = u.type === 'brigade' ? Math.max(1, u.members) : 1;
     const mirror = f === 'sw' || f === 'nw' ? -1 : 1;
     for (let k = 0; k < 3; k++) {
@@ -371,7 +380,7 @@ export class UnitView {
   }
 
   private updateGhost(e: UnitEnt, main: Sprite, ground: boolean): void {
-    const occ = ground && this.occluded(e.x, e.y);
+    const occ = ground && this.ghosts < MAX_ALLY_GHOSTS && this.occluded(e.x, e.y);
     if (!occ) {
       if (e.ghost) e.ghost.visible = false;
       return;
@@ -381,8 +390,11 @@ export class UnitView {
       this.layers.ghostsAlly.addChild(e.ghost);
     }
     const g = e.ghost;
-    g.visible = true;
-    setTex(g, main.texture);
+    const sil = silhouetteOf(main.texture);
+    g.visible = sil !== null;
+    if (!sil) return;
+    this.ghosts++;
+    setTex(g, sil);
     g.position.copyFrom(main.position);
     g.scale.x = main.scale.x;
   }
@@ -453,7 +465,7 @@ export class UnitView {
     ts.zIndex = key + 1;
     ts.tint = this.grade;
     e.lift = 0;
-    this.updateGhost(e, hs, true);
+    // Vehicles get no silhouette (big boxy outlines clutter the view more than they tell).
   }
 
   private drawTank(u: Unit, e: UnitEnt, now: number): void {
@@ -492,7 +504,7 @@ export class UnitView {
     ts.zIndex = key + 1;
     ts.tint = this.grade;
     e.lift = 0;
-    this.updateGhost(e, hs, true);
+    // Vehicles get no silhouette (big boxy outlines clutter the view more than they tell).
   }
 
   private drawHeli(u: Unit, e: UnitEnt, now: number): void {

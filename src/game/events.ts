@@ -26,7 +26,7 @@ export interface ViewEventMap {
   gameOver: { victory: boolean; stats: StatsLedger };
   /** Assets loaded and the first frame is on screen. */
   ready: { city: string; bootMs: number };
-  /** Deferred art (vehicles, late protester types) finished loading. */
+  /** All deferred art loaded (far ground, all protester looks, vehicles, UI kit, Capitol states). */
   artComplete: { ms: number };
 }
 

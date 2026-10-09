@@ -356,7 +356,21 @@ export class GameController {
   }
 
   hover(h: PointerInfo | null): void {
-    this.hoverTile = h ? { i: h.i, j: h.j } : null;
+    this.hoverTile = h ? this.deployTile(h) : null;
+  }
+
+  /**
+   * The tile a pointer targets in deploy mode: rooftop units pick the building drawn under
+   * the pointer (anywhere on its walls or roof) → its footprint origin; otherwise the ground
+   * tile.
+   */
+  private deployTile(h: PointerInfo): { i: number; j: number } {
+    if (this.deploying && UNITS[this.deploying].placement === 'rooftop') {
+      const b = this.view.roofAt(h.worldX, h.worldY);
+      const bd = b >= 0 ? this.world.map.buildings[b] : undefined;
+      if (bd) return { i: bd.i, j: bd.j };
+    }
+    return { i: h.i, j: h.j };
   }
 
   /** A tap/click at a canvas point (from CameraController or the UI). */
@@ -368,17 +382,18 @@ export class GameController {
     const map = this.world.map;
     const inMap = e.i >= 0 && e.j >= 0 && e.i < map.w && e.j < map.h;
     if (this.deploying) {
-      if (!inMap) return;
+      const t = this.deployTile(e);
+      if (t.i < 0 || t.j < 0 || t.i >= map.w || t.j >= map.h) return;
       if (e.pointerType === 'touch') {
         // Mobile: first tap previews (ghost + glow), a second tap on the same tile confirms.
         const p = this.touchPreview;
-        if (!p || p.i !== e.i || p.j !== e.j) {
-          this.touchPreview = { i: e.i, j: e.j };
+        if (!p || p.i !== t.i || p.j !== t.j) {
+          this.touchPreview = t;
           return;
         }
         this.touchPreview = null;
       }
-      this.deployAt(e.i, e.j);
+      this.deployAt(t.i, t.j);
       return;
     }
     const w = this.view.screenToWorld(e.sx, e.sy);
@@ -395,6 +410,10 @@ export class GameController {
 
   /** Tap a tile directly (UI / tests). */
   tapTile(i: number, j: number): void {
+    if (this.deploying) {
+      this.deployAt(i, j);
+      return;
+    }
     const p = tileToWorld(i + 0.5, j + 0.5);
     const v = this.camera.view();
     this.tap({

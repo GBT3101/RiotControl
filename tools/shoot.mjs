@@ -15,6 +15,7 @@
  *   --dpr N                           device scale factor override
  *   --out name                        output base name (shots/<name>[-<viewport>].png)
  *   --wait ms                         extra wait after the page reports ready (default 800)
+ *   --timeout ms                      max wait for the page to report ready (default 20000)
  *   --full / --no-full                full-page screenshot (default: gallery full, game not)
  *   --clip x,y,w,h                    clip rectangle in CSS px
  *   --no-build                        reuse the existing dist/ (preview mode)
@@ -37,6 +38,7 @@ const { values: args } = parseArgs({
     dpr: { type: 'string' },
     out: { type: 'string' },
     wait: { type: 'string', default: '800' },
+    timeout: { type: 'string', default: '20000' },
     full: { type: 'boolean' },
     'no-full': { type: 'boolean' },
     clip: { type: 'string' },
@@ -165,7 +167,7 @@ try {
     await page.goto(url, { waitUntil: 'load' });
     try {
       await page.waitForFunction(() => document.documentElement.dataset.ready === 'true', null, {
-        timeout: 20000,
+        timeout: Number(args.timeout) || 20000,
       });
     } catch {
       errors.push('timeout: page never reported ready (document.documentElement.dataset.ready)');

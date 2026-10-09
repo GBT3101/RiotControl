@@ -13,7 +13,13 @@ import { DebugOverlay } from '../render/debugOverlay';
 import { createPixelStage, type PixelStage } from '../render/stage';
 import { Bot } from '../sim/headless';
 import { World } from '../sim/world';
-import { criticalJobs, deferredJobs, emptyCityArt, loadBatch, type CityArtOptions } from './assets';
+import {
+  criticalJobs,
+  deferredStages,
+  emptyCityArt,
+  loadBatch,
+  type CityArtOptions,
+} from './assets';
 import { ArtCache } from './assets/cache';
 import { ArtLoader } from './assets/loader';
 import { GameController } from './controller';
@@ -83,6 +89,15 @@ export async function bootGame(host: HTMLElement, params: GameParams): Promise<G
     mapSeed: params.mapSeed,
     seed: params.seed,
     quality,
+    // Normal play opens at the camera start in the prep phase: only the ground around it and
+    // a few first-wave looks are needed for the first frame. Debug jumps need everything.
+    lean:
+      params.skip === 0 &&
+      params.stress === 0 &&
+      !params.scene &&
+      !params.focus &&
+      params.camU === undefined &&
+      params.camV === undefined,
   };
   const cityArt = emptyCityArt();
   // Start the simulation build while the workers paint.
@@ -170,13 +185,18 @@ export async function bootGame(host: HTMLElement, params: GameParams): Promise<G
     overlay,
   };
 
-  // Background: vehicles + late protester types.
-  void loadBatch(loader, deferredJobs(cityOpts), cityArt).then(() => {
-    preupload(
-      stage,
-      cityArt.pages.map((p) => p.texture),
-    );
-    game.view.onArtUpdated();
+  // Background, in stages: far ground + all protester looks, then vehicles / UI kit / Capitol
+  // damage states.
+  void (async () => {
+    for (const batch of deferredStages(cityOpts)) {
+      await loadBatch(loader, batch, cityArt);
+      preupload(
+        stage,
+        cityArt.pages.map((p) => p.texture),
+      );
+      game.view.onArtUpdated();
+    }
+  })().then(() => {
     timings.deferredArt = performance.now() - t0;
     timings.jobs = loader.timings;
     loader.terminate();

@@ -5,12 +5,15 @@
  *     terrain    baked ground chunks                         (container tint = grade)
  *     decals     decal render texture, cast shadows          (container tint = grade)
  *     bodies     fallen bodies, dying anims, ground FX        (container tint = grade)
+ *     marks      ground-level UI: tile highlights, range & selection rings (never graded;
+ *                below every standing thing, so buildings in front hide them)
  *     entities   buildings (depth pieces), props, people, vehicles, upright FX — sorted by zIndex
  *                (per-sprite tint: graded sprites get the grade, lit windows stay white)
  *     ghosts     x-ray silhouettes of people behind buildings (ally blue / enemy red)
  *     air        helicopters, thrown snipers, projectiles in flight (per-sprite tint)
  *     lights     additive light sprites (lamps, fires, sirens, flashes); alpha = darkness
- *     overlays   selection & range rings, tile highlights, placement ghosts (never graded)
+ *     overlays   always-on-top world UI (Legitimacy seals); upright UI markers (waypoint flag,
+ *                placement ghost, roof highlights) sort inside `entities` instead
  *   screen       screen-space FX (Hate pickups flying to the HUD, confetti, stamps)
  */
 import { Container } from 'pixi.js';
@@ -20,6 +23,7 @@ export interface ViewLayers {
   terrain: Container;
   decals: Container;
   bodies: Container;
+  marks: Container;
   entities: Container;
   ghostsAlly: Container;
   ghostsEnemy: Container;
@@ -34,6 +38,7 @@ export function createViewLayers(parent: Container): ViewLayers {
   const terrain = new Container({ label: 'terrain' });
   const decals = new Container({ label: 'decals' });
   const bodies = new Container({ label: 'bodies' });
+  const marks = new Container({ label: 'marks' });
   const entities = new Container({ label: 'entities', sortableChildren: true });
   const ghostsAlly = new Container({ label: 'ghosts-ally' });
   const ghostsEnemy = new Container({ label: 'ghosts-enemy' });
@@ -41,13 +46,25 @@ export function createViewLayers(parent: Container): ViewLayers {
   const lights = new Container({ label: 'lights' });
   const overlays = new Container({ label: 'overlays' });
   const screen = new Container({ label: 'screen-fx' });
-  world.addChild(terrain, decals, bodies, entities, ghostsEnemy, ghostsAlly, air, lights, overlays);
+  world.addChild(
+    terrain,
+    decals,
+    bodies,
+    marks,
+    entities,
+    ghostsEnemy,
+    ghostsAlly,
+    air,
+    lights,
+    overlays,
+  );
   parent.addChild(world, screen);
   return {
     world,
     terrain,
     decals,
     bodies,
+    marks,
     entities,
     ghostsAlly,
     ghostsEnemy,

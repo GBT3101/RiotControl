@@ -1,7 +1,8 @@
 /**
  * Terrain from the worker-baked chunks (jobs.ts `terrain`): one sprite per 16×16-tile chunk,
  * buffer-backed textures; chunks with water carry WATER_FRAMES frames swapped at WATER_FPS
- * (river shimmer). Off-screen chunks are hidden.
+ * (river shimmer). Off-screen chunks are hidden. Chunks can arrive in batches (the ground
+ * around the camera start first): `add` keeps them in back-to-front order via zIndex.
  */
 import { BufferImageSource, Sprite, Texture, type Container } from 'pixi.js';
 import { WATER_FPS } from '../art/env/ground';
@@ -27,9 +28,22 @@ export class TerrainView {
   private readonly chunks: Chunk[] = [];
   visible = 0;
 
-  constructor(parent: Container, data: readonly TerrainChunkData[]) {
-    const sorted = [...data].sort((a, b) => a.ci + a.cj - (b.ci + b.cj) || a.ci - b.ci);
-    for (const c of sorted) {
+  private readonly have = new Set<number>();
+
+  constructor(
+    private readonly parent: Container,
+    data: readonly TerrainChunkData[],
+  ) {
+    parent.sortableChildren = true;
+    this.add(data);
+  }
+
+  /** Add chunks not seen yet (deferred ground). */
+  add(data: readonly TerrainChunkData[]): void {
+    for (const c of data) {
+      const key = c.cj * 1024 + c.ci;
+      if (this.have.has(key)) continue;
+      this.have.add(key);
       const frames = c.frames.map(
         (buf, k) =>
           new Texture({
@@ -46,7 +60,9 @@ export class TerrainView {
       );
       const sprite = new Sprite(frames[0]!);
       sprite.position.set(c.x, c.y);
-      parent.addChild(sprite);
+      // Overlapping chunk margins: draw back to front.
+      sprite.zIndex = (c.ci + c.cj) * 1024 + c.ci;
+      this.parent.addChild(sprite);
       this.chunks.push({ sprite, frames, x0: c.x, y0: c.y, x1: c.x + c.w, y1: c.y + c.h });
     }
   }

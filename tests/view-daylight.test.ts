@@ -46,8 +46,11 @@ describe('occlusion', () => {
       const j = (t - i) / 20;
       return i >= 10 && i < 12 && j >= 10 && j < 12;
     });
-    expect(grid[9 * 20 + 9]).toBe(1); // diagonally behind
+    expect(grid[9 * 20 + 9]).toBe(2); // diagonally behind, fully hidden
     expect(grid[13 * 20 + 13]).toBe(0); // in front
     expect(grid[2 * 20 + 2]).toBe(0); // far behind, above the roofline
+    // Feet hidden, head above the roof edge → only partly hidden.
+    const partial = [...grid].findIndex((v) => v === 1);
+    expect(partial).toBeGreaterThanOrEqual(0);
   });
 });

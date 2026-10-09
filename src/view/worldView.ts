@@ -24,14 +24,19 @@ import { DecalLayer } from './decalLayer';
 import { FxSystem } from './fx';
 import { Juice } from './juice';
 import { createViewLayers, type ViewLayers } from './layers';
-import { occlusionGrid, type Box } from './occlusion';
+import { covers, occlusionGrid, type Box } from './occlusion';
 import { OverlayView, type OverlayState } from './overlays';
 import { ProtesterView } from './protesterView';
+import { flushSilhouettes } from './silhouette';
 import { StaticView } from './staticView';
 import { TerrainView, type ViewRect } from './terrainView';
 import { UNIT_ART, UnitView, resetClipCache } from './unitView';
 import { uiScale } from '../render/zoom';
 import type { PixelStage } from '../render/stage';
+
+/** Silhouette colours (RIOT-64 `blue2` / `crim2`). */
+const ALLY_GHOST = 0x5c9ce2;
+const ENEMY_GHOST = 0xe03c44;
 
 export interface WorldViewOptions {
   quality: QualityTier;
@@ -90,12 +95,8 @@ export class WorldView {
     this.terrain = new TerrainView(this.layers.terrain, cityArt.terrain);
     this.statics = new StaticView(map, cityArt, this.layers);
     this.occ = this.buildOcclusion();
-    const occluded = (x: number, y: number): boolean => {
-      const u = Math.floor(y / 16 + x / 32);
-      const v = Math.floor(y / 16 - x / 32);
-      if (u < 0 || v < 0 || u >= map.w || v >= map.h) return false;
-      return this.occ[v * map.w + u] === 1;
-    };
+    // Fully hidden only: a silhouette over a partly visible sprite would hide its art.
+    const occluded = (x: number, y: number): boolean => this.occlusionAt(x, y) === 2;
     this.protesters = new ProtesterView(
       world,
       cityArt.manifest,
@@ -156,14 +157,17 @@ export class WorldView {
     };
     this.ambient = new AmbientView(world, map, this.layers, this.fx, this.decals);
     this.ambient.placeCars();
-    this.overlays = new OverlayView(world, this.layers.overlays, (id) => this.units.entity(id));
+    this.overlays = new OverlayView(world, this.layers, {
+      unitPos: (id) => this.units.entity(id),
+      roof: (b) => this.statics.roof(b),
+      roofStand: (b) => this.cityArt.buildings.get(b)?.roofStand,
+      occlusion: (x, y) => this.occlusionAt(x, y),
+    });
     this.layers.screen.addChild(this.juice.screen);
     if (q !== 'low') {
-      // X-ray silhouettes: team-tinted translucent copies (crisp; filter passes blur/bleed).
-      this.layers.ghostsAlly.tint = 0x4f7dff;
-      this.layers.ghostsEnemy.tint = 0xff4a3a;
-      this.layers.ghostsAlly.alpha = 0.6;
-      this.layers.ghostsEnemy.alpha = 0.22;
+      // X-ray silhouettes: flat one-colour sprites (white silhouette textures × team colour).
+      this.layers.ghostsAlly.tint = ALLY_GHOST;
+      this.layers.ghostsEnemy.tint = ENEMY_GHOST;
     } else {
       this.layers.ghostsAlly.visible = this.layers.ghostsEnemy.visible = false;
     }
@@ -174,6 +178,15 @@ export class WorldView {
       // Joined mid-run (time skip): start at the current clock instead of racing to it.
       this.tod = targetTod(world.director.wave, 0.5);
     }
+  }
+
+  /** 0 visible · 1 feet hidden behind a building · 2 fully hidden (world px of the feet). */
+  occlusionAt(x: number, y: number): number {
+    const map = this.world.map;
+    const u = Math.floor(y / 16 + x / 32);
+    const v = Math.floor(y / 16 - x / 32);
+    if (u < 0 || v < 0 || u >= map.w || v >= map.h) return 0;
+    return this.occ[v * map.w + u]!;
   }
 
   private buildOcclusion(): Uint8Array {
@@ -202,10 +215,12 @@ export class WorldView {
     return occlusionGrid(map.w, map.h, boxes, (t) => !this.world.nav.walk[t]);
   }
 
-  /** Deferred art arrived (vehicles, late protester types). */
+  /** Deferred art arrived (far ground, more protester looks, vehicles, Capitol states). */
   onArtUpdated(): void {
     resetClipCache();
+    this.terrain.add(this.cityArt.terrain);
     this.protesters.variants.rebuild(this.cityArt.manifest);
+    this.protesters.refreshLooks();
     this.ambient.placeCars();
     this.statics.refreshCapitol();
   }
@@ -226,6 +241,26 @@ export class WorldView {
       x: ((x - v.x) * v.zoom + Math.floor(v.width / 2)) / this.uiK,
       y: ((y - v.y) * v.zoom + Math.floor(v.height / 2)) / this.uiK,
     };
+  }
+
+  /**
+   * Rooftop building whose drawn silhouette (walls + roof) is under world point (x, y) —
+   * the frontmost one — or -1. Rooftop deploy mode picks roofs with this.
+   */
+  roofAt(x: number, y: number): number {
+    let best = -1;
+    let bestKey = -Infinity;
+    for (const b of this.world.map.buildings) {
+      if (!b.rooftop) continue;
+      const roof = this.statics.roof(b.id);
+      if (!roof || roof.frontKey <= bestKey) continue;
+      const h = this.cityArt.buildings.get(b.id)?.height ?? b.storeys * 10;
+      if (covers({ i: b.i, j: b.j, w: b.w, d: b.d, h }, x, y)) {
+        best = b.id;
+        bestKey = roof.frontKey;
+      }
+    }
+    return best;
   }
 
   /** Unit id at a world point, or -1. */
@@ -341,7 +376,7 @@ export class WorldView {
         layer: 'light',
         life: 0.25,
         fade: 0.2,
-        alpha: 0.5,
+        alpha: 0.4,
       });
       this.juice.shake(3, 0.4);
     }
@@ -426,6 +461,7 @@ export class WorldView {
     lap('fx');
     this.overlays.update(ui, now);
     this.decals.flush();
+    flushSilhouettes();
     lap('other');
     T.frames++;
   }
@@ -485,6 +521,7 @@ export class WorldView {
       this.units.darkness = g.darkness;
       this.bodies.grade = t;
       this.combat.grade = t;
+      this.combat.gasTint = mixColor(t, 0xffffff, 0.55);
       this.combat.darkness = g.darkness;
       this.ambient.grade = t;
       this.ambient.darkness = g.darkness;

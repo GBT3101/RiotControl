@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { packSprites } from '../src/art/lib/atlas';
 import { createBuffer, setPixel } from '../src/art/lib/pixels';
-import { criticalJobs, deferredJobs } from '../src/game/assets';
-import { CHUNK, mergeManifests, runJob } from '../src/game/assets/jobs';
+import { criticalJobs, deferredJobs, deferredStages } from '../src/game/assets';
+import { CHUNK, chunkNearStart, mergeManifests, runJob } from '../src/game/assets/jobs';
 import { readParams } from '../src/game/params';
 import { loadMap } from '../src/maps';
 
@@ -115,6 +115,44 @@ describe('art jobs', () => {
     const states = all.flatMap((j) => (j.kind === 'capitol' ? j.states : [])).sort();
     expect(states).toEqual([0, 1, 2, 3, 4]);
     expect(criticalJobs(o).some((j) => j.kind === 'vehicles')).toBe(false);
+  });
+});
+
+describe('lean boot', () => {
+  const o = {
+    city: 'london' as const,
+    mapSeed: 0,
+    seed: 1,
+    quality: 'desktop' as const,
+    lean: true,
+  };
+
+  it('critical ground = the chunks around the camera start; the rest is deferred', () => {
+    const map = loadMap('london', 0);
+    const nu = Math.ceil(map.w / CHUNK);
+    const nv = Math.ceil(map.h / CHUNK);
+    let near = 0;
+    for (let cj = 0; cj < nv; cj++)
+      for (let ci = 0; ci < nu; ci++) if (chunkNearStart(map, ci, cj)) near++;
+    expect(near).toBeGreaterThan(0);
+    expect(near).toBeLessThan(nu * nv);
+    const crit = criticalJobs(o).filter((j) => j.kind === 'terrain');
+    expect(crit.every((j) => j.kind === 'terrain' && j.region === 'near')).toBe(true);
+    const far = deferredStages(o)[0]!.filter((j) => j.kind === 'terrain');
+    expect(far.length).toBeGreaterThan(0);
+    expect(far.every((j) => j.kind === 'terrain' && j.region === 'far')).toBe(true);
+  });
+
+  it('first frame needs only a few first-wave looks; every type still arrives', () => {
+    const crit = criticalJobs(o).flatMap((j) => (j.kind === 'protesters' ? j.types : []));
+    expect(crit.sort()).toEqual(['mob', 'student', 'woke']);
+    const all = [...criticalJobs(o), ...deferredJobs(o)];
+    const types = new Set(all.flatMap((j) => (j.kind === 'protesters' ? j.types : [])));
+    expect(types.size).toBe(9);
+    // Vehicles and the UI kit come last (second background stage).
+    const stages = deferredStages(o);
+    expect(stages[1]!.some((j) => j.kind === 'vehicles')).toBe(true);
+    expect(stages[0]!.some((j) => j.kind === 'vehicles')).toBe(false);
   });
 });
 
