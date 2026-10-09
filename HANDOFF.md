@@ -16,11 +16,11 @@ Update this file at the end of every milestone.
 | M4c Vehicles art | ✅ done | humvee, tank, heli (8 dirs), 23 decor vehicles; `meta.ts` offsets. Docs `docs/art/M4c.md` |
 | M5 FX & UI kit art | ✅ done | FX, fonts + text API, 9-slice panels, cards, meters, Minister, logo, newspapers. Docs `docs/art/M5.md` |
 | M6 Simulation core | ✅ done | deterministic SoA sim, flow fields, combat, economy, director, most M7 specials. Docs `docs/M6.md` |
-| M7 Behaviours | ⏳ mostly done in M6; remainder folded into M8 | |
-| M8 Integration & game feel | ⬜ | |
+| M7 Behaviours | ✅ done (M6 + M8) | rally points, rooftop defence, unit avoidance | |
+| M8 Integration & game feel | ✅ done | lazy worker art + IndexedDB cache, map rendering, depth slicing, views, FX, juice, day/night, controller API. Docs `docs/M8.md` |
 | M9 UI/UX & screens | ⬜ | |
 | M10 Tutorial, hints & writing | ⬜ | |
-| M11 Audio | ⬜ | |
+| M11 Audio | ✅ done | procedural SFX/crowd/music, wired via `boot.ts wireAudio`. Docs `docs/M11.md` |
 | M12 Balance | ⬜ | |
 | M13 Performance & polish | ⬜ | |
 | M14 Release | ⬜ | |
