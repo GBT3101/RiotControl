@@ -11,7 +11,7 @@ import { minimapFrame } from '../../art/uikit/panels';
 import { GROUNDS, type MapData } from '../../maps/contract';
 import type { GameController } from '../../game/controller';
 import { makeInteractive } from '../core/node';
-import { swapOwned } from '../core/tex';
+import { markOwned, swapOwned, destroyOwned } from '../core/tex';
 import { minimapFrameH, type HudLayout } from '../layout';
 import type { UiApp } from '../app';
 
@@ -198,7 +198,7 @@ export class Minimap {
       autoGenerateMipmaps: false,
       label: 'minimap-overlay',
     });
-    this.over.texture = new Texture({ source: this.overSource });
+    this.over.texture = markOwned(new Texture({ source: this.overSource }));
     if (old && old !== Texture.EMPTY) old.destroy(true);
     this.acc = 1;
   }
@@ -276,6 +276,6 @@ export class Minimap {
   }
 
   destroy(): void {
-    this.root.destroy({ children: true });
+    destroyOwned(this.root);
   }
 }

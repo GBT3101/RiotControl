@@ -20,7 +20,7 @@ import type { ProtesterManifest } from '../art/protesters';
 import { depthKey, HALF_TH, HALF_TW } from '../core/iso';
 import { PANIM, PS } from '../sim/crowd';
 import type { World } from '../sim/world';
-import { silhouetteOf } from './silhouette';
+import { GhostGate, silhouetteOf } from './silhouette';
 import { setTex } from './sprites';
 import type { RoofInfo } from './staticView';
 import type { ViewRect } from './terrainView';
@@ -184,6 +184,8 @@ export class ProtesterView {
   private readonly ghosts: Sprite[] = [];
   private used = 0;
   private ghostUsed = 0;
+  /** M13a: de-stack enemy ghosts (one per screen cell; prophets always shown). */
+  private readonly ghostGate = new GhostGate({ max: MAX_GHOSTS, cellW: 32, cellH: 24 });
   private frameNo = 0;
   /** Per crowd slot view state. */
   private readonly vHandle: Uint32Array;
@@ -332,6 +334,7 @@ export class ProtesterView {
     const prevGhosts = this.ghostUsed;
     this.used = 0;
     this.ghostUsed = 0;
+    this.ghostGate.begin(0, 0);
     this.frameNo++;
     const lodOdd = this.lod ? this.frameNo & 1 : -1;
     const vt = this.variants;
@@ -473,7 +476,8 @@ export class ProtesterView {
         lift === 0 &&
         this.ghostUsed < MAX_GHOSTS &&
         (c.type[s] === PROPHET || c.type[s] === CULTIST) &&
-        occluded(x, y)
+        occluded(x, y) &&
+        this.ghostGate.allow(x, y, c.type[s] === PROPHET, true)
       ) {
         this.ghost(sp);
       }

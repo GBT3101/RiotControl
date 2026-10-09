@@ -5,12 +5,14 @@
  *   ?seed=N                     run seed (sim + protester looks; default 1)
  *   ?mapSeed=N                  map variation seed (default 0 = canonical)
  *   ?autoplay=1                 a bot plays (deploys, starts waves, throws gas)
+ *   ?bot=KIND                   autoplay strategy (escalate default; passive loses — soak tests)
  *   ?t=SECONDS                  fast-forward the sim before the first frame (with autoplay → mid-battle)
  *   ?stress=N                   spawn N protesters around the map at start (perf profiling)
  *   ?level=N&hate=N             debug economy (unlock everything for screenshots)
  *   ?wave=N                     first wave is wave N (bigger hordes right away)
  *   ?tod=0..1                   force time of day (0.1 day, .4 golden, .55 dusk, .7 night, .95 dawn)
  *   ?quality=low|mobile|desktop override the auto quality tier
+ *   ?governor=1|0               force the dynamic quality fallback on/off (default: on, off under automation)
  *   ?zoom=N&u=I&v=J             camera zoom / centre (tiles);  ?focus=crowd centres on the biggest crowd
  *   ?debug                      debug overlay on;  ?hud=0 hide the debug HUD
  *   ?demo=1                     the M1 test-map demo scene
@@ -25,6 +27,18 @@
  *   ?legit=N                    Legitimacy (with ?level) — e.g. near the next threshold
  */
 import type { QualityTier } from '../data/balance';
+import type { BotKind } from '../sim/bots';
+
+/** Mirrors sim/bots BOT_KINDS (kept local: this module is in the entry chunk). */
+const BOT_KINDS: readonly string[] = [
+  'none',
+  'passive',
+  'riot',
+  'cheap',
+  'balanced',
+  'escalate',
+  'sacrificial',
+];
 import { CITIES, type CityId } from '../maps/contract';
 
 export interface GameParams {
@@ -32,6 +46,8 @@ export interface GameParams {
   seed: number;
   mapSeed: number;
   autoplay: boolean;
+  /** Autoplay bot strategy. */
+  bot: BotKind;
   skip: number;
   stress: number;
   level?: number;
@@ -41,6 +57,8 @@ export interface GameParams {
   hate?: number;
   tod?: number;
   quality?: QualityTier;
+  /** Frame-time governor (dynamic quality fallback) forced on/off. */
+  governor?: boolean;
   zoom?: number;
   focus?: string;
   camU?: number;
@@ -73,11 +91,13 @@ export function readParams(search: string): GameParams {
   };
   const city = q.get('city') as CityId | null;
   const quality = q.get('quality') as QualityTier | null;
+  const bot = q.get('bot') as BotKind | null;
   return {
     city: city && CITIES.includes(city) ? city : 'madrid',
     seed: num('seed') ?? 1,
     mapSeed: num('mapSeed') ?? 0,
     autoplay: q.get('autoplay') === '1' || q.get('autoplay') === 'true',
+    bot: bot && BOT_KINDS.includes(bot) ? bot : 'escalate',
     skip: Math.max(0, Math.min(1800, num('t') ?? 0)),
     stress: Math.max(0, Math.min(4000, num('stress') ?? 0)),
     level: num('level'),
@@ -86,6 +106,7 @@ export function readParams(search: string): GameParams {
     hate: num('hate'),
     tod: num('tod'),
     quality: quality && ['low', 'mobile', 'desktop'].includes(quality) ? quality : undefined,
+    governor: q.has('governor') ? q.get('governor') !== '0' : undefined,
     zoom: num('zoom'),
     focus: q.get('focus') ?? undefined,
     camU: num('u'),

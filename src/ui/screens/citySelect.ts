@@ -14,7 +14,7 @@ import { art } from '../../art/lib/atlas';
 import { CITIES, type CityId } from '../../maps/contract';
 import { Button, stampFaces } from '../core/button';
 import { makeInteractive } from '../core/node';
-import { atlasBuffer, ownTex } from '../core/tex';
+import { atlasBuffer, ownTex, destroyOwned } from '../core/tex';
 import { formatDuration, formatNumber, type CityRecord } from '../records';
 import { CITY_COPY } from '../strings';
 import type { HudLayout } from '../layout';
@@ -319,6 +319,6 @@ export class CitySelectScreen implements Screen {
     this.alive = false;
     for (const c of this.cards)
       if (c.sprite.texture.label === 'ui:postcard') c.sprite.texture.destroy(true);
-    this.root.destroy({ children: true });
+    destroyOwned(this.root);
   }
 }

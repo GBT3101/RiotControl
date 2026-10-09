@@ -12,8 +12,9 @@ import type { VolumeChannel } from '../../audio/types';
 import { Button, facesFrom, stampFaces, type ButtonFaces } from '../core/button';
 import { Label } from '../core/label';
 import { makeInteractive } from '../core/node';
-import { swapOwned } from '../core/tex';
+import { swapOwned, destroyOwned } from '../core/tex';
 import type { HudLayout } from '../layout';
+import type { UiSize } from '../settings';
 import type { UiApp } from '../app';
 import { dossier } from './common';
 import { backdrop, fitBackdrop, type Screen } from './screen';
@@ -268,7 +269,22 @@ export class SettingsScreen implements Screen {
           },
         ),
       },
-      { label: 'LANGUAGE', widget: null, note: 'ENGLISH' },
+      {
+        label: 'UI SIZE',
+        widget: new Options<UiSize>(
+          [
+            { label: 'AUTO', value: 'auto' },
+            { label: 'LARGE', value: 'large' },
+          ],
+          () => s.uiSize,
+          (v) => {
+            s.uiSize = v;
+            save();
+            // Rebuild at the new scale on the next frame (this screen is re-laid out too).
+            requestAnimationFrame(() => app.relayout());
+          },
+        ),
+      },
     );
     for (const r of this.rows) if (r.widget) this.root.addChild(r.widget);
     this.back = new Button(stampFaces('DONE', 80), { onTap: () => app.pop(this), pad: 3 });
@@ -321,6 +337,6 @@ export class SettingsScreen implements Screen {
 
   destroy(): void {
     this.app.saveSettings();
-    this.root.destroy({ children: true });
+    destroyOwned(this.root);
   }
 }

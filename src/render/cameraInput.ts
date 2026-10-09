@@ -1,6 +1,6 @@
 /**
- * Camera input: mouse drag + inertia, wheel zoom toward the cursor, one-finger drag and
- * two-finger pinch on touch, WASD / arrow keys, +/- keys. Distinguishes taps from drags and
+ * Camera input: mouse drag + inertia, wheel zoom toward the cursor (trackpad: two-finger
+ * scroll pans, pinch = ctrl+wheel zooms), one-finger drag and two-finger pinch on touch, WASD / arrow keys, +/- keys. Distinguishes taps from drags and
  * emits `tap` (and `hover` for mice) with world and tile coordinates.
  */
 import { EventBus } from '../core/events';
@@ -49,6 +49,37 @@ const TAP_SLOP_CSS = 8; // CSS px a finger/mouse may wander and still count as a
 const TAP_MAX_MS = 450;
 const KEY_PAN_CSS_PER_SEC = 700;
 const WHEEL_STEP = 100; // accumulated wheel delta per zoom step (one mouse notch)
+/** A trackpad scroll gesture keeps panning for this long after its last event (ms). */
+const TRACKPAD_STICKY_MS = 250;
+
+/** The fields of a WheelEvent the classifier needs (`wheelDeltaY` is non-standard). */
+export interface WheelLike {
+  deltaX: number;
+  deltaY: number;
+  deltaMode: number;
+  ctrlKey: boolean;
+  wheelDeltaY?: number;
+}
+
+/**
+ * Wheel event → what the user did (M13b): `zoom` (mouse wheel notch, or a trackpad pinch,
+ * which browsers send as ctrl+wheel) or `pan` (two-finger trackpad scroll). Trackpad scrolls
+ * have pixel deltas and either a horizontal component, or (Chromium/WebKit) a legacy
+ * `wheelDeltaY` of exactly −3 × deltaY; mouse notches are line/page deltas or multiples of 120
+ * in `wheelDeltaY`. Firefox (no `wheelDeltaY`): small fractional pixel deltas = trackpad.
+ */
+export function classifyWheel(e: WheelLike): 'zoom' | 'pan' {
+  if (e.ctrlKey) return 'zoom';
+  if (e.deltaMode !== 0) return 'zoom';
+  if (e.deltaX !== 0) return 'pan';
+  const wd = e.wheelDeltaY;
+  if (typeof wd === 'number' && wd !== 0) {
+    if (Math.abs(wd + 3 * e.deltaY) < 0.5 && Math.abs(wd) % 120 !== 0) return 'pan';
+    return Math.abs(wd) % 120 === 0 ? 'zoom' : 'pan';
+  }
+  const ay = Math.abs(e.deltaY);
+  return ay > 0 && ay < 40 && !Number.isInteger(e.deltaY) ? 'pan' : 'zoom';
+}
 
 export class CameraController {
   readonly events = new EventBus<CameraInputEvents>();
@@ -59,6 +90,7 @@ export class CameraController {
   private pinch = { dist: 1, zoom: 1, mx: 0, my: 0 };
   private samples: Array<{ t: number; x: number; y: number }> = [];
   private wheelAcc = 0;
+  private trackpadUntil = 0;
   private readonly keys = new Set<string>();
   private readonly disposers: Array<() => void> = [];
 
@@ -280,6 +312,16 @@ export class CameraController {
     e.preventDefault();
     if (!this.enabled) return;
     const scale = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
+    // Two-finger trackpad scroll pans (sticky for the rest of the gesture).
+    const now = performance.now();
+    const kind = classifyWheel(e as WheelLike);
+    if (!e.ctrlKey && (kind === 'pan' || now < this.trackpadUntil)) {
+      this.trackpadUntil = now + TRACKPAD_STICKY_MS;
+      const k = this.devicePerCss() * scale;
+      this.camera.stop();
+      this.camera.panByScreen(-e.deltaX * k, -e.deltaY * k);
+      return;
+    }
     // Trackpad pinch arrives as ctrl+wheel with small deltas: amplify.
     this.wheelAcc += e.deltaY * scale * (e.ctrlKey ? 4 : 1);
     const p = this.toDevice(e);

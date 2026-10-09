@@ -15,7 +15,7 @@ import { formatNumber } from '../records';
 import { Button, roundFaces } from '../core/button';
 import { Label } from '../core/label';
 import { makeInteractive } from '../core/node';
-import { swapOwned, uiTex } from '../core/tex';
+import { swapOwned, uiTex, destroyOwned } from '../core/tex';
 import { HateCounter, compactNumber, levelProgress, waveStatus } from '../model';
 import { TOP_ROW_H, type HudLayout } from '../layout';
 import type { UiApp } from '../app';
@@ -246,6 +246,6 @@ export class TopBar {
   }
 
   destroy(): void {
-    this.root.destroy({ children: true });
+    destroyOwned(this.root);
   }
 }

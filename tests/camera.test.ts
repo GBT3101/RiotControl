@@ -14,7 +14,9 @@ describe('zoom policy', () => {
     expect(zoomRange(1440, 900).def).toBe(2);
     expect(zoomRange(1920, 1080).def).toBe(3);
     expect(zoomRange(2532, 1170).def).toBe(4);
-    expect(zoomRange(1170, 2532).def).toBe(4); // rotation-stable
+    // Portrait phones: ≥ 10.5 tiles across the width (≈ 12 at zoom 3).
+    expect(zoomRange(1170, 2532).def).toBe(3);
+    expect(zoomRange(1536, 2048).def).toBe(3);
     const r = zoomRange(1440, 900);
     expect(r.max - r.min).toBe(4);
     expect(r.min).toBeGreaterThanOrEqual(1);

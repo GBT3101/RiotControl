@@ -13,7 +13,7 @@ import { UNITS } from '../../data/units';
 import type { GameController } from '../../game/controller';
 import type { DeployFail } from '../../sim';
 import { Button, facesFrom, roundFaces } from '../core/button';
-import { ownTex } from '../core/tex';
+import { ownTex, destroyOwned } from '../core/tex';
 import { roundButton } from '../../art/uikit/buttons';
 import type { HudLayout } from '../layout';
 import type { UiApp } from '../app';
@@ -135,6 +135,6 @@ export class Placement {
   }
 
   destroy(): void {
-    this.root.destroy({ children: true });
+    destroyOwned(this.root);
   }
 }

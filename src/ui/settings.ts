@@ -33,7 +33,11 @@ export interface GameSettings {
   lastCity?: CityId;
   /** UI language (EN only for now). */
   language: 'en';
+  /** Interface size: auto (render/zoom uiScale) or one step larger where it fits (M13b). */
+  uiSize: UiSize;
 }
+
+export type UiSize = 'auto' | 'large';
 
 export const DEFAULT_GAME_SETTINGS: Readonly<GameSettings> = Object.freeze({
   speed: 1,
@@ -44,6 +48,7 @@ export const DEFAULT_GAME_SETTINGS: Readonly<GameSettings> = Object.freeze({
   minimap: true,
   minimapPortrait: false,
   language: 'en',
+  uiSize: 'auto',
 });
 
 /** Coerce anything into valid settings (unknown keys dropped). */
@@ -72,6 +77,7 @@ export function sanitizeGameSettings(raw: unknown): GameSettings {
         ? o.lastCity
         : undefined,
     language: 'en',
+    uiSize: o.uiSize === 'large' ? 'large' : 'auto',
   };
 }
 

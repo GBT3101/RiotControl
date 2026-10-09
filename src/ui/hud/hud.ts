@@ -6,7 +6,7 @@
 import { Container, Sprite } from 'pixi.js';
 import { rubberStamp } from '../../art/uikit/banners';
 import { makeInteractive } from '../core/node';
-import { uiTex } from '../core/tex';
+import { uiTex, destroyOwned } from '../core/tex';
 import type { UnitId } from '../../data/units';
 import type { GameController, HudSnapshot } from '../../game/controller';
 import { Button, roundFaces } from '../core/button';
@@ -114,6 +114,6 @@ export class Hud {
     this.minimap.destroy();
     this.info.destroy();
     this.placement.destroy();
-    this.root.destroy({ children: true });
+    destroyOwned(this.root);
   }
 }

@@ -32,10 +32,12 @@ import {
 } from './assets';
 import { ArtCache } from './assets/cache';
 import type { ArtJob, JobResult } from './assets/jobs';
+import { art } from '../art/lib/atlas';
 import { createBuffer, type PixelBuffer } from '../art/lib/pixels';
 import { ArtLoader } from './assets/loader';
 import { GameController } from './controller';
 import type { GameParams } from './params';
+import { governorEnabled } from './governor';
 import { setupScene } from './scenes';
 
 export interface BootTimings {
@@ -113,9 +115,33 @@ export class ArtSession {
     this.disposed = true;
     this.loader?.terminate();
     this.loader = null;
+    forgetPages(this.cityArt.pages.map((p) => p.texture.source));
     for (const p of this.cityArt.pages) p.texture.destroy(true);
     this.cityArt.pages.length = 0;
   }
+}
+
+/**
+ * Drop every global art clip drawn from `sources` (a city's atlas pages about to be destroyed).
+ * Clip names are not city-qualified (`prot.student.v21.walk.sw`), so a stale clip of the
+ * previous city would otherwise be picked up whenever the next city has no sprite of that name
+ * (e.g. it mirrors that facing at runtime) and crash the renderer with a destroyed texture.
+ */
+function forgetPages(sources: readonly unknown[]): void {
+  const dead = new Set(sources);
+  const names = art.names();
+  const gone = names.filter((n) => dead.has(art.anim(n).frames[0]?.source));
+  if (!gone.length) return;
+  const goneSet = new Set(gone);
+  // `removePrefix` matches prefixes: skip a name that prefixes a live one (never in practice).
+  const sorted = [...names].sort();
+  for (const n of gone) {
+    let live = false;
+    for (let k = sorted.indexOf(n) + 1; k < sorted.length && sorted[k]!.startsWith(n); k++)
+      if (!goneSet.has(sorted[k]!)) live = true;
+    if (!live) art.removePrefix(n);
+  }
+  art.pages = art.pages.filter((p) => !dead.has(p.texture.source));
 }
 
 export class ArtStore {
@@ -354,7 +380,7 @@ export function createGame(
   if (params.stress > 0) stressSpawn(world, params.stress);
   const sceneFocus = params.scene ? setupScene(world, params.scene) : null;
   if (params.skip > 0) {
-    const bot = params.autoplay ? new Bot(world, 'escalate') : null;
+    const bot = params.autoplay ? new Bot(world, params.bot) : null;
     if (params.autoplay || params.stress > 0) world.startWaves();
     const n = Math.round(params.skip / world.dt);
     for (let k = 0; k < n && world.phase === 'playing'; k++) {
@@ -368,6 +394,8 @@ export function createGame(
   const game = new GameController(stage, world, session.cityArt, {
     quality,
     autoplay: params.autoplay,
+    bot: params.bot,
+    governor: governorEnabled(params.governor),
     tod: params.tod,
     zoom: params.zoom,
     camU: params.camU,

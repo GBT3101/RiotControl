@@ -8,7 +8,7 @@ import { FONTS, drawText } from '../../art/uikit/text';
 import type { GameController } from '../../game/controller';
 import { Button, stampFaces } from '../core/button';
 import { makeInteractive } from '../core/node';
-import { ownTex } from '../core/tex';
+import { ownTex, destroyOwned } from '../core/tex';
 import { formatDuration, formatNumber } from '../records';
 import { CITY_COPY } from '../strings';
 import type { HudLayout } from '../layout';
@@ -89,6 +89,6 @@ export class PauseScreen implements Screen {
 
   destroy(): void {
     if (this.panel.texture.label === 'ui:pause') this.panel.texture.destroy(true);
-    this.root.destroy({ children: true });
+    destroyOwned(this.root);
   }
 }

@@ -3,12 +3,38 @@
  * static pieces (panels, buttons, icons) and pixel extraction from the worker-built atlas (unit
  * portraits, protester sprites) so the UI kit generators can compose them into cards.
  */
-import { Texture } from 'pixi.js';
+import { Texture, type Container } from 'pixi.js';
 import { art } from '../../art/lib/atlas';
 import { createBuffer, type PixelBuffer } from '../../art/lib/pixels';
 import { bufferTexture } from '../../art/uikit/pixi';
 
 const cache = new Map<string, Texture>();
+/** Textures owned by a sprite (not cached): freed by `destroyOwned`. */
+const owned = new WeakSet<Texture>();
+
+/** Mark a texture as owned by whoever displays it (freed by `destroyOwned`). */
+export function markOwned<T extends Texture>(t: T): T {
+  owned.add(t);
+  return t;
+}
+
+/**
+ * Destroy a UI subtree and every owned texture shown in it (cached `uiTex` textures and atlas
+ * frames stay). Use instead of `root.destroy({ children: true })` for HUD/screens: dynamic
+ * panels, labels and counters would otherwise leak their GPU textures on every restart.
+ */
+export function destroyOwned(root: Container): void {
+  const walk = (c: Container): void => {
+    const t = (c as Container & { texture?: Texture }).texture;
+    if (t && owned.has(t)) {
+      owned.delete(t);
+      if (!t.destroyed) t.destroy(true);
+    }
+    for (const ch of c.children) walk(ch);
+  };
+  walk(root);
+  root.destroy({ children: true });
+}
 
 /** Cached static texture (generated once per key). */
 export function uiTex(key: string, make: () => PixelBuffer): Texture {
@@ -22,7 +48,7 @@ export function uiTex(key: string, make: () => PixelBuffer): Texture {
 
 /** Uncached texture (caller owns it: destroy(true) when replaced). */
 export function ownTex(buf: PixelBuffer, label = 'ui'): Texture {
-  return bufferTexture(buf, label);
+  return markOwned(bufferTexture(buf, label));
 }
 
 /** Replace a sprite-owned texture, destroying the previous one if it was owned. */
@@ -32,8 +58,11 @@ export function swapOwned(
   label = 'ui:owned',
 ): void {
   const old = holder.texture;
-  holder.texture = bufferTexture(buf, label);
-  if (old && old !== Texture.EMPTY && old.label === label) old.destroy(true);
+  holder.texture = markOwned(bufferTexture(buf, label));
+  if (old && old !== Texture.EMPTY && (old.label === label || owned.has(old))) {
+    owned.delete(old);
+    old.destroy(true);
+  }
 }
 
 const extracted = new Map<string, PixelBuffer | null>();

@@ -13,7 +13,7 @@ import type { DeployOption, GameController } from '../../game/controller';
 import { formatNumber } from '../records';
 import { compactCard, unitPortrait } from '../art';
 import { makeInteractive } from '../core/node';
-import { swapOwned, uiTex } from '../core/tex';
+import { swapOwned, uiTex, destroyOwned } from '../core/tex';
 import { clampScroll, scrollToCard, type HudLayout } from '../layout';
 import { cardState } from '../model';
 import { UI_TEXT, UNIT_COPY } from '../strings';
@@ -188,6 +188,6 @@ export class DeployBar {
   }
 
   destroy(): void {
-    this.root.destroy({ children: true });
+    destroyOwned(this.root);
   }
 }

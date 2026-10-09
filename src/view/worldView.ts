@@ -78,6 +78,12 @@ export class WorldView {
   private readonly pendingThrows = new Map<string, ThrowInfo>();
   /** View clock (interpolated sim seconds). */
   now = 0;
+  /** UI scale of the screen-FX layer (the app's UI scale; null = default `uiScale`). */
+  uiKOverride: number | null = null;
+  /** Dynamic quality fallback level (0 = tier defaults; see `setDegrade`). */
+  degrade = 0;
+  private baseFxBudget = 0;
+  private baseBodyCap = 0;
 
   constructor(
     private readonly stage: PixelStage,
@@ -178,6 +184,24 @@ export class WorldView {
       // Joined mid-run (time skip): start at the current clock instead of racing to it.
       this.tod = targetTod(world.director.wave, 0.5);
     }
+  }
+
+  /**
+   * Dynamic quality fallback (M13b, driven by the controller's frame-time governor):
+   * 1 = half-rate crowd animation always, FX budget and live bodies halved, no x-ray ghosts;
+   * 2 = FX budget and live bodies at a quarter. 0 restores the tier defaults.
+   */
+  setDegrade(level: number): void {
+    const lv = Math.max(0, Math.min(2, Math.round(level)));
+    if (lv === this.degrade) return;
+    this.baseFxBudget ||= this.fx.budget;
+    this.baseBodyCap ||= this.bodies.cap;
+    this.degrade = lv;
+    const f = lv === 0 ? 1 : lv === 1 ? 0.5 : 0.25;
+    this.fx.budget = Math.max(60, Math.round(this.baseFxBudget * f));
+    this.bodies.cap = Math.max(60, Math.round(this.baseBodyCap * f));
+    const ghosts = lv === 0 && this.opts.quality !== 'low';
+    this.layers.ghostsAlly.visible = this.layers.ghostsEnemy.visible = ghosts;
   }
 
   /** 0 visible · 1 feet hidden behind a building · 2 fully hidden (world px of the feet). */
@@ -424,7 +448,7 @@ export class WorldView {
     this.lastView = cam;
     // UI scale for the screen layer.
     const s = this.stage.size;
-    this.uiK = uiScale(Math.min(s.cssWidth, s.cssHeight), s.dpr);
+    this.uiK = this.uiKOverride ?? uiScale(Math.min(s.cssWidth, s.cssHeight), s.dpr);
     this.layers.screen.scale.set(this.uiK);
     // Camera + integer shake.
     this.juice.update(realDt, realMs / 1000);
@@ -454,9 +478,11 @@ export class WorldView {
     this.terrain.update(now, r);
     this.statics.update(now, r, this.grade.hour);
     lap('statics');
-    this.protesters.lod = this.opts.quality === 'low' || (zoom <= 2 && w.crowd.count > 1600);
+    this.protesters.lod =
+      this.opts.quality === 'low' || this.degrade > 0 || (zoom <= 2 && w.crowd.count > 1600);
     this.protesters.update(now, alpha, r);
     lap('protesters');
+    this.units.selected = ui.selected;
     this.units.update(now, alpha, r);
     lap('units');
     this.bodies.update(now, r);
@@ -468,7 +494,9 @@ export class WorldView {
     this.fx.update(now, dtSim);
     lap('fx');
     this.overlays.update(ui, now);
+    lap('overlays');
     this.decals.flush();
+    lap('decals');
     flushSilhouettes();
     lap('other');
     T.frames++;
@@ -483,6 +511,8 @@ export class WorldView {
     combat: 0,
     ambient: 0,
     fx: 0,
+    overlays: 0,
+    decals: 0,
     other: 0,
     frames: 0,
   };

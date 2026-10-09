@@ -22,6 +22,7 @@ import { frontPage, masthead } from '../../art/uikit/newspaper';
 import { FONTS, drawText, measureText } from '../../art/uikit/text';
 import { tileToWorld } from '../../core/iso';
 import { PROTESTER_IDS, protesterDef, type ProtesterId } from '../../data/protesters';
+import { BALANCE } from '../../data/balance';
 import { UNITS, UNIT_ORDER, type UnitId } from '../../data/units';
 import type { GameController } from '../../game/controller';
 import type { Renderer } from 'pixi.js';
@@ -30,7 +31,7 @@ import { protesterFigure, unitPortrait } from '../art';
 import { ease, prog, stampDrop } from '../core/anim';
 import { Button, stampFaces } from '../core/button';
 import { makeInteractive } from '../core/node';
-import { ownTex } from '../core/tex';
+import { ownTex, destroyOwned } from '../core/tex';
 import { formatDuration, formatNumber } from '../records';
 import { CITY_COPY, UI_TEXT, closingLine, pickVariant } from '../strings';
 import type { HudLayout } from '../layout';
@@ -229,6 +230,12 @@ export function ledgerSections(
     { icon: null, label: 'Breta', value: breta },
     { icon: null, label: 'Hate earned', value: formatNumber(s.hateEarned) },
     { icon: null, label: 'Hate spent', value: formatNumber(s.hateSpent) },
+    // Start grant + earned − spent: makes the two lines above add up (M13b).
+    {
+      icon: null,
+      label: 'Hate unspent',
+      value: formatNumber(Math.max(0, BALANCE.startHate + s.hateEarned - s.hateSpent)),
+    },
     { icon: null, label: 'Peak crowd', value: formatNumber(s.peakCrowd) },
     { icon: null, label: 'Waves', value: String(s.wave) },
     { icon: null, label: 'Time', value: formatDuration(s.time) },
@@ -701,6 +708,6 @@ export class EndScreen implements Screen {
   destroy(): void {
     for (const s of [this.paper, this.ledger, this.line])
       if (s.texture.label?.startsWith('ui:')) s.texture.destroy(true);
-    this.root.destroy({ children: true });
+    destroyOwned(this.root);
   }
 }

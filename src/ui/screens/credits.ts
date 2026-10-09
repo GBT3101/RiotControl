@@ -5,7 +5,7 @@ import { FONTS, drawText, measureText } from '../../art/uikit/text';
 import { stamp } from '../../art/fx/draw';
 import { Button, stampFaces } from '../core/button';
 import { makeInteractive } from '../core/node';
-import { swapOwned } from '../core/tex';
+import { swapOwned, destroyOwned } from '../core/tex';
 import { CREDITS, UI_TEXT } from '../strings';
 import type { HudLayout } from '../layout';
 import type { UiApp } from '../app';
@@ -67,6 +67,6 @@ export class CreditsScreen implements Screen {
   }
 
   destroy(): void {
-    this.root.destroy({ children: true });
+    destroyOwned(this.root);
   }
 }

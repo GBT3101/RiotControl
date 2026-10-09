@@ -24,12 +24,13 @@ import { Camera } from '../render/camera';
 import { CameraController, type PointerInfo, type TapEvent } from '../render/cameraInput';
 import type { PixelStage } from '../render/stage';
 import { zoomRange } from '../render/zoom';
-import { Bot } from '../sim/headless';
+import { Bot, type BotKind } from '../sim/headless';
 import type { SimEvent } from '../sim/events';
 import type { Unit } from '../sim/units';
 import type { World } from '../sim/world';
 import type { DirectorPhase } from '../sim/director';
 import { WorldView } from '../view/worldView';
+import { FrameGovernor } from './governor';
 import type { CityArt } from './assets';
 import type { GameEventMap } from './events';
 
@@ -37,9 +38,13 @@ export interface ControllerOptions {
   quality: QualityTier;
   /** A bot plays (debug / screenshots). */
   autoplay?: boolean;
+  /** Autoplay strategy (default escalate). */
+  bot?: BotKind;
   /** Force a time of day (0..1). */
   tod?: number;
   zoom?: number;
+  /** Dynamic quality fallback when frames stay slow (default on; see game/governor.ts). */
+  governor?: boolean;
   camU?: number;
   camV?: number;
 }
@@ -126,8 +131,10 @@ export class GameController {
   attract = false;
   /** destroy() was called. */
   destroyed = false;
-  /** Rolling per-frame cost (ms): sim steps, view update, Pixi render. */
-  readonly perf = { sim: 0, view: 0, render: 0, frames: 0 };
+  /** Frame-time governor (null = off). */
+  readonly governor: FrameGovernor | null;
+  /** Accumulated cost (ms): sim steps (+ bot), view update, UI frame, Pixi render; counts. */
+  readonly perf = { sim: 0, view: 0, ui: 0, render: 0, frames: 0, ticks: 0 };
 
   constructor(
     private readonly stage: PixelStage,
@@ -140,7 +147,8 @@ export class GameController {
       bus: this.bus,
       tod: opts.tod,
     });
-    this.bot = opts.autoplay ? new Bot(world, 'escalate') : null;
+    this.bot = opts.autoplay ? new Bot(world, opts.bot ?? 'escalate') : null;
+    this.governor = opts.governor === false ? null : new FrameGovernor();
     // Camera.
     const map = world.map;
     const b = mapWorldBounds(map.w, map.h);
@@ -171,6 +179,7 @@ export class GameController {
         this.bot?.update();
         this.world.step();
         this.perf.sim += performance.now() - t;
+        this.perf.ticks++;
       },
       render: (alpha, frameDtMs) => this.render(alpha, frameDtMs),
     });
@@ -208,6 +217,13 @@ export class GameController {
       this.loop.paused = false;
     }
     const dt = frameDtMs / 1000;
+    const lv = this.governor?.sample(frameDtMs);
+    if (lv !== undefined && lv !== null) {
+      this.view.setDegrade(lv);
+      console.info(
+        `[riot] frame time ${this.governor!.average.toFixed(0)} ms → quality fallback level ${lv}`,
+      );
+    }
     this.input.update(dt);
     this.camera.update(dt);
     const events = this.world.events.drain();
@@ -230,11 +246,13 @@ export class GameController {
       hoverJ: (this.touchPreview ?? this.hoverTile)?.j ?? 0,
       selected: this.selected,
     });
+    const tu = performance.now();
     this.onPreRender?.(frameDtMs);
     const tr = performance.now();
     this.stage.app.render();
     const te = performance.now();
-    this.perf.view += tr - tv;
+    this.perf.view += tu - tv;
+    this.perf.ui += tr - tu;
     this.perf.render += te - tr;
     this.perf.frames++;
     this.onFrame?.(frameDtMs);

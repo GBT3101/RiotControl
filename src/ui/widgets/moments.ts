@@ -24,7 +24,7 @@ import { HOTKEYS } from '../../game/controller';
 import { protesterFigure, scaleUp, unitPortrait } from '../art';
 import { ease, prog, stampDrop } from '../core/anim';
 import { makeInteractive } from '../core/node';
-import { ownTex, uiTex } from '../core/tex';
+import { ownTex, uiTex, destroyOwned } from '../core/tex';
 import { CAPITOL_COPY, PROTESTER_COPY, UI_TEXT, UNIT_COPY, waveLine } from '../strings';
 import type { UiApp } from '../app';
 
@@ -239,7 +239,7 @@ export class Moments {
   }
 
   private endStage(st: Stage): void {
-    st.root.destroy({ children: true });
+    destroyOwned(st.root);
     for (const t of st.owned) t.destroy(true);
   }
 
@@ -403,7 +403,7 @@ export class Moments {
       this.endStage(this.current);
       this.current = null;
     }
-    // Alerts: slide in from the left, stack downward under the top bar.
+    // Alerts: slide/fade in from the left, stack downward under the top bar.
     let y = l.topBar.h + 4;
     for (let k = 0; k < this.alerts.length; k++) {
       const a = this.alerts[k]!;
@@ -419,11 +419,13 @@ export class Moments {
       a.y = a.y === 0 ? y : a.y + (a.targetY - a.y) * Math.min(1, dt * 12);
       const inP = ease.outCubic(prog(t, 0, 0.3));
       const outP = t > a.ttl - 0.3 ? ease.inCubic((t - (a.ttl - 0.3)) / 0.3) : 0;
-      const w = a.tex.width;
+      // Short slide + fade (a full off-screen slide read as a card clipped at the screen edge
+      // whenever a frame caught it mid-way).
       a.sprite.position.set(
-        Math.round(l.safe.left + 4 - (w + 8) * (1 - inP) - (w + 8) * outP),
+        Math.round(l.safe.left + 4 - 16 * (1 - inP) - 16 * outP),
         Math.round(a.y),
       );
+      a.sprite.alpha = Math.max(0, Math.min(1, inP * (1 - outP)));
       y += a.tex.height + 3;
     }
     // Info toast: centred above the wave button area.

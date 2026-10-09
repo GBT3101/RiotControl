@@ -29,7 +29,7 @@ import { detectQuality } from '../game/quality';
 import type { CityId } from '../maps/contract';
 import { DebugOverlay } from '../render/debugOverlay';
 import type { PixelStage } from '../render/stage';
-import { uiScale } from '../render/zoom';
+import { uiScale, uiScaleLarge } from '../render/zoom';
 import { buttonSounds } from './core/button';
 import { UiInput } from './core/input';
 import { clearAtlasBuffers } from './core/tex';
@@ -150,12 +150,44 @@ export class UiApp {
     buttonSounds.click = () => this.sfx('click');
     stage.onResize(() => this.relayout());
     bindKeyboard(this);
+    this.bindPageEvents();
     const handle = window as unknown as { __riot?: Record<string, unknown> };
     handle.__riot = { ...(handle.__riot ?? {}), stage, ui: this, timings: this.art.timings };
     if (audio) (window as unknown as { __riotAudio?: unknown }).__riotAudio = audio;
   }
 
   /* ── Lifecycle ───────────────────────────────────────────────────────────────────── */
+
+  /**
+   * Page-level behaviour (M13b): auto-pause when the tab is hidden (the audio engine suspends
+   * itself), re-layout after an orientation change (iOS reports new safe-area insets late),
+   * no context menu / text selection / double-tap zoom anywhere on the page.
+   */
+  private bindPageEvents(): void {
+    if (typeof document === 'undefined') return;
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.autoPause();
+    });
+    window.addEventListener('pagehide', () => this.autoPause());
+    const late = (): void => {
+      this.relayout();
+      setTimeout(() => this.relayout(), 350);
+    };
+    window.addEventListener('orientationchange', late);
+    screen.orientation?.addEventListener?.('change', late);
+    const block = (e: Event): void => e.preventDefault();
+    document.addEventListener('contextmenu', block);
+    document.addEventListener('selectstart', block);
+    document.addEventListener('dblclick', block, { passive: false });
+  }
+
+  /** Hidden tab / app switch mid-run: open the pause menu (not for the title backdrop). */
+  autoPause(): void {
+    const g = this.game;
+    if (!g || g.attract || this.mode !== 'game' || this.topScreen) return;
+    g.keepPlacing = false;
+    this.openPause();
+  }
 
   async start(): Promise<void> {
     const p = this.params;
@@ -210,7 +242,10 @@ export class UiApp {
 
   relayout(): void {
     const s = this.stage.size;
-    this.k = uiScale(Math.min(s.cssWidth, s.cssHeight), s.dpr);
+    this.k =
+      this.settings.uiSize === 'large'
+        ? uiScaleLarge(s.cssWidth, s.cssHeight, s.dpr)
+        : uiScale(Math.min(s.cssWidth, s.cssHeight), s.dpr);
     this.cssInsets = this.measureInsets();
     const W = Math.floor(s.width / this.k);
     const H = Math.floor(s.height / this.k);
@@ -219,6 +254,7 @@ export class UiApp {
     this.layout = computeHudLayout(W, H, safe, { touch: this.touch, minimap: mm });
     this.hudLayer.scale.set(this.k);
     this.topLayer.scale.set(this.k);
+    if (this.game) this.game.view.uiKOverride = this.k;
     this.hud?.layout(this.layout);
     for (const sc of this.screens) sc.layout(this.layout);
     this.advisor.place(this.layout.advisor.x, this.layout.advisor.bottom, this.layout.advisor.maxW);
@@ -265,7 +301,7 @@ export class UiApp {
     if (this.hud) {
       const info = this.hud.info.root;
       const bottom = info.visible ? info.y - 4 : this.layout.advisor.bottom;
-      const def = { x: this.layout.advisor.x, bottom, maxW: this.layout.advisor.maxW };
+      const def = this.advisorDefault(bottom);
       const spot = this.tutorial.advisorPlacement(def) ?? def;
       this.advisor.place(spot.x, spot.bottom, spot.maxW);
     }
@@ -274,7 +310,24 @@ export class UiApp {
     this.watchLowHate(dt);
   }
 
+  /**
+   * Default advisor spot (bottom-left above the deploy bar / unit panel) that never covers the
+   * wave button (LET THEM COME / CALL EARLY + its countdown): the bubble narrows to end left of
+   * it, or — when that leaves too little room (phones) — the advisor sits above it.
+   */
+  private advisorDefault(bottom: number): { x: number; bottom: number; maxW: number } {
+    const a = this.layout.advisor;
+    const r = this.hud?.wave.rect();
+    if (!r) return { x: a.x, bottom, maxW: a.maxW };
+    const MIN_W = 58 + 8 + 110 + 10; // portrait box + gap + narrowest bubble + margin
+    const room = r.x - 4 - a.x;
+    if (room >= MIN_W && bottom > r.y - 14) return { x: a.x, bottom, maxW: Math.min(a.maxW, room) };
+    // Above the button and its countdown label.
+    return { x: a.x, bottom: Math.min(bottom, r.y - 14), maxW: a.maxW };
+  }
+
   private bindGameFrames(game: GameController): void {
+    game.view.uiKOverride = this.k;
     game.onPreRender = (dtMs) => this.frame(Math.min(0.25, dtMs / 1000));
     game.onFrame = (dtMs) => {
       this.gameAudio?.(dtMs);
@@ -534,6 +587,16 @@ export class UiApp {
   }
 
   private wireGameEvents(game: GameController): void {
+    // Remember the last chosen speed as the next run's start speed (not for bot/debug runs).
+    if (!this.runDebug?.autoplay)
+      game.bus.on('speedChanged', (e) => {
+        if (game.attract || this.game !== game) return;
+        const sp = e.speed === 2 || e.speed === 3 ? e.speed : 1;
+        if (sp !== this.settings.speed) {
+          this.settings.speed = sp;
+          saveGameSettings(this.settings);
+        }
+      });
     const focus = (u: number, v: number): void => game.focusTile(Math.floor(u), Math.floor(v));
     game.bus.on('levelUp', (e) => {
       this.moments.levelUp(e.level);

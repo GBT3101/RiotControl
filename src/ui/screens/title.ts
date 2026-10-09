@@ -10,7 +10,7 @@ import { tileToWorld } from '../../core/iso';
 import { densestCrowd } from '../../game/boot';
 import { Button, stampFaces } from '../core/button';
 import { Label } from '../core/label';
-import { swapOwned, uiTex } from '../core/tex';
+import { swapOwned, uiTex, destroyOwned } from '../core/tex';
 import { UI_TEXT } from '../strings';
 import type { HudLayout } from '../layout';
 import type { UiApp } from '../app';
@@ -148,6 +148,6 @@ export class TitleScreen implements Screen {
   }
 
   destroy(): void {
-    this.root.destroy({ children: true });
+    destroyOwned(this.root);
   }
 }

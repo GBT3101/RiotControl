@@ -184,6 +184,10 @@ export class Bot {
   /** Legitimacy at the last progress mark, and when it was set. */
   private lastLegit = 0;
   private lastLegitT = 0;
+  /** placeRoad scratch grids (generation-stamped). */
+  private blockGrid = new Int32Array(0);
+  private nearGrid = new Int32Array(0);
+  private gridGen = 0;
 
   constructor(
     private readonly w: World,
@@ -267,14 +271,54 @@ export class Bot {
     return n;
   }
 
+  /**
+   * Mark tiles whose centre lies within Chebyshev distance `< sp` (or `<= r` when `inclusive`)
+   * of (x, y) with `gen` in `grid`. Same comparisons as a per-tile scan (exact), but O(area).
+   */
+  private stamp(
+    grid: Int32Array,
+    gen: number,
+    x: number,
+    y: number,
+    r: number,
+    inclusive: boolean,
+  ): void {
+    const mw = this.w.map.w;
+    const mh = this.w.map.h;
+    const i0 = Math.max(0, Math.floor(x - 0.5 - r) - 1);
+    const i1 = Math.min(mw - 1, Math.ceil(x - 0.5 + r) + 1);
+    const j0 = Math.max(0, Math.floor(y - 0.5 - r) - 1);
+    const j1 = Math.min(mh - 1, Math.ceil(y - 0.5 + r) + 1);
+    for (let j = j0; j <= j1; j++) {
+      const dy = Math.abs(y - (j + 0.5));
+      if (inclusive ? dy > r : dy >= r) continue;
+      for (let i = i0; i <= i1; i++) {
+        const dx = Math.abs(x - (i + 0.5));
+        if (inclusive ? dx > r : dx >= r) continue;
+        grid[j * mw + i] = gen;
+      }
+    }
+  }
+
   /** Deploy a road unit on the best hot tile in the band. */
   private placeRoad(type: UnitId, o: PlaceOpts): Unit | null {
     const w = this.w;
     const intel = this.intel;
     const mw = w.map.w;
-    const ground: Unit[] = [];
+    // Spacing / proximity grids (M13b: replaces a hot-tiles × ground-units scan — the bot's
+    // decision spikes in big late-game defences). Generation-stamped, never cleared.
+    const n = w.map.w * w.map.h;
+    if (this.blockGrid.length !== n) {
+      this.blockGrid = new Int32Array(n);
+      this.nearGrid = new Int32Array(n);
+    }
+    const gen = ++this.gridGen;
     for (const u of w.units.active) {
-      if (u.alive && u.building < 0 && UNITS[u.type].placement === 'road') ground.push(u);
+      if (!u.alive || u.building >= 0 || UNITS[u.type].placement !== 'road') continue;
+      const sp = u.type === 'blockade' ? Math.max(o.spacing, 2) : o.spacing;
+      this.stamp(this.blockGrid, gen, u.x, u.y, sp, false);
+      if (o.near && o.near.types.includes(u.type))
+        this.stamp(this.nearGrid, gen, u.x, u.y, o.near.r, true);
     }
     let skip = o.rotate ?? 0;
     let fallback = -1;
@@ -282,21 +326,10 @@ export class Bot {
       const d = intel.dist[t]!;
       if (d < o.minD || d > o.maxD) continue;
       if (o.narrow && intel.width[t]! > 3) continue;
+      if (this.blockGrid[t] === gen) continue;
       const i = t % mw;
       const j = (t - i) / mw;
-      let ok = true;
-      let nearOk = !o.near;
-      for (const u of ground) {
-        const dx = Math.abs(u.x - (i + 0.5));
-        const dy = Math.abs(u.y - (j + 0.5));
-        const sp = u.type === 'blockade' ? Math.max(o.spacing, 2) : o.spacing;
-        if (Math.max(dx, dy) < sp) {
-          ok = false;
-          break;
-        }
-        if (o.near && o.near.types.includes(u.type) && Math.max(dx, dy) <= o.near.r) nearOk = true;
-      }
-      if (!ok) continue;
+      const nearOk = !o.near || this.nearGrid[t] === gen;
       if (!w.canDeploy(type, i, j).ok) continue;
       if (!nearOk) {
         if (fallback < 0) fallback = t;

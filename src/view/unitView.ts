@@ -27,7 +27,7 @@ import { US, type Unit } from '../sim/units';
 import type { World } from '../sim/world';
 import { pieceDepthKey } from './depth';
 import type { ViewLayers } from './layers';
-import { silhouetteOf } from './silhouette';
+import { GhostGate, GhostMarkers, silhouetteOf } from './silhouette';
 import { setTex } from './sprites';
 import type { RoofInfo } from './staticView';
 import type { ViewRect } from './terrainView';
@@ -103,11 +103,15 @@ class UnitEnt {
 }
 
 /** Ally x-ray silhouettes drawn per frame (people fully hidden behind buildings). */
-const MAX_ALLY_GHOSTS = 16;
+const MAX_ALLY_GHOSTS = 8;
 
 export class UnitView {
   private readonly ents = new Map<number, UnitEnt>();
-  private ghosts = 0;
+  /** M13a: which hidden allies get a ghost (selected / engaged / near the focus, de-stacked). */
+  private readonly gate = new GhostGate({ max: MAX_ALLY_GHOSTS });
+  private readonly markers: GhostMarkers;
+  /** Selected unit id (set by the world view each frame; -1 = none). */
+  selected = -1;
   private readonly seen = new Set<number>();
   grade = 0xffffff;
   darkness = 0;
@@ -121,7 +125,9 @@ export class UnitView {
     private readonly layers: ViewLayers,
     private readonly roof: (b: number) => RoofInfo | undefined,
     private readonly occluded: (x: number, y: number) => boolean,
-  ) {}
+  ) {
+    this.markers = new GhostMarkers(layers.ghostsAlly);
+  }
 
   onDeployed(id: number, now: number): void {
     const e = this.ents.get(id) ?? this.create(id);
@@ -231,7 +237,7 @@ export class UnitView {
   update(now: number, alpha: number, view: ViewRect): void {
     const list = this.world.units.active;
     this.seen.clear();
-    this.ghosts = 0;
+    this.gate.begin((view.x0 + view.x1) / 2, (view.y0 + view.y1) / 2);
     for (let k = 0; k < list.length; k++) {
       const u = list[k]!;
       if (!u.alive) continue;
@@ -275,7 +281,9 @@ export class UnitView {
           this.drawHuman(u, e, now);
       }
     }
-    for (const e of [...this.ents.values()]) if (!this.seen.has(e.id)) this.destroyEnt(e);
+    // Deleting the current entry while iterating a Map is safe (no per-frame array copy).
+    for (const e of this.ents.values()) if (!this.seen.has(e.id)) this.destroyEnt(e);
+    this.markers.draw(this.gate.groups(), now);
   }
 
   // ── People ───────────────────────────────────────────────────────────────────────────
@@ -376,11 +384,21 @@ export class UnitView {
       e.gasPuffT = now;
       this.onGasPuff?.(u, x, y);
     }
-    this.updateGhost(e, e.sprites[0]!, e.lift === 0);
+    const engaged = u.state === US.ATTACKING || now - e.atkStart < 2.5 || now - e.hurtT < 2.5;
+    this.updateGhost(e, e.sprites[0]!, e.lift === 0, u.id === this.selected, engaged);
   }
 
-  private updateGhost(e: UnitEnt, main: Sprite, ground: boolean): void {
-    const occ = ground && this.ghosts < MAX_ALLY_GHOSTS && this.occluded(e.x, e.y);
+  private updateGhost(
+    e: UnitEnt,
+    main: Sprite,
+    ground: boolean,
+    selected: boolean,
+    engaged: boolean,
+  ): void {
+    const occ =
+      ground &&
+      this.occluded(e.x, e.y) &&
+      this.gate.allow(e.x, e.y, selected, engaged, main.texture.height - 2);
     if (!occ) {
       if (e.ghost) e.ghost.visible = false;
       return;
@@ -393,7 +411,6 @@ export class UnitView {
     const sil = silhouetteOf(main.texture);
     g.visible = sil !== null;
     if (!sil) return;
-    this.ghosts++;
     setTex(g, sil);
     g.position.copyFrom(main.position);
     g.scale.x = main.scale.x;

@@ -11,6 +11,7 @@ import { callEarlyBonus } from '../model';
 import { UI_TEXT } from '../strings';
 import type { HudLayout } from '../layout';
 import type { UiApp } from '../app';
+import { destroyOwned } from '../core/tex';
 
 export class WaveButton {
   readonly root = new Container({ label: 'wavebutton' });
@@ -86,6 +87,6 @@ export class WaveButton {
   }
 
   destroy(): void {
-    this.root.destroy({ children: true });
+    destroyOwned(this.root);
   }
 }
