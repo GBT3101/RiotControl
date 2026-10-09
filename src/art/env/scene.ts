@@ -126,8 +126,9 @@ export function addSprite(
   wx: number,
   wy: number,
   depth?: number,
+  light?: PixelBuffer,
 ): void {
-  s.sprites.push({ img, anchor, x: wx, y: wy, depth: depth ?? wy * 4096 + wx });
+  s.sprites.push({ img, anchor, x: wx, y: wy, depth: depth ?? wy * 4096 + wx, light });
 }
 
 export function addDecal(s: Scene, img: PixelBuffer, anchor: Point, wx: number, wy: number): void {

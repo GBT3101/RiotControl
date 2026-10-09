@@ -128,7 +128,12 @@ export function testProps(filter = ''): PixelBuffer {
 
 /** Review sheet: one building line-up per city above the prop contact sheet. */
 export function kitSheet(): PixelBuffer {
-  const parts = [testBuildings('madrid', 3), testBuildings('london', 3), testBuildings('paris', 3), testProps()];
+  const parts = [
+    testBuildings('madrid', 3),
+    testBuildings('london', 3),
+    testBuildings('paris', 3),
+    testProps(),
+  ];
   const W = Math.max(...parts.map((p) => p.w));
   const H = parts.reduce((a, p) => a + p.h + 4, 0);
   const out = createBuffer(W, H);

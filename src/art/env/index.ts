@@ -74,12 +74,15 @@ export function registerEnvironment(reg: SpriteRegistry): void {
   if (!reviewContext()) return;
   for (const city of CITIES) registerTileSamples(reg, city);
   for (const city of CITIES) registerBuildingSamples(reg, city);
-  for (const city of CITIES)
-    reg.add(`env.preview.${city}`, {
+  for (const city of CITIES) {
+    const anchor = { x: 0, y: 0 };
+    reg.add(`env.preview.${city}`, { group: 'preview', frames: renderPreview(city), anchor });
+    reg.add(`env.preview.${city}.night`, {
       group: 'preview',
-      frames: renderPreview(city),
-      anchor: { x: 0, y: 0 },
+      frames: renderPreview(city, true),
+      anchor,
     });
+  }
 }
 
 // ------------------------------------------------------------------------------- tile samples --
