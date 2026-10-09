@@ -8,15 +8,15 @@ Update this file at the end of every milestone.
 |---|---|---|
 | M0 Plan & handoff | ✅ done | PLAN.md, HANDOFF.md, CLAUDE.md |
 | M1 Foundation & pipelines | ✅ done | Vite/TS/Pixi 8 scaffold, core (loop/rng/events/iso), pixel-perfect stage + camera, art pipeline (palette, grids, paper-doll, atlas), gallery, shots/smoke tools, 72×72 test map with 50 officers, CI + Pages. Screens: `docs/progress/m1-*.png` |
-| M2 City blueprints | 🔄 in progress | |
-| M3a Environment art | 🔄 in progress | |
-| M3b Capitols & landmarks art | 🔄 in progress | |
-| M4a Ministry units art | 🔄 in progress | |
-| M4b Protesters art & variation | 🔄 in progress | |
-| M4c Vehicles art | 🔄 in progress | |
-| M5 FX & UI kit art | 🔄 in progress | |
-| M6 Simulation core | 🔄 in progress | |
-| M7 Behaviours | ⬜ | |
+| M2 City blueprints | ✅ done | Madrid 72×72, London 80×72, Paris 72×72 blueprints → `loadMap(city)`; validators; `maps.html` viewer. Docs `docs/M2.md` |
+| M3a Environment art | ✅ done | `groundTile`, `paintBuilding`, `propSprite`, `decalSprite`, city previews. Docs `docs/art/M3a.md` |
+| M3b Capitols & landmarks art | ✅ done | 3 capitols × 5 damage states, 16 landmarks, overlays (flags/fire/smoke/Big Ben hands). Docs `docs/art/M3b.md` |
+| M4a Ministry units art | ✅ done | 8 units, full anims, blockade, portraits; `unitAnimMeta()` catalog. Docs `docs/art/M4a.md` |
+| M4b Protesters art & variation | ✅ done | paper-doll variants for 9 types, `buildProtesterSheets()`. Docs `docs/art/M4b.md` |
+| M4c Vehicles art | ✅ done | humvee, tank, heli (8 dirs), 23 decor vehicles; `meta.ts` offsets. Docs `docs/art/M4c.md` |
+| M5 FX & UI kit art | ✅ done | FX, fonts + text API, 9-slice panels, cards, meters, Minister, logo, newspapers. Docs `docs/art/M5.md` |
+| M6 Simulation core | ✅ done | deterministic SoA sim, flow fields, combat, economy, director, most M7 specials. Docs `docs/M6.md` |
+| M7 Behaviours | ⏳ mostly done in M6; remainder folded into M8 | |
 | M8 Integration & game feel | ⬜ | |
 | M9 UI/UX & screens | ⬜ | |
 | M10 Tutorial, hints & writing | ⬜ | |

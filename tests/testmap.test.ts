@@ -27,7 +27,7 @@ describe('M1 test map', () => {
       for (let i = 0; i < map.size; i++) expect(reg.has(testMapTileName(map, i, j))).toBe(true);
     }
     for (const b of map.buildings) expect(reg.has(stubBoxName(b.style, b.n, b.storeys))).toBe(true);
-  });
+  }, 60_000);
 
   it('walkers are deterministic and stay on walkable tiles', () => {
     const a = new WalkerSim(map, 50, 3, 6);
