@@ -15,6 +15,8 @@ export interface SpawnOpts {
   doorJ?: number;
   /** Force a loadout index (cultists). */
   loadout?: number;
+  /** Spawn district (rally point), -1 / undefined = none. */
+  district?: number;
 }
 
 /** Spawn one protester at (x, y); returns its slot or -1 when the crowd is full. */
@@ -51,6 +53,7 @@ export function spawnProtester(
     c.stT[s] = rng.range(lo, hi);
   } else c.state[s] = PS.MARCH;
   if (type === PT.paparazzi && w.bretaSlot >= 0) c.state[s] = PS.FOLLOW;
+  c.district[s] = opts.district ?? -1;
   c.anim[s] = PANIM.IDLE;
   if (type === PT.breta) {
     w.bretaSlot = s;

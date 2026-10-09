@@ -26,6 +26,7 @@ interface Door {
 
 class Emitter {
   active = false;
+  district = -1;
   door: Door = { building: -1, i: 0, j: 0 };
   remaining = 0;
   t = 0;
@@ -206,6 +207,7 @@ export class Director {
     }
     const d = rng.pick(districts);
     const door = rng.pick(this.districtDoors[d]!);
+    em.district = d;
     const [lo, hi] = BALANCE.waves.groupSize;
     const size = Math.min(this.toSpawn, Math.round(rng.int(lo, hi) * scale));
     this.toSpawn -= size;
@@ -228,7 +230,13 @@ export class Director {
     const rng = w.rng;
     const x = em.door.i + 0.5 + rng.range(-0.3, 0.3);
     const y = em.door.j + 0.5 + rng.range(-0.3, 0.3);
-    const opts = { mill: true, building: em.door.building, doorI: em.door.i, doorJ: em.door.j };
+    const opts = {
+      mill: true,
+      building: em.door.building,
+      doorI: em.door.i,
+      doorJ: em.door.j,
+      district: em.district,
+    };
     if (em.breta) {
       em.breta = false;
       const s = spawnProtester(w, PT.breta, x, y, opts);

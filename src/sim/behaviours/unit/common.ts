@@ -39,7 +39,7 @@ export function recruit(w: World, u: Unit): void {
   for (let k = 0; k < n && u.nHolders < slots; k++) {
     const s = recruitBuf[k]!;
     const st = c.state[s]!;
-    if (st !== PS.MARCH && st !== PS.FOLLOW) continue;
+    if (st !== PS.MARCH && st !== PS.FOLLOW && st !== PS.RALLY) continue;
     engage(w, s, u);
   }
 }
@@ -218,6 +218,61 @@ export function commandUnit(w: World, u: Unit, i: number, j: number): boolean {
   return true;
 }
 
+/**
+ * Arrived: claim the tile, or — when another unit already holds it — walk on to the nearest
+ * free road tile next to it (commandable units never stack, M7).
+ */
+function arrive(w: World, u: Unit): void {
+  if (u.def.placement === 'road') {
+    const t = w.nav.tileAt(u.x, u.y);
+    if (t >= 0 && w.unitTile[t]! >= 0 && w.unitTile[t] !== u.slot) {
+      const mw = w.map.w;
+      const ti = t % mw;
+      const tj = (t - ti) / mw;
+      for (let r = 1; r <= 2; r++) {
+        for (let dj = -r; dj <= r; dj++) {
+          for (let di = -r; di <= r; di++) {
+            if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;
+            const ni = ti + di;
+            const nj = tj + dj;
+            if (!w.nav.inBounds(ni, nj)) continue;
+            const n = nj * mw + ni;
+            if (!w.nav.road[n] || w.unitTile[n]! >= 0 || w.nav.blockade[n]! >= 0) continue;
+            u.path = [n];
+            u.pathIdx = 0;
+            return;
+          }
+        }
+      }
+    }
+  }
+  settle(w, u);
+}
+
+/** Keep moving ground units out of each other (no stacking while driving through). */
+function avoidUnits(w: World, u: Unit): void {
+  if (u.def.placement !== 'road') return;
+  const list = w.units.active;
+  for (let k = 0; k < list.length; k++) {
+    const o = list[k]!;
+    if (o === u || !o.alive || o.building >= 0 || o.def.placement !== 'road' || o.type === 'blockade')
+      continue;
+    const dx = u.x - o.x;
+    const dy = u.y - o.y;
+    const rr = (u.def.radius + o.def.radius) * 0.9;
+    const d2 = dx * dx + dy * dy;
+    if (d2 >= rr * rr || d2 < 1e-9) continue;
+    const d = Math.sqrt(d2);
+    const push = (rr - d) * 0.5;
+    const nx = u.x + (dx / d) * push;
+    const ny = u.y + (dy / d) * push;
+    if (!w.nav.isSolidAt(nx, ny)) {
+      u.x = nx;
+      u.y = ny;
+    }
+  }
+}
+
 /** Advance along the path. Returns true while moving. */
 export function moverUpdate(w: World, u: Unit, dt: number): boolean {
   if (u.pathIdx >= u.path.length) {
@@ -242,12 +297,13 @@ export function moverUpdate(w: World, u: Unit, dt: number): boolean {
     u.y = ty;
     u.pathIdx++;
     if (u.pathIdx >= u.path.length) {
-      settle(w, u);
-      return false;
+      arrive(w, u);
+      if (u.pathIdx >= u.path.length) return false;
     }
   } else {
     u.x += (dx / d) * step;
     u.y += (dy / d) * step;
+    avoidUnits(w, u);
   }
   u.moving = true;
   if (u.state !== US.ATTACKING || w.time - u.lastAttack > 0.3) u.state = US.MOVING;

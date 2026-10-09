@@ -20,7 +20,15 @@ export function behavioursFor(def: ProtesterDef): ProtesterBehaviour[] {
 export const PROTESTER_BEHAVIOURS: readonly ProtesterBehaviour[][] = PROTESTERS.map(behavioursFor);
 
 export { D, resetDesire } from './desire';
-export { marchDesire, engagedDesire, capitolDesire, CAPITOL_HIT_INTERVAL } from './generic';
+export {
+  marchDesire,
+  engagedDesire,
+  capitolDesire,
+  afterMill,
+  rallyDesire,
+  gatherDesire,
+  CAPITOL_HIT_INTERVAL,
+} from './generic';
 export {
   climbUpdate,
   explodeProphet,

@@ -25,6 +25,7 @@ import { hashWorld } from './hash';
 import { Nav } from './nav';
 import { checkDeploy, deployUnit, type DeployCheck } from './placement';
 import { Projectiles } from './projectiles';
+import { buildRallyField, type RallyField } from './rally';
 import { SpatialHash } from './spatialHash';
 import { spawnProtester, type SpawnOpts } from './spawn';
 import { createStats, type StatsLedger } from './stats';
@@ -79,6 +80,8 @@ export class World {
   private readonly climbPts: (Int32Array | null)[];
   /** Crowd slot of Breta, -1. */
   bretaSlot = -1;
+  /** Lazily built rally fields per spawn district. */
+  private readonly rallyFields: (RallyField | null)[];
 
   /** Ground-unit grid (counting sort per tick): units overlapping each tile. */
   ugStart: Int32Array;
@@ -102,6 +105,7 @@ export class World {
     this.roofGuarded = new Uint8Array(nb);
     this.roofClimbers = new Int16Array(nb);
     this.climbPts = new Array<Int32Array | null>(nb).fill(null);
+    this.rallyFields = map.spawns.map(() => null);
     this.director = new Director(this);
     this.hash.rebuild(this.crowd);
   }
@@ -228,6 +232,19 @@ export class World {
     for (let b = 0; b < this.roofUnit.length; b++) if (this.roofUnit[b]! >= 0) out.push(b);
     this.roofBuildings = out;
     this.updateRoofGuards();
+  }
+
+  /** Distance field toward district d's rally point (null if the district has none). */
+  rallyField(d: number): RallyField | null {
+    if (d < 0 || d >= this.rallyFields.length) return null;
+    let f = this.rallyFields[d] ?? null;
+    if (f === null) {
+      const r = this.map.spawns[d]!.rally;
+      const goal = this.nav.inBounds(r.i, r.j) ? r.j * this.map.w + r.i : -1;
+      f = buildRallyField(this.nav, goal >= 0 && this.nav.walk[goal] ? goal : -1);
+      this.rallyFields[d] = f;
+    }
+    return f.goal >= 0 ? f : null;
   }
 
   /** Walkable tiles 4-adjacent to building b's footprint (facade climb points). */

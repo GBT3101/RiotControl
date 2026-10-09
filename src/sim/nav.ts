@@ -16,7 +16,7 @@ const NDY = [0, 0, 1, -1, 1, -1, 1, -1];
 const NLEN = [1, 1, 1, 1, SQRT2, SQRT2, SQRT2, SQRT2];
 
 /** Binary min-heap of (key, value) on typed arrays; lazy deletion by the caller. */
-class MinHeap {
+export class MinHeap {
   keys: Float64Array;
   vals: Int32Array;
   size = 0;

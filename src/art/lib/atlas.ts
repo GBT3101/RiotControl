@@ -10,7 +10,7 @@
  * Textures use nearest-neighbour sampling; `defaultAnchor` is set so that a Sprite positioned
  * at an integer world pixel puts the def's anchor pixel exactly there.
  */
-import { CanvasSource, Rectangle, Texture } from 'pixi.js';
+import { BufferImageSource, CanvasSource, Rectangle, Texture } from 'pixi.js';
 import { packShelves } from './packer';
 import type { SpriteDef, SpriteRegistry } from './registry';
 import type { PixelBuffer, Point } from './pixels';
@@ -30,8 +30,111 @@ export interface AnimClip {
 }
 
 export interface AtlasPage {
-  canvas: HTMLCanvasElement;
+  /** Canvas backing (buildArt) — absent for buffer-backed pages (packSprites/installPacked). */
+  canvas?: HTMLCanvasElement;
   texture: Texture;
+}
+
+/** Sprite description without pixels attached to the registry (packing input). */
+export type PackableDef = Pick<
+  SpriteDef,
+  'name' | 'group' | 'frames' | 'fps' | 'loop' | 'anchor' | 'tags' | 'hasShadow'
+>;
+
+/** DOM-free packed atlas: RGBA page buffers + frame rectangles (transferable). */
+export interface PackedAtlas {
+  pages: Array<{ w: number; h: number; data: Uint8Array }>;
+  sprites: Array<{
+    def: Omit<PackableDef, 'frames'> & { w: number; h: number };
+    frames: Array<{ page: number; x: number; y: number }>;
+  }>;
+}
+
+/** Pack sprite frames into RGBA page buffers (pure; runs in workers and Node). */
+export function packSprites(defs: readonly PackableDef[], pageSize = 2048): PackedAtlas {
+  const items: Array<{ d: number; f: number; buf: PixelBuffer }> = [];
+  defs.forEach((def, d) => def.frames.forEach((buf, f) => items.push({ d, f, buf })));
+  const { placements, pages } = packShelves(
+    items.map((i) => ({ w: i.buf.w, h: i.buf.h })),
+    pageSize,
+    1,
+  );
+  const out: PackedAtlas = {
+    pages: pages.map((p) => {
+      const w = Math.max(1, p.w);
+      const h = Math.max(1, p.h);
+      return { w, h, data: new Uint8Array(w * h * 4) };
+    }),
+    sprites: defs.map((def) => {
+      const f0 = def.frames[0]!;
+      return {
+        def: {
+          name: def.name,
+          group: def.group,
+          fps: def.fps,
+          loop: def.loop,
+          anchor: def.anchor,
+          tags: def.tags,
+          hasShadow: def.hasShadow,
+          w: f0.w,
+          h: f0.h,
+        },
+        frames: [],
+      };
+    }),
+  };
+  items.forEach((it, i) => {
+    const pl = placements[i]!;
+    const page = out.pages[pl.page]!;
+    const src = it.buf.data;
+    const rowBytes = it.buf.w * 4;
+    for (let y = 0; y < it.buf.h; y++) {
+      page.data.set(
+        src.subarray(y * rowBytes, (y + 1) * rowBytes),
+        ((pl.y + y) * page.w + pl.x) * 4,
+      );
+    }
+    out.sprites[it.d]!.frames[it.f] = { page: pl.page, x: pl.x, y: pl.y };
+  });
+  return out;
+}
+
+/**
+ * Turn a packed atlas into GPU textures (nearest, premultiplied on upload) and merge its clips
+ * into `target` (default: the global `art`). Returns the created pages.
+ */
+export function installPacked(packed: PackedAtlas, target: Art = art): AtlasPage[] {
+  const pages: AtlasPage[] = packed.pages.map((p, i) => {
+    const source = new BufferImageSource({
+      resource: p.data,
+      width: p.w,
+      height: p.h,
+      format: 'rgba8unorm',
+      scaleMode: 'nearest',
+      resolution: 1,
+      autoGenerateMipmaps: false,
+      label: `atlas#${i}`,
+    });
+    return { texture: new Texture({ source }) };
+  });
+  const clips = new Map<string, AnimClip>();
+  for (const s of packed.sprites) {
+    const d = s.def;
+    const frames = s.frames.map(
+      (f, k) =>
+        new Texture({
+          source: pages[f.page]!.texture.source,
+          label: `${d.name}#${k}`,
+          frame: new Rectangle(f.x, f.y, d.w, d.h),
+          defaultAnchor: { x: d.anchor.x / d.w, y: d.anchor.y / d.h },
+        }),
+    );
+    const sizeOnly = { w: d.w, h: d.h, data: new Uint8ClampedArray(0) };
+    const def = { ...d, frames: frames.map(() => sizeOnly) } as SpriteDef;
+    clips.set(d.name, makeClip(def, frames));
+  }
+  target._merge(clips, pages);
+  return pages;
 }
 
 class Art {
@@ -70,6 +173,21 @@ class Art {
     this.clips = clips;
     this.pages = pages;
     this.built = true;
+  }
+
+  /**
+   * Merge more clips/pages into this atlas (lazy loading: a core set at boot, per-city sets at
+   * map load). Existing names are replaced.
+   */
+  _merge(clips: Map<string, AnimClip>, pages: AtlasPage[]): void {
+    for (const [k, v] of clips) this.clips.set(k, v);
+    this.pages.push(...pages);
+    this.built = true;
+  }
+
+  /** Forget clips whose name starts with `prefix` (city switch); pages are the caller's to destroy. */
+  removePrefix(prefix: string): void {
+    for (const k of [...this.clips.keys()]) if (k.startsWith(prefix)) this.clips.delete(k);
   }
 }
 

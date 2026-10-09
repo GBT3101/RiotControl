@@ -46,6 +46,13 @@ export const BALANCE = {
   burnDps: 6,
   /** Seconds a freshly spawned protester mills around its door. */
   millTime: [0.6, 1.6] as [number, number],
+  /** District rally points (M7): walk there first when the detour is at most this (tiles of
+   *  path), gather within `rallyRadius` for `rallyGather` seconds, then march. */
+  rallyMaxDetour: 14,
+  rallyRadius: 2.2,
+  rallyGather: [1.2, 3] as [number, number],
+  /** Give up walking to the rally point after this many seconds. */
+  rallyGiveUp: 18,
 
   // ── Navigation ────────────────────────────────────────────────────────────────────────
   /** Extra flow-field cost of a blockade tile (passable in the field so blocked crowds still press on it). */

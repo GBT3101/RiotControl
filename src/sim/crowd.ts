@@ -29,6 +29,10 @@ export const PS = {
   CLIMB_DOWN: 7,
   /** Paparazzi flocking around Breta. */
   FOLLOW: 8,
+  /** Walking to the district's rally point (M7). */
+  RALLY: 9,
+  /** Gathering at the rally point (chanting) before the march. */
+  GATHER: 10,
 } as const;
 export type ProtesterState = (typeof PS)[keyof typeof PS];
 
@@ -112,6 +116,8 @@ export class Crowd {
   readonly gy: Float32Array;
   /** Climb progress 0..1 (view: height on the facade = progress × storeys). */
   readonly climb: Float32Array;
+  /** Spawn district index (rally point), -1. */
+  readonly district: Int8Array;
 
   constructor(capacity: number) {
     this.capacity = capacity;
@@ -152,6 +158,7 @@ export class Crowd {
     this.gx = new Float32Array(n);
     this.gy = new Float32Array(n);
     this.climb = new Float32Array(n);
+    this.district = new Int8Array(n);
     // Free list: lowest slots on top so the live range stays compact.
     for (let i = 0; i < n; i++) this.free[i] = n - 1 - i;
     this.freeTop = n;
@@ -177,6 +184,7 @@ export class Crowd {
     this.bld[s] = -1;
     this.stT[s] = 0;
     this.climb[s] = 0;
+    this.district[s] = -1;
     this.anim[s] = PANIM.IDLE;
     this.facing[s] = 0;
     this.loadout[s] = 0;

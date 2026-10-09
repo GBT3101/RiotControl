@@ -2,9 +2,13 @@
  * Generic unit behaviours: melee fighter (Riot Control), ranged shooter (Armed Cops,
  * Soldiers), rooftop shooter (Rubber Sniper, Sniper Brigade), blockade.
  */
-import { validateHolders } from '../../combat';
+import { DMG } from '../../../data/damage';
+import { aimAt, hurtProtester, validateHolders } from '../../combat';
+import { PS } from '../../crowd';
+import { US, type Unit } from '../../units';
+import type { World } from '../../world';
 import type { UnitBehaviour } from '../types';
-import { meleeStrike, rangedFire, recruit } from './common';
+import { isDisabled, meleeStrike, rangedFire, recruit } from './common';
 
 /** Holds up to `meleeSlots` protesters and clubs them (or passers-by in reach). */
 export const meleeFighter: UnitBehaviour = {
@@ -28,15 +32,65 @@ export const rangedShooter: UnitBehaviour = {
 
 /**
  * Rooftop shooter: same targeting from the roof centre (u.z = storeys, so tracers start high).
- * Climbers fighting on the roof are handled by the climber behaviour (they damage the unit;
- * a kill throws the sniper off the roof).
+ * When climbers make it onto the roof the unit turns on them point-blank (M7): it hits the
+ * nearest one on its roof with its own weapon (rubber = KO, brigade = lethal) every cooldown.
+ * Climbers that win throw the sniper off the roof (climber behaviour).
  */
 export const rooftopShooter: UnitBehaviour = {
   id: 'rooftop',
   update(w, u, dt) {
+    if (u.roofAttackers > 0 && defendRoof(w, u, dt)) return;
     rangedFire(w, u, dt);
   },
 };
+
+const roofBuf = new Int32Array(64);
+
+/** Point-blank fight against climbers on the unit's own roof. Returns true while busy. */
+function defendRoof(w: World, u: Unit, dt: number): boolean {
+  const a = u.def.attack;
+  const B = w.map.buildings[u.building];
+  if (!a || !B) return false;
+  if (isDisabled(u)) {
+    u.state = US.STUNNED;
+    return true;
+  }
+  if (u.cd > 0) u.cd -= dt;
+  const c = w.crowd;
+  const r = Math.max(B.w, B.d) * 0.75 + 0.5;
+  const n = w.hash.query(c, B.i + B.w * 0.5, B.j + B.d * 0.5, r, roofBuf);
+  let t = -1;
+  let bd = Infinity;
+  for (let k = 0; k < n; k++) {
+    const s = roofBuf[k]!;
+    if (c.state[s] !== PS.ON_ROOF || c.bld[s] !== u.building) continue;
+    const dx = c.x[s]! - u.x;
+    const dy = c.y[s]! - u.y;
+    const d = dx * dx + dy * dy;
+    if (d < bd) {
+      bd = d;
+      t = s;
+    }
+  }
+  if (t < 0) return false;
+  aimAt(u, c.x[t]!, c.y[t]!);
+  u.state = US.ATTACKING;
+  if (u.cd > 0) return true;
+  w.events.push('attacked', {
+    attackerKind: 'unit',
+    attackerId: u.id,
+    targetKind: 'protester',
+    targetId: c.handle(t),
+    x: c.x[t]!,
+    y: c.y[t]!,
+    damage: a.damage,
+    dmgType: a.dmgType,
+  });
+  hurtProtester(w, t, a.damage, DMG[a.dmgType], a.lethal, u.id);
+  u.cd = a.cooldown;
+  u.lastAttack = w.time;
+  return true;
+}
 
 /** Passive obstacle: its tiles are solid; pressing protesters attack it. */
 export const blockade: UnitBehaviour = {

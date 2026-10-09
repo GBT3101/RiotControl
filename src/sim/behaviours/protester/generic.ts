@@ -10,6 +10,7 @@ import { DMG } from '../../../data/damage';
 import { PROTESTERS } from '../../../data/protesters';
 import { hurtUnit, releaseHolder } from '../../combat';
 import { PS } from '../../crowd';
+import { sampleRally } from '../../rally';
 import type { World } from '../../world';
 import { D } from './desire';
 
@@ -151,4 +152,69 @@ export function capitolDesire(w: World, s: number): void {
     D.attacked = true;
     w.capitol.damage(w, def.capitolDps * CAPITOL_HIT_INTERVAL);
   }
+}
+
+// ── District rally points (M7) ─────────────────────────────────────────────────────────
+
+const rallyVec = { x: 0, y: 0 };
+
+/**
+ * Leaving the door: walk to the district's rally point first when it is a short detour,
+ * otherwise march straight away.
+ */
+export function afterMill(w: World, s: number): void {
+  const c = w.crowd;
+  const field = w.rallyField(c.district[s]!);
+  if (field) {
+    const t = (c.y[s]! | 0) * w.map.w + (c.x[s]! | 0);
+    const d = field.dist[t]!;
+    if (d > BALANCE.rallyRadius && d <= BALANCE.rallyMaxDetour) {
+      c.state[s] = PS.RALLY;
+      c.stT[s] = BALANCE.rallyGiveUp;
+      return;
+    }
+  }
+  c.state[s] = PS.MARCH;
+}
+
+function startGather(w: World, s: number): void {
+  const c = w.crowd;
+  const [lo, hi] = BALANCE.rallyGather;
+  // Gather length from the lane value (no extra rng draw: keeps old replays aligned).
+  c.stT[s] = lo + (hi - lo) * (c.lane[s]! * 0.5 + 0.5);
+  c.state[s] = PS.GATHER;
+}
+
+/** Walking to the rally point. */
+export function rallyDesire(w: World, s: number, dt: number): void {
+  const c = w.crowd;
+  const field = w.rallyField(c.district[s]!);
+  c.stT[s] = c.stT[s]! - dt;
+  if (!field || c.stT[s]! <= 0) {
+    c.state[s] = PS.MARCH;
+    marchDesire(w, s);
+    return;
+  }
+  const t = (c.y[s]! | 0) * w.map.w + (c.x[s]! | 0);
+  if (field.dist[t]! <= BALANCE.rallyRadius) {
+    startGather(w, s);
+    D.speed = 0.3;
+    return;
+  }
+  sampleRally(w.nav, field, c.x[s]!, c.y[s]!, rallyVec);
+  const l = Math.sqrt(rallyVec.x * rallyVec.x + rallyVec.y * rallyVec.y);
+  if (l < 1e-4) {
+    startGather(w, s);
+    return;
+  }
+  D.x = rallyVec.x / l;
+  D.y = rallyVec.y / l;
+}
+
+/** Gathered at the rally point: mill and chant, then march on the Capitol. */
+export function gatherDesire(w: World, s: number, dt: number): void {
+  const c = w.crowd;
+  c.stT[s] = c.stT[s]! - dt;
+  D.speed = 0;
+  if (c.stT[s]! <= 0) c.state[s] = PS.MARCH;
 }

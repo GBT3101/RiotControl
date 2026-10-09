@@ -9,6 +9,7 @@ import { BALANCE } from '../data/balance';
 import { DMG } from '../data/damage';
 import { PROTESTERS, PT } from '../data/protesters';
 import {
+  afterMill,
   auraFactor,
   capitolDesire,
   climbUpdate,
@@ -16,7 +17,9 @@ import {
   engagedDesire,
   explodeProphet,
   followDesire,
+  gatherDesire,
   marchDesire,
+  rallyDesire,
   PROTESTER_BEHAVIOURS,
   resetDesire,
 } from './behaviours/protester';
@@ -126,10 +129,17 @@ export function updateCrowd(w: World, dt: number): void {
         marchDesire(w, s);
         D.speed = 0.35;
         if (t <= 0) {
-          state[s] = type === PT.paparazzi && w.bretaSlot >= 0 ? PS.FOLLOW : PS.MARCH;
+          if (type === PT.paparazzi && w.bretaSlot >= 0) state[s] = PS.FOLLOW;
+          else afterMill(w, s);
         }
         break;
       }
+      case PS.RALLY:
+        rallyDesire(w, s, dt);
+        break;
+      case PS.GATHER:
+        gatherDesire(w, s, dt);
+        break;
       case PS.MARCH: {
         const tile = (ys[s]! | 0) * mw + (xs[s]! | 0);
         if (nav.dist[tile]! <= capReach) {
@@ -242,7 +252,7 @@ export function updateCrowd(w: World, dt: number): void {
       if (ni < 0 || nj < 0 || ni >= mw || nj >= mh || solid[nj * mw + ni]) {
         if (ni >= 0 && nj >= 0 && ni < mw && nj < mh) {
           const bslot = nav.blockade[nj * mw + ni]!;
-          if (bslot >= 0 && (st === PS.MARCH || st === PS.FOLLOW)) {
+          if (bslot >= 0 && (st === PS.MARCH || st === PS.FOLLOW || st === PS.RALLY)) {
             const bu = units[bslot];
             if (bu && bu.alive) {
               if (P_HAS_CONTACT[type]) {
@@ -308,7 +318,11 @@ export function updateCrowd(w: World, dt: number): void {
             ny = py;
           }
         }
-        if ((st === PS.MARCH || st === PS.FOLLOW) && !u.moving && u.holders.length > 0) {
+        if (
+          (st === PS.MARCH || st === PS.FOLLOW || st === PS.RALLY) &&
+          !u.moving &&
+          u.holders.length > 0
+        ) {
           if (engage(w, s, u)) st = PS.ENGAGED;
         }
       }
