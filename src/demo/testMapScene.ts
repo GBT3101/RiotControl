@@ -7,7 +7,7 @@ import { FixedStepLoop, TIME_SCALES, lerp } from '../core/loop';
 import { boxDepthKey, depthKey, mapWorldBounds, tileToWorld, type Facing } from '../core/iso';
 import { art } from '../art/lib/atlas';
 import { stubBoxName } from '../art/buildings/stubBoxes';
-import { COP_SKINS } from '../art/characters/riotCop';
+import { COP_SKINS } from '../art/units/riot';
 import { Camera, applyToContainer } from '../render/camera';
 import { CameraController } from '../render/cameraInput';
 import { DebugOverlay } from '../render/debugOverlay';

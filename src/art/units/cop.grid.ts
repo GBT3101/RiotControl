@@ -1,0 +1,245 @@
+/* Armed Cop — part book (keys: COP_KEYS in cop.ts). Canvas 24×26, feet on row 22.
+ * Peaked cap with chequered band, light-blue shirt, navy stab vest with a coffee stain,
+ * moustache and a bead of sweat. Pistol two-handed. Do not reformat. */
+
+export const COP_PARTS = `
+== shadow 6,20
+...%%%%%%%...
+.%%%%%%%%%%%.
+%%%%%%%%%%%%%
+.%%%%%%%%%%%.
+
+== shadow.long 0,17
+....%%%%%%%%%%%%%....
+.%%%%%%%%%%%%%%%%%%%.
+%%%%%%%%%%%%%%%%%%%%%
+.%%%%%%%%%%%%%%%%%%%.
+
+# ---------------------------------------------------------------- SE
+== torso 7,11
+.cc2222c..
+cc22222cc.
+c2yYYy22cd
+c22C22221d
+.2222221d.
+.oooogooo.
+
+== head 6,3
+....2333....
+..23444432..
+.2344444332.
+.2WW22WW22W2
+.r1ooooooooo
+.rrSLLeLLe..
+.rsSLLLLLw..
+..sSMMMMS...
+...sSSSs....
+
+== head.blink 6,3
+....2333....
+..23444432..
+.2344444332.
+.2WW22WW22W2
+.r1ooooooooo
+.rrSLLsLLs..
+.rsSLLLLLw..
+..sSMMMMS...
+...sSSSs....
+
+# Mopping the brow (idle fidget): cap pushed up, eyes visible.
+== head.mop 6,2
+....2333....
+..23444432..
+.2344444332.
+.2WW22WW22W2
+.r1oooooooo.
+.rrSLLLLLL..
+.rrSLeLLeLw.
+.rsSLLLLLL..
+..sSMMMMS...
+...sSSSs....
+
+== head.hurt 6,3
+....2333....
+..23444432..
+.2344444332.
+.2WW22WW22W2
+.r1ooooooooo
+.rrSeeLeeL..
+.rsSLLLLLw..
+..sSMooMS...
+...sSSSs....
+
+== arm.rest 5,11
+.cc.
+cccc
+ccc.
+.cc.
+.LS.
+.SS.
+
+== arm.fwd 5,11
+.cc..
+cccc.
+.ccc.
+..cc.
+..LS.
+..SS.
+
+== arm.back 4,11
+..cc.
+.cccc
+ccc..
+cc...
+LS...
+SS...
+
+# Low ready: both hands on the pistol, muzzle down-right.
+== arms.low 5,11
+.cc.........
+cccc........
+ccc.........
+.ccc........
+..cLSSoXo...
+.....SoG....
+.......o....
+
+# Two-handed aim, pistol out at shoulder height. Muzzle pixel (21,13).
+== arms.aim 5,11
+.cc..............
+cccc.............
+.cccccccccLSXXXo.
+..cccccc..SSoo...
+...........o.....
+
+# Recoil: wrists kick up, slide racks back.
+== arms.recoil 5,10
+................o
+.cc...........XXo
+cccc......LSXo...
+.ccccccccSSoo....
+..cccccc.........
+
+# Reload: pistol tipped up by the face, off hand away for a fresh magazine.
+== arms.reload1 5,7
+.......oX....
+......oXo....
+......LSo....
+.cc...SS.....
+cccc.cc......
+.ccccc.......
+.ccc.........
+..cc.........
+.LS..........
+.SS..........
+
+== arms.reload2 5,7
+.......oX....
+......oXo....
+......LSo....
+.cc...SSL....
+cccc.ccS.....
+.ccccc.c.....
+.cccccc......
+..cc.........
+
+== mag 6,17
+o
+G
+
+== flash 22,9
+...f...
+..fFf..
+ffFWFff
+..fFf..
+...f...
+
+== flash.small 22,5
+.f.
+fWf
+.f.
+
+== sweat 16,5
+w
+W
+
+# ---------------------------------------------------------------- deaths
+== fall 1,8
+...2333.........
+.2344443........
+.2WW22WW........
+.r1ooooooo......
+.rrSLeLLe.......
+..sSMMMS.cc22...
+...ssss.c22222..
+.......cyYYy22d.
+.......c22C2221.
+........222222d.
+.........222.221
+.........21..221
+........nBb..nBb
+........bbbb.bbb
+
+== lie 0,13
+..2333................
+.23444W2.........Hb...
+2344442W..cc22...3nBb.
+234444W2o.c2222223Bb..
+2W22rrSLs.cyYYy22222..
+.r1rsSMMs.c22C2222....
+.........LS22222......
+
+== lie.flat 0,13
+......................
+..2333...........b....
+.23444W2..cc22..3nBb..
+2344442Wo.c222222Bb...
+2W22rrSLs.cyYYy22222..
+.r1rsSMMs.c22C2222....
+.........LS22222......
+
+# ---------------------------------------------------------------- NE
+== torso.ne 7,11
+.cc2222c..
+c2222222c.
+cYYYYYYYyc
+cyoyoyoyyc
+.2222221c.
+.oooooooo.
+
+== head.ne 6,3
+....2333....
+..23444432..
+.2344444332.
+.22WW22WW22.
+..11111111..
+..rrrrrrrs..
+...sSSSSs...
+...sSSSs....
+
+== arm.ne.rest 16,11
+.cc.
+cccc
+.ccc
+.cc.
+.SL.
+.SS.
+
+== arms.ne.low 12,11
+.....cc.
+....cccc
+..cccccc
+.SLcc...
+oXo.....
+.o......
+
+# NE aim: arms up and out to the upper-right. Muzzle pixel (22,8).
+== arms.ne.aim 12,7
+.........Xo
+.......LSo.
+......SSc..
+.....ccc...
+....ccc.cc.
+..ccc..cccc
+.......cccc
+`;

@@ -1,0 +1,136 @@
+/**
+ * Global balance constants (economy, waves, crowd, navigation, Capitol). Everything the sim
+ * tunes lives here or in units.ts / protesters.ts / levels.ts so M12 can tune without code
+ * changes. Units: tiles, seconds, tiles/s, HP.
+ */
+
+export type QualityTier = 'low' | 'mobile' | 'desktop';
+
+export const BALANCE = {
+  // ── Economy (PLAN §1.6) ────────────────────────────────────────────────────────────────
+  startHate: 100,
+  startLegit: 0,
+  /** Hate on any own unit death (blockades included; each Sniper Brigade member counts). */
+  hatePerUnitDeath: 10,
+  // Protester Hate payouts are per type (protesters.ts: student…paparazzi 1, Breta 100).
+
+  // ── Simulation ─────────────────────────────────────────────────────────────────────────
+  /** Fixed sim rate (Hz). */
+  hz: 30,
+  /** Base protester walk speed (tiles/s) — ProtesterDef.speed multiplies it. */
+  walkSpeed: 1.15,
+  /** Per-protester gait variation (±fraction). */
+  gaitVariation: 0.1,
+  /** Crowd separation radius (tiles, centre to centre). */
+  separationRadius: 0.5,
+  separationStrength: 2.2,
+  /** Max neighbours examined per protester per tick (bounded cost in dense crowds). */
+  separationMaxNeighbours: 14,
+  /** Lateral lane bias so hordes spread across wide roads (fraction of speed). */
+  laneSpread: 0.35,
+  /** Velocity smoothing (1/s). */
+  acceleration: 8,
+  /** Wall avoidance band (tiles from a blocked tile edge). */
+  wallBand: 0.28,
+  /** Stationary units with free melee slots pull marching protesters within this many tiles
+   *  of their edge into the slots (interception/blocking). */
+  engageRadius: 1.3,
+  /** Protester decision interval in ticks (targeting/climb checks are staggered). */
+  thinkTicks: 8,
+  /** Unit retargeting interval (s). */
+  unitRetarget: 0.2,
+  /** Switch target only if the new one scores below this fraction of the current one. */
+  targetHysteresis: 0.7,
+  /** Protester status DoT rates (HP/s): choking in tear gas (PLAN: gas 10 dmg/s) and burning. */
+  gasDps: 10,
+  burnDps: 6,
+  /** Seconds a freshly spawned protester mills around its door. */
+  millTime: [0.6, 1.6] as [number, number],
+
+  // ── Navigation ────────────────────────────────────────────────────────────────────────
+  /** Extra flow-field cost of a blockade tile (passable in the field so blocked crowds still press on it). */
+  blockadeTileCost: 30,
+  /** Extra flow-field cost of a tile held by a stationary ground unit (crowds flow around). */
+  unitTileCost: 3,
+  /** Minimum seconds between flow-field recomputes when blockers change. */
+  flowRecomputeInterval: 0.5,
+
+  // ── Capitol ───────────────────────────────────────────────────────────────────────────
+  /** Integrity HP (UI shows %). */
+  capitolHp: 5000,
+  /** Protesters within this flow distance (tiles) of the steps attack the Capitol. */
+  capitolReach: 1.2,
+  /** Integrity fractions below which the Capitol enters damage states 1..5 (graffiti → collapsing). */
+  capitolDamageThresholds: [0.9, 0.7, 0.5, 0.3, 0.12] as const,
+  /** Interval between aggregated `capitolDamaged` events (s). */
+  capitolEventInterval: 1,
+
+  // ── Climbing / rooftops (PLAN §1.4) ───────────────────────────────────────────────────
+  climbDetectRadius: 3,
+  guardRadius: 2.5,
+  climbSecondsPerStorey: 0.8,
+  maxClimbersPerRoof: 6,
+  climbGiveUp: 6,
+
+  // ── Bodies ───────────────────────────────────────────────────────────────────────────
+  bodyTtl: [20, 40] as [number, number],
+  maxBodies: 1500,
+  /** TTL removed per trampling protester per check. */
+  trampleTtlCost: 0.4,
+  trampleCheckTicks: 15,
+
+  // ── Wave director (PLAN §1.5) ─────────────────────────────────────────────────────────
+  waves: {
+    /** Wave 1 size. */
+    base: 30,
+    /** Growth per wave. */
+    growth: 1.25,
+    /** +fraction per player level. */
+    perLevel: 0.12,
+    /** +fraction per elapsed minute of the run. */
+    perMinute: 0.01,
+    maxSize: 6000,
+    groupSize: [6, 24] as [number, number],
+    /** Seconds between emissions from one door group. */
+    emitInterval: 0.15,
+    /** Concurrent door groups emitting. */
+    maxEmitters: 8,
+    maxSpawnsPerTick: 8,
+    /** Seconds between new door groups opening. */
+    groupInterval: [0.6, 1.8] as [number, number],
+    /** Breather between waves (s); shrinks from max toward min as waves advance. */
+    breather: [12, 20] as [number, number],
+    /** Call-early bonus Hate = seconds remaining × this. */
+    callEarlyFactor: 0.5,
+    /** Wave ends once spawning finished and alive ≤ this fraction of its size… */
+    endAliveFraction: 0.1,
+    /** …or this many seconds after spawning finished. */
+    endTimeout: 45,
+    /** Weight multiplier for types unlocked at the current/previous level. */
+    newestBoost: 2.5,
+    newestWindow: 1,
+    breta: { chance: 0.01, paparazzi: [6, 10] as [number, number] },
+  },
+
+  /** Max simultaneously alive protesters per quality tier (spawn queue waits above it). */
+  concurrency: { low: 800, mobile: 1500, desktop: 3200 } as Record<QualityTier, number>,
+  /** Crowd storage capacity (≥ every tier's cap + Breta groups). */
+  crowdCapacity: 4096,
+} as const;
+
+/** Wave size for a wave index (1-based), player level and elapsed seconds. */
+export function waveSize(wave: number, level: number, elapsed: number): number {
+  const w = BALANCE.waves;
+  const size =
+    w.base *
+    Math.pow(w.growth, Math.max(0, wave - 1)) *
+    (1 + w.perLevel * level) *
+    (1 + w.perMinute * (elapsed / 60));
+  return Math.min(w.maxSize, Math.round(size));
+}
+
+/** Breather length (s) after `wave`. */
+export function breatherSeconds(wave: number): number {
+  const [lo, hi] = BALANCE.waves.breather;
+  return Math.max(lo, hi - (wave - 1) * 0.5);
+}
