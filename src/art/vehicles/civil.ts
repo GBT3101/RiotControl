@@ -449,7 +449,7 @@ const deuche: Builder = (f, s) => {
     .cut([1, 0, 2.2], [9.2, 0, 3.2])
     .bevel(0.8, { top: true, vert: true })
     .paint((_p, n, q) => {
-      if (n[2] > 0.5 && Math.floor(q[1] * 1.4 + 10) % 2 === 0) return 'mintDk';
+      if (n[2] > 0.5 && Math.abs(q[1]) < 0.35) return 'mintDk';
       if (n[0] > 0.5 && Math.abs(q[1]) < 1.6 && q[2] < 4.6) return 'chrome';
       return undefined;
     });
@@ -557,7 +557,7 @@ const policeVan: Builder = (f, s) =>
             return (Math.floor((q[0] + 40) / 1.5) + Math.floor((q[2] + 40) / 1.4)) % 2
               ? 'hivisPaint'
               : 'blue';
-          if (q[0] > 7.4 && q[0] < 10.6 && q[2] > 7.2 && q[2] < 11) return 'glass';
+          if (q[0] > 9.8 && q[0] < 11.4 && q[2] > 7.2 && q[2] < 11) return 'glass';
           if (q[0] < -2 && q[2] > 8.6 && q[2] < 10.4 && Math.floor((q[0] + 40) / 3) % 2 === 0)
             return 'glassGrille';
         }
@@ -572,7 +572,7 @@ const policeVan: Builder = (f, s) =>
       },
       extras: (m, fr, st) => {
         lightbar(m, [8.6, 0, 12.8], 7, fr, st);
-        if (st === 'ok') sideDecals(m, 5.5, text('POLICE', 'white'), -13.4, 11.6);
+        if (st === 'ok') sideDecals(m, 5.5, text('POLICE', 'white'), -13.6, 11.6);
         if (st === 'ok') m.boxc('steel', [-14.4, 0, 2.6], [0.8, 4, 0.6]);
       },
     },

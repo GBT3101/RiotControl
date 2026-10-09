@@ -124,7 +124,10 @@ describe('vehicle pixels', () => {
       expect(d.anchor.y).toBeGreaterThanOrEqual(0);
       expect(d.anchor.x).toBeLessThan(f0.w);
       expect(d.anchor.y).toBeLessThan(f0.h);
-      expect(f0.data.some((v, i) => i % 4 === 3 && v > 0), d.name).toBe(true);
+      expect(
+        f0.data.some((v, i) => i % 4 === 3 && v > 0),
+        d.name,
+      ).toBe(true);
     }
   });
 

@@ -142,7 +142,7 @@ export function charPaint(q: readonly number[], n?: readonly number[]): string {
   const top = (n?.[2] ?? 0) > 0.6;
   if (top) {
     const a = Math.sin(q[0]! * 0.42 + q[1]! * 0.3) + 0.6 * Math.sin(q[1]! * 0.8 - q[0]! * 0.2);
-    return a > 1.05 ? 'ash' : a < -0.7 ? 'rustBurn' : 'char';
+    return a > 1.2 ? 'ash' : a < -1.3 ? 'rustBurn' : 'char';
   }
   const tongue =
     Math.sin(q[0]! * 0.5 + 0.7) + 0.5 * Math.sin(q[0]! * 1.2 + q[1]! * 0.4) - (q[2]! - 4) * 0.12;
