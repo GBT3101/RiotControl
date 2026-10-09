@@ -50,10 +50,21 @@ export function cluster(
 }
 
 /** Star-burst polygon mask (comic flash), `spikes` points, radii ro/ri. */
-function starburst(b: PixelBuffer, cx: number, cy: number, ro: number, ri: number, spikes: number, seed: number, fill: string[], outlineRef: string | null): void {
+function starburst(
+  b: PixelBuffer,
+  cx: number,
+  cy: number,
+  ro: number,
+  ri: number,
+  spikes: number,
+  seed: number,
+  fill: string[],
+  outlineRef: string | null,
+): void {
   const rnd = prng(seed);
   const radii: number[] = [];
-  for (let i = 0; i < spikes * 2; i++) radii.push(i % 2 === 0 ? ro * (0.8 + rnd() * 0.25) : ri * (0.85 + rnd() * 0.2));
+  for (let i = 0; i < spikes * 2; i++)
+    radii.push(i % 2 === 0 ? ro * (0.8 + rnd() * 0.25) : ri * (0.85 + rnd() * 0.2));
   const k = mask(b.w, b.h);
   const k2 = mask(b.w, b.h);
   const k3 = mask(b.w, b.h);
@@ -92,7 +103,12 @@ function particles(n: number, seed: number, speed: number): Particle[] {
   return Array.from({ length: n }, (_, i) => {
     const a = -Math.PI * (0.08 + rnd() * 0.84);
     const s = speed * (0.55 + rnd() * 0.6);
-    return { vx: Math.cos(a) * s, vy: Math.sin(a) * s * 1.1, kind: i % 4, spin: Math.floor(rnd() * 4) };
+    return {
+      vx: Math.cos(a) * s,
+      vy: Math.sin(a) * s * 1.1,
+      kind: i % 4,
+      spin: Math.floor(rnd() * 4),
+    };
   });
 }
 
@@ -145,7 +161,10 @@ interface ExplosionSpec {
   prophet?: boolean;
 }
 
-function explosion(spec: ExplosionSpec): { frames: PixelBuffer[]; anchor: { x: number; y: number } } {
+function explosion(spec: ExplosionSpec): {
+  frames: PixelBuffer[];
+  anchor: { x: number; y: number };
+} {
   const { R, seed } = spec;
   const W = Math.round(R * 3.4) + (spec.prophet ? 8 : 0);
   const H = Math.round(R * 3.4);
@@ -161,13 +180,41 @@ function explosion(spec: ExplosionSpec): { frames: PixelBuffer[]; anchor: { x: n
     // Ground shockwave ring (behind everything), frames 1..3.
     if (spec.ring && f >= 1 && f <= 3) {
       const rr = R * (0.9 + f * 0.45);
-      ellipseRing(b, gx + 0.5, gy + 0.5, rr, rr * 0.45, f === 3 ? 'stone3' : 'stone5', f === 1 ? 2 : 1);
+      ellipseRing(
+        b,
+        gx + 0.5,
+        gy + 0.5,
+        rr,
+        rr * 0.45,
+        f === 3 ? 'stone3' : 'stone5',
+        f === 1 ? 2 : 1,
+      );
     }
     if (f === 0) {
       if (spec.prophet) {
-        starburst(b, gx + 0.5, gy - R * 0.6, R * 1.25, R * 0.62, 11, seed, ['ochre3', 'ochre4', 'white'], 'rust1');
+        starburst(
+          b,
+          gx + 0.5,
+          gy - R * 0.6,
+          R * 1.25,
+          R * 0.62,
+          11,
+          seed,
+          ['ochre3', 'ochre4', 'white'],
+          'rust1',
+        );
       } else {
-        starburst(b, gx + 0.5, gy - R * 0.5, R * 1.0, R * 0.5, 9, seed, ['ochre3', 'ochre4', 'white'], 'rust3');
+        starburst(
+          b,
+          gx + 0.5,
+          gy - R * 0.5,
+          R * 1.0,
+          R * 0.5,
+          9,
+          seed,
+          ['ochre3', 'ochre4', 'white'],
+          'rust3',
+        );
       }
     } else {
       // Fireball rises and grows; smoke cap takes over from frame 3.
@@ -178,18 +225,29 @@ function explosion(spec: ExplosionSpec): { frames: PixelBuffer[]; anchor: { x: n
       const cy = gy - rise;
       if (smokeR > 0) {
         const fade = Math.max(0, (t - 0.55) / 0.45);
-        const lobes = cluster(gx + 0.5, cy - R * 0.25, smokeR, spec.prophet ? 7 : 5, seed + 3, 0.7).map((l, i) => ({
+        const lobes = cluster(
+          gx + 0.5,
+          cy - R * 0.25,
+          smokeR,
+          spec.prophet ? 7 : 5,
+          seed + 3,
+          0.7,
+        ).map((l, i) => ({
           ...l,
           // Break apart at the end: lobes drift outward and shrink.
           x: l.x + (l.x - gx) * fade * 0.7,
           y: l.y + (l.y - cy) * fade * 0.5 - fade * R * 0.3,
           r: Math.max(0.9, l.r * (1 - fade * 0.55) - (i % 2) * fade * 1.5),
         }));
-        paintLobes(b, lobes, { ramp: t > 0.5 ? SMOKE : SMOKE_DARK, outlineLit: t > 0.5 ? 'gray2' : 'gray1' });
+        paintLobes(b, lobes, {
+          ramp: t > 0.5 ? SMOKE : SMOKE_DARK,
+          outlineLit: t > 0.5 ? 'gray2' : 'gray1',
+        });
         // Smoke stem down to the ground (mushroom) in the middle frames.
         if (t > 0.2 && t < 0.75) {
           const stem: Lobe[] = [];
-          for (let y = gy - 2; y > cy; y -= Math.max(1.5, R * 0.16)) stem.push({ x: gx + 0.5, y, r: (R * 0.2 + (gy - y) * 0.04) * (1 - fade) + 0.8 });
+          for (let y = gy - 2; y > cy; y -= Math.max(1.5, R * 0.16))
+            stem.push({ x: gx + 0.5, y, r: (R * 0.2 + (gy - y) * 0.04) * (1 - fade) + 0.8 });
           paintLobes(b, stem.reverse(), { ramp: SMOKE_DARK, outlineLit: 'gray1' });
         }
       }
@@ -202,7 +260,10 @@ function explosion(spec: ExplosionSpec): { frames: PixelBuffer[]; anchor: { x: n
           r: (R * 0.26 + (1 - Math.abs(s)) * R * 0.12) * (1 - t * 0.7) + 1,
           sy: 0.7,
         }));
-        paintLobes(b, skirt, { ramp: ['stone1', 'stone2', 'stone3', 'stone4', 'stone5'], outlineLit: 'stone2' });
+        paintLobes(b, skirt, {
+          ramp: ['stone1', 'stone2', 'stone3', 'stone4', 'stone5'],
+          outlineLit: 'stone2',
+        });
       }
       if (fireR > 1) {
         const fl = cluster(gx + 0.5, cy + R * 0.12, fireR, spec.prophet ? 7 : 5, seed + 1, 0.8);
@@ -233,8 +294,19 @@ function shockwave(R: number): PixelBuffer[] {
   const H = Math.round(R + 4);
   return [0.3, 0.5, 0.7, 0.86, 1].map((s, i) => {
     const b = buf(W, H);
-    ellipseRing(b, W / 2, H / 2, R * s, R * s * 0.5, i < 2 ? 'white' : i < 4 ? 'stone4' : 'stone2', i === 0 ? 2 : 1);
-    if (i < 3) ellipseRing(b, W / 2, H / 2, R * s - 2, (R * s - 2) * 0.5, (x, y) => ((x + y) % 3 === 0 ? 'stone3' : null));
+    ellipseRing(
+      b,
+      W / 2,
+      H / 2,
+      R * s,
+      R * s * 0.5,
+      i < 2 ? 'white' : i < 4 ? 'stone4' : 'stone2',
+      i === 0 ? 2 : 1,
+    );
+    if (i < 3)
+      ellipseRing(b, W / 2, H / 2, R * s - 2, (R * s - 2) * 0.5, (x, y) =>
+        (x + y) % 3 === 0 ? 'stone3' : null,
+      );
     return b;
   });
 }
@@ -250,7 +322,10 @@ export function registerExplosions(reg: SpriteRegistry): void {
     const { frames, anchor } = explosion(spec);
     reg.add(`fx.explosion.${name}`, { group: 'fx', frames, fps, loop: false, anchor });
   }
-  for (const [name, R] of [['small', 14], ['big', 30]] as const) {
+  for (const [name, R] of [
+    ['small', 14],
+    ['big', 30],
+  ] as const) {
     const fr = shockwave(R);
     reg.add(`fx.shockwave.${name}`, {
       group: 'fx',

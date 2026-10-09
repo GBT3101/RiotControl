@@ -44,7 +44,14 @@ export function composeHud(): PixelBuffer {
   void x;
   // Toggles (right).
   const toggles = ['pause', 'speed2', 'sound', 'settings', 'codex'] as const;
-  toggles.forEach((t, i) => stamp(b, roundButton(t, i === 1 ? 'hover' : 'normal', 'sm'), SW - 8 - (toggles.length - i) * 19, 3));
+  toggles.forEach((t, i) =>
+    stamp(
+      b,
+      roundButton(t, i === 1 ? 'hover' : 'normal', 'sm'),
+      SW - 8 - (toggles.length - i) * 19,
+      3,
+    ),
+  );
   // --- Minimap (bottom right) ------------------------------------------------------
   const mm = minimapFrame(84, 84);
   const mmx = SW - mm.w - 4;
@@ -56,27 +63,39 @@ export function composeHud(): PixelBuffer {
   rect(b, mmx + 30, mmy + 14, 6, 72, 'gray3');
   rect(b, mmx + 6, mmy + 36, 72, 5, 'gray3');
   rect(b, mmx + 40, mmy + 44, 10, 8, 'stone5');
-  for (let i = 0; i < 18; i++) rect(b, mmx + 8 + ((i * 37) % 64), mmy + 18 + ((i * 23) % 16), 1, 1, 'crim2');
+  for (let i = 0; i < 18; i++)
+    rect(b, mmx + 8 + ((i * 37) % 64), mmy + 18 + ((i * 23) % 16), 1, 1, 'crim2');
   rect(b, mmx + 20, mmy + 30, 26, 18, 'stone5');
   rect(b, mmx + 21, mmy + 31, 24, 16, 'green2');
   rect(b, mmx + 20, mmy + 30, 26, 1, 'white');
   // --- Deploy bar (bottom centre) ---------------------------------------------------
   const cards: Array<[number, CardState, number?]> = [
-    [5, 'ready'], [7, 'selected'], [7, 'ready'], [10, 'ready'], [10, 'unaffordable'],
-    [50, 'locked', 5], [100, 'locked', 6], [300, 'locked', 7],
+    [5, 'ready'],
+    [7, 'selected'],
+    [7, 'ready'],
+    [10, 'ready'],
+    [10, 'unaffordable'],
+    [50, 'locked', 5],
+    [100, 'locked', 6],
+    [300, 'locked', 7],
   ];
   const barW = cards.length * 39 + 14;
   const barX = SW - 92 - barW;
   const bar = panel('leather', barW, 60);
   stamp(b, bar, barX, SH - 60);
   cards.forEach(([cost, st, lvl], i) => {
-    stamp(b, deployCard({ portrait: OFFICER_BUST, cost, hotkey: String(i + 1), state: st, level: lvl }), barX + 7 + i * 39, SH - 54);
+    stamp(
+      b,
+      deployCard({ portrait: OFFICER_BUST, cost, hotkey: String(i + 1), state: st, level: lvl }),
+      barX + 7 + i * 39,
+      SH - 54,
+    );
   });
   // --- Advisor (bottom left): portrait + speech bubble ----------------------------------
   const face = ministerAnims().talk[1]!;
   const box = portraitBox(face);
   stamp(b, box, 4, SH - box.h - 64);
-  const text = 'Every fallen officer makes us MORE legitimate. Isn\'t democracy beautiful?';
+  const text = "Every fallen officer makes us MORE legitimate. Isn't democracy beautiful?";
   const bw = 150;
   const tm = measureText(FONTS.mono, text, bw - 14);
   const bub = panel('bubble', bw, tm.h + 16);
@@ -86,14 +105,17 @@ export function composeHud(): PixelBuffer {
   stamp(b, BUBBLE_TAIL_LEFT, bx - 7, by + 10);
   drawText(b, FONTS.mono, text, bx + 7, by + 7, 'ink', { maxWidth: bw - 14 });
   const nm = panel('brass', measureText(FONTS.smallBold, 'THE MINISTER').w + 12, 15);
-  drawText(nm, FONTS.smallBold, 'THE MINISTER', 6, 4, 'earth1', { shadow: 'ochre4', shadowOffset: { x: 0, y: 1 } });
+  drawText(nm, FONTS.smallBold, 'THE MINISTER', 6, 4, 'earth1', {
+    shadow: 'ochre4',
+    shadowOffset: { x: 0, y: 1 },
+  });
   stamp(b, nm, 10, SH - box.h - 64 - 10);
   // --- Level-up moment (centre) -------------------------------------------------------
   const rib = ribbon('NEW TOOL OF ORDER APPROVED');
   stamp(b, rib, Math.floor((SW - rib.w) / 2), 40);
   // Unlock dossier: manila sheet with the new card, typed notes, clip, tab and stamps.
   const dx = Math.floor(SW / 2) - 95;
-  const dy = 82;
+  const dy = 86;
   stamp(b, folderTab(46), dx + 8, dy - 9);
   drawText(b, FONTS.small, 'FILE 07', dx + 13, dy - 6, 'earth2');
   const dossier = panel('manila', 190, 84);
@@ -104,7 +126,9 @@ export function composeHud(): PixelBuffer {
   stamp(b, unlock, dx + 10, dy + 12);
   stamp(b, PAPERCLIP, dx + 168, dy - 4);
   drawText(b, FONTS.smallBold, 'RUBBER SNIPER', dx + 65, dy + 12, 'ink');
-  drawText(b, FONTS.mono, 'Rooftops only.\nNon-lethal.*\nRange: 9', dx + 65, dy + 24, 'gray1', { lineGap: -1 });
+  drawText(b, FONTS.mono, 'Rooftops only.\nNon-lethal.*\nRange: 9', dx + 65, dy + 24, 'gray1', {
+    lineGap: -1,
+  });
   drawText(b, FONTS.small, '*mostly', dx + 65, dy + 53, 'stone1');
   const st = rubberStamp('APPROVED', 'green2', { tilt: -0.1 });
   stamp(b, st, dx + 106, dy + 50);
@@ -141,7 +165,8 @@ export function composeFxSheet(reg: SpriteRegistry): PixelBuffer {
   put('fx.smoke.column.black', 3, 330, 150);
   put('fx.smoke.column.grey', 5, 386, 150);
   // Row 3: composed gas cloud, fire, molotov.
-  for (const p of gasCloudLayout(7, 8, 48)) put(`fx.gas.puff.${p.variant}.loop`, Math.floor(p.delay * 10) % 4, 60 + p.dx, 214 + p.dy);
+  for (const p of gasCloudLayout(7, 8, 48))
+    put(`fx.gas.puff.${p.variant}.loop`, Math.floor(p.delay * 10) % 4, 60 + p.dx, 214 + p.dy);
   put('fx.gas.canister', 1, 130, 196);
   put('fx.gas.trail', 2, 140, 198);
   put('fx.fire.patch.medium', 0, 176, 222);
@@ -174,7 +199,12 @@ export function composeFxSheet(reg: SpriteRegistry): PixelBuffer {
 
 /** Fonts sheet (export at 3×). */
 export function composeFonts(reg: SpriteRegistry): PixelBuffer {
-  const parts = ['ui.font.large.specimen', 'ui.font.small.specimen', 'ui.font.smallbold.specimen', 'ui.font.mono.specimen'].map((n) => reg.get(n).frames[0]!);
+  const parts = [
+    'ui.font.large.specimen',
+    'ui.font.small.specimen',
+    'ui.font.smallbold.specimen',
+    'ui.font.mono.specimen',
+  ].map((n) => reg.get(n).frames[0]!);
   const W = Math.max(...parts.map((p) => p.w)) + 8;
   const H = parts.reduce((s, p) => s + p.h + 4, 4);
   const b = buf(W, H);
@@ -190,8 +220,22 @@ export function composeFonts(reg: SpriteRegistry): PixelBuffer {
 /** Title + newspapers sheet (export at 2×). */
 export function composeTitle(): PixelBuffer {
   const logo = logoFrames()[3]!;
-  const win = frontPage('london', 'ORDER RESTORED', 'Ministry hails "proportionate response". Officials deny everything, including this newspaper.', 250, 230, ['APPROVED', 'green2']);
-  const lose = frontPage('paris', 'THE REGIME HAS FALLEN', 'Protesters dance on the Assemblée. Minister last seen boarding a "routine" flight.', 250, 230, ['DENIED', 'crim1']);
+  const win = frontPage(
+    'london',
+    'ORDER RESTORED',
+    'Ministry hails "proportionate response". Officials deny everything, including this newspaper.',
+    250,
+    230,
+    ['APPROVED', 'green2'],
+  );
+  const lose = frontPage(
+    'paris',
+    'THE REGIME HAS FALLEN',
+    'Protesters dance on the Assemblée. Minister last seen boarding a "routine" flight.',
+    250,
+    230,
+    ['DENIED', 'crim1'],
+  );
   const W = 520;
   const H = logo.h + 240 + 12;
   const b = buf(W, H);

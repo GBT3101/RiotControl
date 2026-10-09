@@ -656,12 +656,13 @@ TtF
 .FS
 .Ss
 
-== arm.wag 0,5
-@hand 1,0
-.S.
-.S.
-SS.
-Ss.
+== arm.wag 0,6
+@hand 2,0
+..S
+..S
+.SS
+.Ss
+.FF
 FF.
 Tt.
 
@@ -676,14 +677,15 @@ Tt
 Tt
 Tt
 
-== arm.wag2 0,5
-@hand 2,0
-..S
-.S.
-SS.
-Ss.
-FF.
-Tt.
+== arm.wag2 0,6
+@hand 3,0
+...S
+..S.
+.SS.
+.Ss.
+.FF.
+FF..
+Tt..
 
 == arm.reach 4,0
 @hand 0,2

@@ -56,20 +56,28 @@ function place(l: Lobe, s: number, dx = 0, dy = 0, dr = 0): Lobe {
   return { x: CX + l.x * s + dx, y: CY + l.y * s + dy, r: Math.max(0.9, l.r * s + dr) };
 }
 
-function puffFrames(variant: string): { grow: PixelBuffer[]; loop: PixelBuffer[]; fade: PixelBuffer[] } {
+function puffFrames(variant: string): {
+  grow: PixelBuffer[];
+  loop: PixelBuffer[];
+  fade: PixelBuffer[];
+} {
   const L = LAYOUTS[variant]!;
   const rnd = prng(variant.charCodeAt(0) * 977);
   // Grow: pops out of a small kernel with a little overshoot.
-  const grow = [0.35, 0.7, 1.06].map((s, i) =>
-    frame(L.map((l) => place(l, s, 0, (2 - i) * 1.2))),
-  );
+  const grow = [0.35, 0.7, 1.06].map((s, i) => frame(L.map((l) => place(l, s, 0, (2 - i) * 1.2))));
   // Linger: lobes breathe out of phase (±0.5 px) and drift a pixel — a slow boil.
   const phases = L.map(() => rnd() * Math.PI * 2);
   const loop = [0, 1, 2, 3].map((f) =>
     frame(
       L.map((l, i) => {
         const a = (f / 4) * Math.PI * 2 + phases[i]!;
-        return place(l, 1, Math.round(Math.cos(a) * 0.6), Math.round(Math.sin(a) * 0.6), Math.sin(a) * 0.5);
+        return place(
+          l,
+          1,
+          Math.round(Math.cos(a) * 0.6),
+          Math.round(Math.sin(a) * 0.6),
+          Math.sin(a) * 0.5,
+        );
       }),
     ),
   );
@@ -169,6 +177,17 @@ export function registerGas(reg: SpriteRegistry): void {
     reg.add(`fx.gas.puff.${v}.loop`, { group: 'fx', frames: f.loop, fps: 5, anchor });
     reg.add(`fx.gas.puff.${v}.fade`, { group: 'fx', frames: f.fade, fps: 8, loop: false, anchor });
   }
-  reg.add('fx.gas.canister', { group: 'fx', frames: canisterFrames(), fps: 16, anchor: { x: 3, y: 3 } });
-  reg.add('fx.gas.trail', { group: 'fx', frames: trailFrames(), fps: 12, loop: false, anchor: { x: 4, y: 4 } });
+  reg.add('fx.gas.canister', {
+    group: 'fx',
+    frames: canisterFrames(),
+    fps: 16,
+    anchor: { x: 3, y: 3 },
+  });
+  reg.add('fx.gas.trail', {
+    group: 'fx',
+    frames: trailFrames(),
+    fps: 12,
+    loop: false,
+    anchor: { x: 4, y: 4 },
+  });
 }

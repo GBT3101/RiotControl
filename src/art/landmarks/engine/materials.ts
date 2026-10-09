@@ -138,6 +138,7 @@ export function inkOf(c: RGBA): RGBA {
 /** Plain ramp material: light level → swatch; contact edges darken to level 0. */
 export function plain(r: Ramp5, o: { rim?: boolean; edge?: boolean } = {}): Material {
   return (c) => {
+    if (c.night) return null;
     if (c.edge && o.edge !== false) return r[0];
     let l = c.level;
     if (o.rim && c.rim && l >= 3) l = 4;

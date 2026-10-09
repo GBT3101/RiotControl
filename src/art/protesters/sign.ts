@@ -51,7 +51,7 @@ export const SLOGANS: Readonly<Record<City, readonly string[]>> = {
 };
 
 /** Students' hand-made signs (more misspellings). */
-export const STUDENT_SLOGANS: readonly string[] = ['STOPP', 'NOOO', 'WAT', 'HALP', 'PLZ', 'WHY?', 'MOAR', 'NO!', 'UGH', '{heart}', '{peace}', 'OK?', 'MEH'];
+export const STUDENT_SLOGANS: readonly string[] = ['STOPP', 'NOOO', 'WAT', 'HALP', 'PLZ', 'MOAR', 'UGH', 'OK?', 'NO U', 'RLY?', 'SAD', 'BRB', 'LOL', 'IDK', 'NAP', 'SNAX', 'WIFI', 'SOS', 'BOO'];
 
 export interface SignStyle {
   text: string | readonly string[];

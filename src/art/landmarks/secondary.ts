@@ -517,7 +517,7 @@ function londonEye(frame: number): Build {
   const ring = (r: number, col: string): void => {
     const pts: Array<[number, number, number]> = [];
     for (let k = 0; k <= 160; k++) pts.push(pt((k / 160) * Math.PI * 2, r));
-    s.line(pts, col, { emit: col === 'white' ? 'sky' : undefined });
+    s.line(pts, col, { emit: col === 'white' ? 'blue2' : 'pink2' });
   };
   ring(Rr, 'white');
   ring(Rr - 3, 'gray6');
@@ -537,10 +537,22 @@ function londonEye(frame: number): Build {
     {},
     'capsule',
   );
+  const capsuleNight = grid(
+    `
+    ....
+    .ss.
+    .ss.
+    .ss.
+    ....
+    `,
+    { s: 'sky' },
+    {},
+    'capsuleNight',
+  );
   for (let k = 0; k < 32; k++) {
     const a = rot + (k / 32) * Math.PI * 2;
     const p = pt(a, Rr + 3);
-    s.sprite(capsule, 2, 2, p[0], p[1], p[2], { bias: 0.1 });
+    s.sprite(capsule, 2, 2, p[0], p[1], p[2], { bias: 0.1, emit: capsuleNight });
   }
   // Hub.
   s.cyl(C[0], C[1], 0.18, zc - 4, zc + 4, plain(R.whiteSteel));
@@ -801,7 +813,11 @@ function invalides(): Build {
   s.cyl(4, 4, 1.15, 88, 94, plain(L, { rim: true }));
   // The golden dome: gilded ribs and trophies on dark lead.
   const dome: Material = (c) => {
-    if (c.night) return null;
+    if (c.night) {
+      const a = Math.atan2(c.v - 4, c.u - 4);
+      const rr = mod((a * 8) / Math.PI + 0.5, 1);
+      return Math.abs(rr - 0.5) < 0.12 ? 'ochre3' : c.lambert > 0.2 ? 'ochre1' : 'earth3';
+    }
     if (c.edge) return 'earth1';
     const a = Math.atan2(c.v - 4, c.u - 4);
     const r = mod(a * 8 / Math.PI + 0.5, 1);

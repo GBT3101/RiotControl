@@ -21,7 +21,8 @@ export const CARD_H = 50;
 export const PORTRAIT_SLOT = { x: 5, y: 5, w: 28, h: 26 };
 
 /** Placeholder bust: riot officer (helmet, raised visor, hi-vis collar), 24×22. */
-export const OFFICER_BUST = grid(`
+export const OFFICER_BUST = grid(
+  `
   ........oooooooo........
   ......ooNNNNNNnnoo......
   .....oNNBBNNNNNnnno.....
@@ -44,10 +45,22 @@ export const OFFICER_BUST = grid(`
   oNNNNNYYYYYYYYYYYyyNNNo.
   oNNNNNNNNNNNNNNNNNNNNNNo
   oNNNNNNNNNNNNNNNNNNNNNNo
-`, {
-  o: 'ink', N: 'navy2', n: 'navy1', B: 'blue1', V: 'zinc4', v: 'zinc3',
-  S: 'earth5', s: 'earth4', e: 'ink', m: 'earth3', Y: 'hivis1', y: 'olive2',
-});
+`,
+  {
+    o: 'ink',
+    N: 'navy2',
+    n: 'navy1',
+    B: 'blue1',
+    V: 'zinc4',
+    v: 'zinc3',
+    S: 'earth5',
+    s: 'earth4',
+    e: 'ink',
+    m: 'earth3',
+    Y: 'hivis1',
+    y: 'olive2',
+  },
+);
 
 /** Greyscale remap (unaffordable): luminance → gray ramp. */
 function greyed(src: PixelBuffer): PixelBuffer {
@@ -131,7 +144,8 @@ export function deployCard(spec: CardSpec): PixelBuffer {
   vline(b, sx, sy, 26, 'ink');
   hline(b, sx, sy + 26, 28, hi);
   // Faint ministry grid lines in the slot background.
-  for (let x = sx + 4; x < sx + 28; x += 6) vline(b, x, sy + 1, 25, st === 'locked' ? 'gray2' : 'navy1');
+  for (let x = sx + 4; x < sx + 28; x += 6)
+    vline(b, x, sy + 1, 25, st === 'locked' ? 'gray2' : 'navy1');
   let portrait = spec.portrait ?? OFFICER_BUST;
   if (st === 'unaffordable') portrait = greyed(portrait);
   if (st === 'locked') portrait = silhouetteOf(portrait, 'ink', 'gray2');
@@ -165,7 +179,14 @@ export function deployCard(spec: CardSpec): PixelBuffer {
     stamp(b, heart, x0 + 3, cy + 3);
     const t = String(spec.cost);
     const m = measureText(FONTS.smallBold, t);
-    drawText(b, FONTS.smallBold, t, x0 + W - 4 - m.w, cy + 3, st === 'unaffordable' ? 'crim2' : 'ink');
+    drawText(
+      b,
+      FONTS.smallBold,
+      t,
+      x0 + W - 4 - m.w,
+      cy + 3,
+      st === 'unaffordable' ? 'crim2' : 'ink',
+    );
     // Dotted leader between heart and cost (typewriter form field).
     for (let x = x0 + 11; x < x0 + W - 6 - m.w; x += 2) px(b, x, cy + 9, lo);
   }
@@ -214,7 +235,10 @@ export function legitMeter(progress: number, level: number, w = 96): PixelBuffer
   stamp(b, seal, -1, 0);
   const t = String(level);
   const m = measureText(FONTS.smallBold, t);
-  drawText(b, FONTS.smallBold, t, 8 - Math.floor(m.w / 2) - 1, 5, 'earth1', { shadow: 'ochre4', shadowOffset: { x: 0, y: 1 } });
+  drawText(b, FONTS.smallBold, t, 8 - Math.floor(m.w / 2) - 1, 5, 'earth1', {
+    shadow: 'ochre4',
+    shadowOffset: { x: 0, y: 1 },
+  });
   return b;
 }
 
@@ -227,7 +251,12 @@ export function integrityMeter(frac: number, w = 96): PixelBuffer {
   rect(b, tx, 3, tw, 10, 'ink');
   rect(b, tx + 1, 4, tw - 2, 8, 'gray1');
   const fw = Math.round((tw - 2) * f);
-  const [c0, c1, c2, c3] = f > 0.5 ? ['white', 'stone5', 'stone4', 'stone3'] : f > 0.25 ? ['stone5', 'stone4', 'ochre2', 'ochre1'] : ['rust4', 'crim2', 'crim1', 'rust0'];
+  const [c0, c1, c2, c3] =
+    f > 0.5
+      ? ['white', 'stone5', 'stone4', 'stone3']
+      : f > 0.25
+        ? ['stone5', 'stone4', 'ochre2', 'ochre1']
+        : ['rust4', 'crim2', 'crim1', 'rust0'];
   if (fw > 0) {
     rect(b, tx + 1, 4, fw, 8, c1);
     hline(b, tx + 1, 4, fw, c0);
@@ -279,7 +308,12 @@ export function abilityRing(step: number): PixelBuffer {
       if (a < 0) a += Math.PI * 2;
       const seg = Math.floor((a / (Math.PI * 2)) * 10);
       const filled = seg < step;
-      px(b, x, y, filled ? (step >= 10 ? 'hivis2' : seg === step - 1 ? 'hivis2' : 'hivis1') : 'gray2');
+      px(
+        b,
+        x,
+        y,
+        filled ? (step >= 10 ? 'hivis2' : seg === step - 1 ? 'hivis2' : 'hivis1') : 'gray2',
+      );
     }
   }
   // Segment gaps.
@@ -303,8 +337,24 @@ export function registerCards(reg: SpriteRegistry): void {
     anchor: { x: 0, y: 0 },
     tags: ['states'],
   });
-  reg.add('ui.card.portrait.placeholder', { group: 'portraits-ui', frames: OFFICER_BUST, anchor: { x: 12, y: 21 } });
-  reg.add('ui.meter.legit', { group: 'ui', frames: [0, 0.25, 0.5, 0.75, 1].map((p) => legitMeter(p, 3)), anchor: { x: 0, y: 0 } });
-  reg.add('ui.meter.integrity', { group: 'ui', frames: [1, 0.75, 0.5, 0.3, 0.1].map((p) => integrityMeter(p)), anchor: { x: 0, y: 0 } });
-  reg.add('ui.meter.ability', { group: 'ui', frames: Array.from({ length: 11 }, (_, i) => abilityRing(i)), anchor: { x: 7, y: 7 } });
+  reg.add('ui.card.portrait.placeholder', {
+    group: 'portraits-ui',
+    frames: OFFICER_BUST,
+    anchor: { x: 12, y: 21 },
+  });
+  reg.add('ui.meter.legit', {
+    group: 'ui',
+    frames: [0, 0.25, 0.5, 0.75, 1].map((p) => legitMeter(p, 3)),
+    anchor: { x: 0, y: 0 },
+  });
+  reg.add('ui.meter.integrity', {
+    group: 'ui',
+    frames: [1, 0.75, 0.5, 0.3, 0.1].map((p) => integrityMeter(p)),
+    anchor: { x: 0, y: 0 },
+  });
+  reg.add('ui.meter.ability', {
+    group: 'ui',
+    frames: Array.from({ length: 11 }, (_, i) => abilityRing(i)),
+    anchor: { x: 7, y: 7 },
+  });
 }

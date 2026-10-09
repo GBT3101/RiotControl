@@ -87,7 +87,16 @@ export function perfBuildings(n = 400): PixelBuffer {
   for (let k = 0; k < n; k++) {
     const w = 1 + (k % 5);
     const d = 1 + ((k * 7) % 4);
-    paintBuilding({ w, d, storeys: 2 + (k % 5), roof: roofs[k % 4]!, kind: k % 3 === 0 ? 'commercial' : 'residential', style: cities[k % 3]!, rooftop: false, seed: k * 31 + 7 });
+    paintBuilding({
+      w,
+      d,
+      storeys: 2 + (k % 5),
+      roof: roofs[k % 4]!,
+      kind: k % 3 === 0 ? 'commercial' : 'residential',
+      style: cities[k % 3]!,
+      rooftop: false,
+      seed: k * 31 + 7,
+    });
   }
   console.info('buildings ms', (performance.now() - t0).toFixed(0));
   return createBuffer(1, 1);
@@ -114,5 +123,19 @@ export function testProps(filter = ''): PixelBuffer {
   }
   const out = createBuffer(W, y + rowH + 4);
   all.forEach((p, k) => stamp(out, p.sprite.frames[0]!, pos[k]![0], pos[k]![1]));
+  return out;
+}
+
+/** Review sheet: one building line-up per city above the prop contact sheet. */
+export function kitSheet(): PixelBuffer {
+  const parts = [testBuildings('madrid', 3), testBuildings('london', 3), testBuildings('paris', 3), testProps()];
+  const W = Math.max(...parts.map((p) => p.w));
+  const H = parts.reduce((a, p) => a + p.h + 4, 0);
+  const out = createBuffer(W, H);
+  let y = 0;
+  for (const p of parts) {
+    stamp(out, p, 0, y);
+    y += p.h + 4;
+  }
   return out;
 }

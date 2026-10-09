@@ -17,7 +17,7 @@ import { createBuffer, setPixel, type PixelBuffer, type Point } from '../../lib/
 import { C, darker, lighter } from '../color';
 import { IsoCanvas, type Tex, type V3 } from '../raster';
 import { Dice, hash, outlineDarker } from '../util';
-import { Face } from './face';
+import type { Face } from './face';
 import { BAY, CORNICE, STOREY, bayLayout, floorProgramme, paintFace } from './facade';
 import { makeLook, type Look } from './looks';
 
@@ -42,7 +42,10 @@ export interface BuildingArt {
   height: number;
 }
 
-type Spec = Pick<BuildingData, 'w' | 'd' | 'storeys' | 'style' | 'kind' | 'roof' | 'rooftop' | 'seed'> &
+type Spec = Pick<
+  BuildingData,
+  'w' | 'd' | 'storeys' | 'style' | 'kind' | 'roof' | 'rooftop' | 'seed'
+> &
   Partial<Pick<BuildingData, 'i' | 'j' | 'doors' | 'id'>>;
 
 const cache = new Map<string, BuildingArt>();
@@ -102,11 +105,21 @@ function planRoof(spec: Spec, H: number): RoofPlan {
       };
     }
     case 'mansard':
-      return { type: 'mansard', rise: 10, standZ: H + 10, stand: { u0: 0.32, v0: 0.32, u1: w - 0.32, v1: d - 0.32 } };
+      return {
+        type: 'mansard',
+        rise: 10,
+        standZ: H + 10,
+        stand: { u0: 0.32, v0: 0.32, u1: w - 0.32, v1: d - 0.32 },
+      };
     case 'terrace':
     case 'flat':
     default:
-      return { type: spec.roof, rise: 0, standZ: H - 3, stand: { u0: 0.12, v0: 0.12, u1: w - 0.12, v1: d - 0.12 } };
+      return {
+        type: spec.roof,
+        rise: 0,
+        standZ: H - 3,
+        stand: { u0: 0.12, v0: 0.12, u1: w - 0.12, v1: d - 0.12 },
+      };
   }
 }
 
@@ -140,7 +153,7 @@ function slopeTex(look: Look, rise: number): SlopeTex {
       const course = Math.floor(bi / 2);
       let c = C('zinc1');
       if (bi % 2 === 0) c = C('zinc0');
-      else if (((ai + course * 2) % 5 + 5) % 5 === 0) c = C('zinc0');
+      else if ((((ai + course * 2) % 5) + 5) % 5 === 0) c = C('zinc0');
       else if (hash(ai >> 1, course, 9) % 13 === 0) c = C('zinc2');
       return shadeBy(c, l);
     };
@@ -160,7 +173,9 @@ function flatTex(look: Look, terrace: boolean, seed: number): (u: number, v: num
   if (terrace) {
     // Floor tiles: Madrid terracotta (baldosa de barro), London/Paris grey concrete pavers.
     const [joint, a, b] =
-      look.city === 'madrid' ? [C('rust1'), C('earth4'), C('rust2')] : [C('gray4'), C('gray6'), C('gray5')];
+      look.city === 'madrid'
+        ? [C('rust1'), C('earth4'), C('rust2')]
+        : [C('gray4'), C('gray6'), C('gray5')];
     return (u, v) => {
       const fu = u * 4;
       const fv = v * 4;
@@ -215,14 +230,18 @@ function paint(spec: Spec): BuildingArt {
     if (dv === d && du >= 0 && du < w) doorL.add(clampBay(leftLay, (du + 0.5) * 16));
     else if (du === w && dv >= 0 && dv < d) doorR.add(clampBay(rightLay, (d - dv - 0.5) * 16));
   }
-  if (doorL.size === 0 && doorR.size === 0 && kind !== 'civic') doorL.add(Math.floor(leftLay.n / 2) + (w > 2 ? dice.int(-1, 1) : 0));
+  if (doorL.size === 0 && doorR.size === 0 && kind !== 'civic')
+    doorL.add(Math.floor(leftLay.n / 2) + (w > 2 ? dice.int(-1, 1) : 0));
 
   // Drainpipes (also climb points) — between bays, one per ~2 tiles of face.
   const pipesFor = (lay: { n: number; margin: number }, len: number, salt: number): number[] => {
     const n = Math.max(1, Math.round(len / 40));
     const out: number[] = [];
     for (let k = 0; k < n; k++) {
-      const b = Math.min(lay.n, Math.max(0, Math.round(((k + 0.5) * lay.n) / n + (hash(spec.seed, k, salt) % 2) - 0.5)));
+      const b = Math.min(
+        lay.n,
+        Math.max(0, Math.round(((k + 0.5) * lay.n) / n + (hash(spec.seed, k, salt) % 2) - 0.5)),
+      );
       out.push(Math.min(len - 2, Math.max(1, lay.margin + b * BAY - 1)));
     }
     return [...new Set(out)];
@@ -350,7 +369,14 @@ function castShadow(w: number, d: number, h: number): { img: PixelBuffer; anchor
 
 // ---------------------------------------------------------------------------------- roofs ----
 
-function paintPitched(cv: IsoCanvas, spec: Spec, look: Look, H: number, rp: RoofPlan, d: Dice): void {
+function paintPitched(
+  cv: IsoCanvas,
+  spec: Spec,
+  look: Look,
+  H: number,
+  rp: RoofPlan,
+  d: Dice,
+): void {
   const { w, d: dd } = spec;
   const o = 0.06; // eave overhang
   const r = Math.min(1, Math.min(w, dd) / 2);
@@ -410,18 +436,31 @@ function paintPitched(cv: IsoCanvas, spec: Spec, look: Look, H: number, rp: Roof
       ],
       (u, v) => {
         const e = Math.min(u - ru, v - rv, w - ru - u, dd - rv - v);
-        if (e < 0.05) return lighter(C(look.slope === 'slate' ? 'gray3' : look.slope === 'terracotta' ? 'rust3' : 'zinc3'));
+        if (e < 0.05)
+          return lighter(
+            C(look.slope === 'slate' ? 'gray3' : look.slope === 'terracotta' ? 'rust3' : 'zinc3'),
+          );
         return ft(u, v);
       },
     );
-    rooftopClutter(cv, spec, look, Z, { u0: ru + 0.1, v0: rv + 0.1, u1: w - ru - 0.1, v1: dd - rv - 0.1 }, d, false);
+    rooftopClutter(
+      cv,
+      spec,
+      look,
+      Z,
+      { u0: ru + 0.1, v0: rv + 0.1, u1: w - ru - 0.1, v1: dd - rv - 0.1 },
+      d,
+      false,
+    );
   }
   // Hip / ridge lines.
-  const ridge = look.slope === 'slate' ? C('gray3') : look.slope === 'terracotta' ? C('rust3') : C('zinc4');
+  const ridge =
+    look.slope === 'slate' ? C('gray3') : look.slope === 'terracotta' ? C('rust3') : C('zinc4');
   line3(cv, { u: -o, v: dd + o, z: H }, { u: ru, v: dd - rv, z: Z }, lighter(ridge));
   line3(cv, { u: w + o, v: dd + o, z: H }, { u: w - ru, v: dd - rv, z: Z }, ridge);
   line3(cv, { u: w + o, v: -o, z: H }, { u: w - ru, v: rv, z: Z }, darker(ridge));
-  if (w - 2 * ru <= 0.01 || dd - 2 * rv <= 0.01) line3(cv, { u: ru, v: rv, z: Z }, { u: w - ru, v: dd - rv, z: Z }, lighter(ridge));
+  if (w - 2 * ru <= 0.01 || dd - 2 * rv <= 0.01)
+    line3(cv, { u: ru, v: rv, z: Z }, { u: w - ru, v: dd - rv, z: Z }, lighter(ridge));
   // Chimneys.
   if (look.city === 'london') {
     // Brick stacks on the party walls with a row of terracotta pots.
@@ -430,7 +469,10 @@ function paintPitched(cv: IsoCanvas, spec: Spec, look: Look, H: number, rp: Roof
       chimney(cv, u, v0, 0.22, 0.7, H, Z + 5, C('rust2'), C('rust3'), true);
     }
   } else if (d.chance(0.35)) {
-    const u = Math.max(ru * 0.5, Math.min(w - 0.3, d.int(1, Math.max(1, Math.floor(w * 4) - 2)) / 4));
+    const u = Math.max(
+      ru * 0.5,
+      Math.min(w - 0.3, d.int(1, Math.max(1, Math.floor(w * 4) - 2)) / 4),
+    );
     const v = rv * 0.4;
     chimney(cv, u, v, 0.16, 0.16, H, Z + 3, look.wall, look.trim, false);
   }
@@ -515,13 +557,33 @@ function paintMansard(
     if (leftLay.n > 2 && b % 2 === 1 && d.chance(0.5)) continue;
     const c = (leftLay.margin + b * BAY + 5) / 16;
     if (c < 0.25 || c > w - 0.25) continue;
-    dormer(cv, look, c - 0.16, c + 0.16, dd - 0.06, H, H + 8, 'v', look.slope === 'terracotta' ? 'slate' : look.slope);
+    dormer(
+      cv,
+      look,
+      c - 0.16,
+      c + 0.16,
+      dd - 0.06,
+      H,
+      H + 8,
+      'v',
+      look.slope === 'terracotta' ? 'slate' : look.slope,
+    );
   }
   for (let b = 0; b < rightLay.n; b++) {
     if (rightLay.n > 2 && b % 2 === 1 && d.chance(0.5)) continue;
     const c = dd - (rightLay.margin + b * BAY + 5) / 16;
     if (c < 0.25 || c > dd - 0.25) continue;
-    dormer(cv, look, c - 0.16, c + 0.16, w - 0.06, H, H + 8, 'u', look.slope === 'terracotta' ? 'slate' : look.slope);
+    dormer(
+      cv,
+      look,
+      c - 0.16,
+      c + 0.16,
+      w - 0.06,
+      H,
+      H + 8,
+      'u',
+      look.slope === 'terracotta' ? 'slate' : look.slope,
+    );
   }
   // Chimney stacks: rows along the back and the party walls, with clay pots.
   const plaster = look.city === 'london' ? C('rust2') : C('stone3');
@@ -536,13 +598,30 @@ function paintMansard(
   if (w >= 3 && dd >= 3) {
     for (let k = 1; k < Math.floor(w / 2) + 1; k++) {
       const u = (k * w) / (Math.floor(w / 2) + 1) - 0.09;
-      if (d.chance(0.7)) chimney(cv, u, dd / 2 - 0.4, 0.18, 0.8, Z - 2, Z + 4, plaster, plasterHi, true);
+      if (d.chance(0.7))
+        chimney(cv, u, dd / 2 - 0.4, 0.18, 0.8, Z - 2, Z + 4, plaster, plasterHi, true);
     }
   }
-  rooftopClutter(cv, spec, look, Z, { u0: ins + 0.15, v0: ins + 0.3, u1: w - ins - 0.15, v1: dd - ins - 0.1 }, d, false, true);
+  rooftopClutter(
+    cv,
+    spec,
+    look,
+    Z,
+    { u0: ins + 0.15, v0: ins + 0.3, u1: w - ins - 0.15, v1: dd - ins - 0.1 },
+    d,
+    false,
+    true,
+  );
 }
 
-function paintFlat(cv: IsoCanvas, spec: Spec, look: Look, H: number, terrace: boolean, d: Dice): void {
+function paintFlat(
+  cv: IsoCanvas,
+  spec: Spec,
+  look: Look,
+  H: number,
+  terrace: boolean,
+  d: Dice,
+): void {
   const { w, d: dd } = spec;
   const zr = H - 3;
   const ft = flatTex(look, terrace, spec.seed);
@@ -563,7 +642,8 @@ function paintFlat(cv: IsoCanvas, spec: Spec, look: Look, H: number, terrace: bo
   const coping = lighter(look.trim);
   const inner = look.wall;
   const ptex = {
-    top: ((u: number, v: number) => (Math.floor((u + v) * 8) % 4 === 0 ? look.trim : coping)) as Tex,
+    top: ((u: number, v: number) =>
+      Math.floor((u + v) * 8) % 4 === 0 ? look.trim : coping) as Tex,
     left: (() => inner) as Tex,
     right: (() => darker(inner)) as Tex,
   };
@@ -591,7 +671,11 @@ function line3(cv: IsoCanvas, a: V3, b: V3, c: RGBA): void {
   const n = Math.max(1, Math.ceil(len * 1.5));
   for (let k = 0; k <= n; k++) {
     const t = k / n;
-    cv.dot({ u: a.u + (b.u - a.u) * t, v: a.v + (b.v - a.v) * t, z: a.z + (b.z - a.z) * t }, c, 0.6);
+    cv.dot(
+      { u: a.u + (b.u - a.u) * t, v: a.v + (b.v - a.v) * t, z: a.z + (b.z - a.z) * t },
+      c,
+      0.6,
+    );
   }
 }
 
@@ -630,7 +714,8 @@ function chimney(
   const n = Math.max(1, Math.round(Math.max(su, sv) / 0.14));
   for (let k = 0; k < n; k++) {
     const t = (k + 0.5) / n;
-    const p = su > sv ? { u: u + su * t, v: v + sv / 2, z: z1 } : { u: u + su / 2, v: v + sv * t, z: z1 };
+    const p =
+      su > sv ? { u: u + su * t, v: v + sv / 2, z: z1 } : { u: u + su / 2, v: v + sv * t, z: z1 };
     cv.dot(p, pot, 1);
     cv.dot({ ...p, z: z1 + 1 }, pot, 1);
     cv.dot({ ...p, z: z1 + 2 }, potHi, 1);
@@ -662,17 +747,35 @@ function dormer(
     return sx === 1 && zz > 2 ? C('zinc2') : C('navy1');
   };
   if (axis === 'v') {
-    cv.box(a0, front - depth, z0, a1, front, z1, {
-      top: () => capC,
-      left: (u, _v, z) => glassTex((u - a0) * 16, z),
-      right: () => darker(capC),
-    }, 0.2);
+    cv.box(
+      a0,
+      front - depth,
+      z0,
+      a1,
+      front,
+      z1,
+      {
+        top: () => capC,
+        left: (u, _v, z) => glassTex((u - a0) * 16, z),
+        right: () => darker(capC),
+      },
+      0.2,
+    );
   } else {
-    cv.box(front - depth, a0, z0, front, a1, z1, {
-      top: () => capC,
-      left: () => capC,
-      right: (_u, v, z) => darker(glassTex((a1 - v) * 16, z)),
-    }, 0.2);
+    cv.box(
+      front - depth,
+      a0,
+      z0,
+      front,
+      a1,
+      z1,
+      {
+        top: () => capC,
+        left: () => capC,
+        right: (_u, v, z) => darker(glassTex((a1 - v) * 16, z)),
+      },
+      0.2,
+    );
   }
 }
 
@@ -696,7 +799,9 @@ function rooftopClutter(
     v >= area.v0 &&
     u + su <= area.u1 &&
     v + sv <= area.v1 &&
-    !occupied.some(([a, b, c, e]) => u < c + 0.08 && u + su > a - 0.08 && v < e + 0.08 && v + sv > b - 0.08);
+    !occupied.some(
+      ([a, b, c, e]) => u < c + 0.08 && u + su > a - 0.08 && v < e + 0.08 && v + sv > b - 0.08,
+    );
   const place = (su: number, sv: number): [number, number] | null => {
     for (let k = 0; k < 10; k++) {
       const u = area.u0 + d.next() * Math.max(0, aw - su);
@@ -708,7 +813,10 @@ function rooftopClutter(
     }
     return null;
   };
-  const items = Math.max(1, Math.round(((aw * av) / (sparse ? 3 : 1.4)) * (spec.rooftop ? 0.7 : 1)));
+  const items = Math.max(
+    1,
+    Math.round(((aw * av) / (sparse ? 3 : 1.4)) * (spec.rooftop ? 0.7 : 1)),
+  );
   const city = look.city;
   // Stair housing first on bigger roofs.
   if (aw * av > 2 && !sparse) {
@@ -765,7 +873,8 @@ function rooftopClutter(
         [8, 0.18],
         [6, 0.14],
       ] as const) {
-        for (let s = -len; s <= len; s += 0.03) cv.dot({ u: p[0] + s, v: p[1], z: z + zz }, C('gray4'), 1);
+        for (let s = -len; s <= len; s += 0.03)
+          cv.dot({ u: p[0] + s, v: p[1], z: z + zz }, C('gray4'), 1);
       }
     } else if (r < 0.75) {
       // Satellite dish.
@@ -781,13 +890,14 @@ function rooftopClutter(
         [0, 2],
       ] as const)
         cv.dot({ u: p[0] + du, v: p[1] + 0.03, z: z + dz }, C('gray7'), 1);
-    } else if (r < 0.88 && (city === 'madrid' || terrace) ) {
+    } else if (r < 0.88 && (city === 'madrid' || terrace)) {
       // Laundry line with clothes.
       const p = place(0.8, 0.1);
       if (!p) continue;
       cv.pole({ u: p[0], v: p[1], z }, 6, C('gray3'));
       cv.pole({ u: p[0] + 0.8, v: p[1], z }, 6, C('gray3'));
-      for (let s = 0; s <= 0.8; s += 0.03) cv.dot({ u: p[0] + s, v: p[1], z: z + 6 }, C('gray5'), 1);
+      for (let s = 0; s <= 0.8; s += 0.03)
+        cv.dot({ u: p[0] + s, v: p[1], z: z + 6 }, C('gray5'), 1);
       for (let s = 0.08; s < 0.75; s += 0.16) {
         const cl = d.pick(look.cloth);
         for (let q = 0; q < 3; q++) {

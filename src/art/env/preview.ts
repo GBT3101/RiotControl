@@ -57,7 +57,17 @@ const MARKS = [
 ];
 
 interface CityPlan {
-  blds: Array<[i: number, j: number, w: number, d: number, storeys: number, roof: RoofType, kind: BuildingKind]>;
+  blds: Array<
+    [
+      i: number,
+      j: number,
+      w: number,
+      d: number,
+      storeys: number,
+      roof: RoofType,
+      kind: BuildingKind,
+    ]
+  >;
   park: [string, string];
   street: string;
 }
@@ -99,7 +109,10 @@ function prop(s: Scene, name: string, i: number, j: number, du = 0.5, dv = 0.5):
   const p = getProp(name);
   const u = i + du;
   const v = j + dv;
-  addSprite(s, p.frames[0]!, p.anchor, Math.round((u - v) * 16), Math.round((u + v) * 8));
+  const x = Math.round((u - v) * 16);
+  const y = Math.round((u + v) * 8);
+  addSprite(s, p.frames[0]!, p.anchor, x, y, undefined, p.light);
+  if (name.startsWith('prop.lamp') || name.startsWith('prop.metro.paris')) s.pools.push([x, y, 9]);
 }
 
 function decal(s: Scene, name: string, i: number, j: number): void {
@@ -110,7 +123,8 @@ function decal(s: Scene, name: string, i: number, j: number): void {
 export function previewScene(city: CityId): Scene {
   const s = sceneFromRows(city, ROWS, MARKS);
   const plan = PLANS[city];
-  const P = (kind: string, seed = 0, axis: 'i' | 'j' = 'i'): string => propSprite(kind, city, seed, axis);
+  const P = (kind: string, seed = 0, axis: 'i' | 'j' = 'i'): string =>
+    propSprite(kind, city, seed, axis);
   // Buildings (+ cast shadows as decals).
   plan.blds.forEach(([i, j, w, d, storeys, roof, kind], k) => {
     const spec: BuildingData = {
@@ -125,13 +139,13 @@ export function previewScene(city: CityId): Scene {
       roof,
       rooftop: k === 2,
       doors: [{ i: i + Math.floor(w / 2), j: j + d }],
-      seed: 1000 + k * 77 + city.length,
+      seed: (city === 'madrid' ? 1005 : 1000) + k * 77 + city.length,
     };
     const art = paintBuilding(spec);
     const wx = (i - j) * 16;
     const wy = (i + j) * 8;
     addDecal(s, art.shadow, art.shadowAnchor, wx, wy);
-    addSprite(s, art.image, art.anchor, wx, wy, (i + j + Math.min(w, d)) * 8 * 4096);
+    addSprite(s, art.image, art.anchor, wx, wy, (i + j + Math.min(w, d)) * 8 * 4096, art.lights);
   });
   // Street trees and lamps on the far pavement (row 5) and near pavement (row 11).
   for (const i of [1, 4]) prop(s, P(plan.street, i), i, 5);
@@ -197,6 +211,11 @@ export function previewScene(city: CityId): Scene {
 }
 
 /** Render the composed preview for a city. */
-export function renderPreview(city: CityId): PixelBuffer {
-  return renderScene(previewScene(city), 104, 6);
+export function renderPreview(city: CityId, night = false): PixelBuffer {
+  return renderScene(previewScene(city), 104, 6, night);
+}
+
+/** Night version: dimmed scene, lit windows, shopfronts and lamp light pools. */
+export function renderPreviewNight(city: CityId): PixelBuffer {
+  return renderPreview(city, true);
 }

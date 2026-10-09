@@ -10,7 +10,8 @@ import type { PixelBuffer } from '../lib/pixels';
 import { buf, has, hline, px, rect, stamp, vline } from '../fx/draw';
 import { grid } from '../lib/grid';
 
-export type PanelKind = 'manila' | 'paper' | 'brass' | 'leather' | 'tooltip' | 'bubble' | 'card' | 'recess' | 'newsprint';
+export type PanelKind =
+  'manila' | 'paper' | 'brass' | 'leather' | 'tooltip' | 'bubble' | 'card' | 'recess' | 'newsprint';
 
 export interface Insets {
   left: number;
@@ -46,9 +47,29 @@ const SOURCE_SIZE: Record<PanelKind, [number, number]> = {
 
 /** Round the corners of a filled rect by clearing pixels (r = 1..3). */
 function roundCorners(b: PixelBuffer, x: number, y: number, w: number, h: number, r: number): void {
-  const cut: Array<[number, number]> = r === 1 ? [[0, 0]] : r === 2 ? [[0, 0], [1, 0], [0, 1]] : [[0, 0], [1, 0], [2, 0], [0, 1], [0, 2]];
+  const cut: Array<[number, number]> =
+    r === 1
+      ? [[0, 0]]
+      : r === 2
+        ? [
+            [0, 0],
+            [1, 0],
+            [0, 1],
+          ]
+        : [
+            [0, 0],
+            [1, 0],
+            [2, 0],
+            [0, 1],
+            [0, 2],
+          ];
   for (const [cx, cy] of cut) {
-    for (const [sx, sy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]] as const) {
+    for (const [sx, sy] of [
+      [1, 1],
+      [-1, 1],
+      [1, -1],
+      [-1, -1],
+    ] as const) {
       const xx = sx > 0 ? x + cx : x + w - 1 - cx;
       const yy = sy > 0 ? y + cy : y + h - 1 - cy;
       b.data.fill(0, (yy * b.w + xx) * 4, (yy * b.w + xx) * 4 + 4);
@@ -62,14 +83,26 @@ function inkOutline(b: PixelBuffer, ref = 'ink'): void {
   for (let y = 0; y < b.h; y++) {
     for (let x = 0; x < b.w; x++) {
       if (has(b, x, y)) continue;
-      if (has(b, x + 1, y) || has(b, x - 1, y) || has(b, x, y + 1) || has(b, x, y - 1)) marks.push([x, y]);
+      if (has(b, x + 1, y) || has(b, x - 1, y) || has(b, x, y + 1) || has(b, x, y - 1))
+        marks.push([x, y]);
     }
   }
   for (const [x, y] of marks) px(b, x, y, ref);
 }
 
 /** Bevelled slab: face + light top/left band + dark bottom/right band (thickness t). */
-function slab(b: PixelBuffer, x: number, y: number, w: number, h: number, face: string, light: string, dark: string, t = 1, deep?: string): void {
+function slab(
+  b: PixelBuffer,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  face: string,
+  light: string,
+  dark: string,
+  t = 1,
+  deep?: string,
+): void {
   rect(b, x, y, w, h, face);
   for (let i = 0; i < t; i++) {
     hline(b, x + i, y + i, w - i * 2, light);
@@ -79,12 +112,15 @@ function slab(b: PixelBuffer, x: number, y: number, w: number, h: number, face: 
   }
 }
 
-const RIVET = grid(`
+const RIVET = grid(
+  `
   .ab.
   abbc
   bbcc
   .cc.
-`, { a: 'ochre4', b: 'ochre2', c: 'earth3' });
+`,
+  { a: 'ochre4', b: 'ochre2', c: 'earth3' },
+);
 
 function drawManila(w: number, h: number): PixelBuffer {
   const b = buf(w, h);
@@ -132,10 +168,11 @@ function drawLeather(w: number, h: number): PixelBuffer {
   const b = buf(w, h);
   slab(b, 1, 1, w - 2, h - 2, 'earth1', 'earth2', 'earth0', 2, 'ink');
   // Grain: sparse 2-px ticks on a regular lattice (period 8 × 6).
-  for (let y = 6; y < h - 6; y += 6) for (let x = 6 + ((y / 6) % 2) * 4; x < w - 6; x += 8) {
-    px(b, x, y, 'earth0');
-    px(b, x + 1, y, 'earth2');
-  }
+  for (let y = 6; y < h - 6; y += 6)
+    for (let x = 6 + ((y / 6) % 2) * 4; x < w - 6; x += 8) {
+      px(b, x, y, 'earth0');
+      px(b, x + 1, y, 'earth2');
+    }
   // Stitching inset 4 px (dash 2 / gap 2).
   for (let x = 5; x < w - 5; x++) {
     if ((x >> 1) % 2 === 0) {
@@ -251,7 +288,8 @@ export function folderTab(w: number): PixelBuffer {
   return b;
 }
 
-export const PAPERCLIP = grid(`
+export const PAPERCLIP = grid(
+  `
   ..oooo..
   .oZzzZo.
   oZo..oZo
@@ -264,10 +302,13 @@ export const PAPERCLIP = grid(`
   oZo.oZzo
   .oZo.oo.
   ..oo....
-`, { o: 'ink', Z: 'zinc4', z: 'zinc2' });
+`,
+  { o: 'ink', Z: 'zinc4', z: 'zinc2' },
+);
 
 /** Speech-bubble tail pointing left (attach at the bubble's left edge, y ≈ 6). */
-export const BUBBLE_TAIL_LEFT = grid(`
+export const BUBBLE_TAIL_LEFT = grid(
+  `
   .......o
   .....ooW
   ...ooWWW
@@ -276,9 +317,12 @@ export const BUBBLE_TAIL_LEFT = grid(`
   .oossWWW
   ...ooosW
   ......oo
-`, { o: 'ink', W: 'white', s: 'stone4' });
+`,
+  { o: 'ink', W: 'white', s: 'stone4' },
+);
 
-export const BUBBLE_TAIL_DOWN = grid(`
+export const BUBBLE_TAIL_DOWN = grid(
+  `
   oWWWWWWo
   .oWWWWso
   .oWWWso.
@@ -286,7 +330,9 @@ export const BUBBLE_TAIL_DOWN = grid(`
   ..oWo...
   ...oo...
   ...o....
-`, { o: 'ink', W: 'white', s: 'stone4' });
+`,
+  { o: 'ink', W: 'white', s: 'stone4' },
+);
 
 /**
  * Minimap frame: brass bezel with rivets, compass "N" tab and a dark recess. The map area is
@@ -298,7 +344,13 @@ export function minimapFrame(w = 84, h = 84): PixelBuffer {
   stamp(b, p, 0, 4);
   rect(b, 5, 9, w - 10, h - 10, 'ink');
   rect(b, 6, 10, w - 12, h - 12, 'navy0');
-  for (const [x, y] of [[2, 6], [w - 6, 6], [2, h], [w - 6, h]] as const) stamp(b, RIVET, x, y);
+  for (const [x, y] of [
+    [2, 6],
+    [w - 6, 6],
+    [2, h],
+    [w - 6, h],
+  ] as const)
+    stamp(b, RIVET, x, y);
   // Compass tab.
   const cx = Math.floor(w / 2);
   rect(b, cx - 5, 0, 11, 9, 'ink');
@@ -321,10 +373,23 @@ export function registerPanels(reg: SpriteRegistry): void {
   reg.add('ui.minimap.frame', { group: 'ui', frames: minimapFrame(), anchor: { x: 0, y: 0 } });
   for (const kind of Object.keys(DRAW) as PanelKind[]) {
     const [w, h] = SOURCE_SIZE[kind];
-    reg.add(`ui.panel.${kind}`, { group: 'ui', frames: panel(kind, w, h), anchor: { x: 0, y: 0 }, tags: ['nineslice'] });
+    reg.add(`ui.panel.${kind}`, {
+      group: 'ui',
+      frames: panel(kind, w, h),
+      anchor: { x: 0, y: 0 },
+      tags: ['nineslice'],
+    });
   }
   reg.add('ui.panel.tab', { group: 'ui', frames: folderTab(24), anchor: { x: 0, y: 7 } });
   reg.add('ui.panel.clip', { group: 'ui', frames: PAPERCLIP, anchor: { x: 0, y: 0 } });
-  reg.add('ui.panel.bubble.tail.left', { group: 'ui', frames: BUBBLE_TAIL_LEFT, anchor: { x: 7, y: 4 } });
-  reg.add('ui.panel.bubble.tail.down', { group: 'ui', frames: BUBBLE_TAIL_DOWN, anchor: { x: 3, y: 0 } });
+  reg.add('ui.panel.bubble.tail.left', {
+    group: 'ui',
+    frames: BUBBLE_TAIL_LEFT,
+    anchor: { x: 7, y: 4 },
+  });
+  reg.add('ui.panel.bubble.tail.down', {
+    group: 'ui',
+    frames: BUBBLE_TAIL_DOWN,
+    anchor: { x: 3, y: 0 },
+  });
 }

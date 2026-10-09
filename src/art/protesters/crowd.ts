@@ -123,11 +123,11 @@ export function composeCrowd(opts: CrowdOptions = {}): PixelBuffer[] {
   for (let n = 0; n < N; n++) {
     const t = rng.weighted(MIX.map((m) => m[0]), MIX.map((m) => m[1]));
     const v = next(t);
-    const u = rng.next();
-    const x = Math.round(12 + u * (W - 24) + rng.range(-6, 6));
-    const yc = H / 2 + (W / 2 - x) / 2;
-    const y = Math.round(yc + rng.range(-H * 0.36, H * 0.36));
-    if (y < 22 || y > H - 4) {
+    // a wide street running NE→SW (iso slope 1/2), densest along its middle
+    const x = Math.round(rng.range(6, W - 6));
+    const yc = H / 2 + 8 + (W / 2 - x) / 4;
+    const y = Math.round(yc + (rng.next() + rng.next() - 1) * H * 0.62);
+    if (y < 24 || y > H - 3) {
       n--;
       continue;
     }
@@ -166,7 +166,7 @@ export function composeCrowd(opts: CrowdOptions = {}): PixelBuffer[] {
 }
 
 /** Blit with shadow pixels darkening the background by switching to the next-darker road tone. */
-function blitOver(dst: PixelBuffer, src: PixelBuffer, dx: number, dy: number): void {
+export function blitOver(dst: PixelBuffer, src: PixelBuffer, dx: number, dy: number): void {
   const shadowOn = new Map<number, number>([
     [resolveColor('gray2') >>> 8, resolveColor('gray1')],
     [resolveColor('gray3') >>> 8, resolveColor('gray2')],

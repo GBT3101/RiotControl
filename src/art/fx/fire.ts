@@ -6,16 +6,7 @@ import type { SpriteRegistry } from '../lib/registry';
 import type { PixelBuffer } from '../lib/pixels';
 import { buf, ellipse, ellipseRing, has, paintFlames, prng, px, rect, type Tongue } from './draw';
 
-const BOTTLE = [
-  '..n..',
-  '..n..',
-  '.gGg.',
-  'gGLGg',
-  'gGLGg',
-  'gGLGg',
-  'gGGGg',
-  '.ggg.',
-];
+const BOTTLE = ['..n..', '..n..', '.gGg.', 'gGLGg', 'gGLGg', 'gGLGg', 'gGGGg', '.ggg.'];
 const BK: Record<string, string> = { n: 'green2', g: 'green1', G: 'green3', L: 'lime' };
 
 function rot90(rows: string[]): string[] {
@@ -61,7 +52,14 @@ function bottleFrames(): PixelBuffer[] {
     for (let y = 0; y < S; y++) {
       for (let x = 0; x < S; x++) {
         if (glass.has(y * S + x)) continue;
-        if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => glass.has((y + dy!) * S + x + dx!) && x + dx! >= 0 && x + dx! < S)) {
+        if (
+          [
+            [1, 0],
+            [-1, 0],
+            [0, 1],
+            [0, -1],
+          ].some(([dx, dy]) => glass.has((y + dy!) * S + x + dx!) && x + dx! >= 0 && x + dx! < S)
+        ) {
           px(b, x, y, 'ink');
         }
       }
@@ -100,17 +98,44 @@ function flameTongues(
     const y = baseY + Math.sin(a) * ry * d;
     const centre = 1 - d * 0.55;
     const h = hMin + (hMax - hMin) * centre * (0.7 + rnd() * 0.3);
-    ts.push({ x, y: Math.round(y), w: wMin + rnd() * 2 + centre * 3, h, base: h, lean: 0, wob: 0.8, ph: rnd() * 6.28 });
+    ts.push({
+      x,
+      y: Math.round(y),
+      w: wMin + rnd() * 2 + centre * 3,
+      h,
+      base: h,
+      lean: 0,
+      wob: 0.8,
+      ph: rnd() * 6.28,
+    });
   }
   // Back tongues first so front ones overlap.
   return ts.sort((p, q) => p.y - q.y);
 }
 
 /** Looping ground fire patch with a scorched bed and rising embers. */
-function firePatch(W: number, H: number, rx: number, ry: number, n: number, hMax: number, seed: number): PixelBuffer[] {
+function firePatch(
+  W: number,
+  H: number,
+  rx: number,
+  ry: number,
+  n: number,
+  hMax: number,
+  seed: number,
+): PixelBuffer[] {
   const cx = W / 2;
   const by = H - ry - 1;
-  const ts = flameTongues(seed, n, cx, by, rx * 0.75, ry * 0.7, hMax * 0.3, hMax, Math.max(3, rx * 0.32));
+  const ts = flameTongues(
+    seed,
+    n,
+    cx,
+    by,
+    rx * 0.75,
+    ry * 0.7,
+    hMax * 0.3,
+    hMax,
+    Math.max(3, rx * 0.32),
+  );
   const rnd = prng(seed + 5);
   const embers = Array.from({ length: 4 }, () => ({ x: cx + (rnd() - 0.5) * rx * 1.4, ph: rnd() }));
   const frames: PixelBuffer[] = [];
@@ -119,7 +144,9 @@ function firePatch(W: number, H: number, rx: number, ry: number, n: number, hMax
     // Scorched bed: dark ellipse with glowing rim cracks.
     ellipse(b, cx, by + 0.5, rx, ry, 'earth0');
     ellipse(b, cx, by + 0.5, rx - 2, ry - 1, 'rust0');
-    ellipseRing(b, cx, by + 0.5, rx - 2, ry - 1, (x, y) => ((x * 3 + y * 5 + f) % 7 === 0 ? 'rust2' : null));
+    ellipseRing(b, cx, by + 0.5, rx - 2, ry - 1, (x, y) =>
+      (x * 3 + y * 5 + f) % 7 === 0 ? 'rust2' : null,
+    );
     const a = (f / 6) * Math.PI * 2;
     const frame = ts.map((t, i) => ({
       ...t,
@@ -156,7 +183,13 @@ function burningOverlay(): PixelBuffer[] {
     const a = (f / 4) * Math.PI * 2;
     paintFlames(
       b,
-      base.map((t, i) => ({ ...t, h: t.h * (1 + 0.22 * Math.sin(a + i * 1.7)), wob: 0.8, ph: a + i, lean: i % 2 ? 1 : -1 })),
+      base.map((t, i) => ({
+        ...t,
+        h: t.h * (1 + 0.22 * Math.sin(a + i * 1.7)),
+        wob: 0.8,
+        ph: a + i,
+        lean: i % 2 ? 1 : -1,
+      })),
       4,
     );
     // Licks detaching from the top.
@@ -174,7 +207,11 @@ function shatter(): PixelBuffer[] {
   const cx = 17;
   const by = 16;
   const rnd = prng(77);
-  const shards = Array.from({ length: 9 }, () => ({ vx: (rnd() - 0.5) * 7, vy: -1.5 - rnd() * 3, k: Math.floor(rnd() * 3) }));
+  const shards = Array.from({ length: 9 }, () => ({
+    vx: (rnd() - 0.5) * 7,
+    vy: -1.5 - rnd() * 3,
+    k: Math.floor(rnd() * 3),
+  }));
   return [0, 1, 2, 3, 4].map((f) => {
     const b = buf(W, H);
     const spread = [3, 7, 11, 13, 14][f]!;
@@ -183,13 +220,31 @@ function shatter(): PixelBuffer[] {
     const n = [2, 4, 6, 7, 7][f]!;
     for (let i = 0; i < n; i++) {
       const s = n === 1 ? 0 : (i / (n - 1)) * 2 - 1;
-      ts.push({ x: cx + s * spread, y: by + Math.round(Math.abs(s) * 2 - (i % 2)), w: 4 + (1 - Math.abs(s)) * 4, h: hgt * (1 - Math.abs(s) * 0.5), lean: s * 3, wob: 0.6, ph: i });
+      ts.push({
+        x: cx + s * spread,
+        y: by + Math.round(Math.abs(s) * 2 - (i % 2)),
+        w: 4 + (1 - Math.abs(s)) * 4,
+        h: hgt * (1 - Math.abs(s) * 0.5),
+        lean: s * 3,
+        wob: 0.6,
+        ph: i,
+      });
     }
     ts.sort((a, c) => a.y - c.y);
     if (f >= 2) ellipse(b, cx, by + 1.5, spread + 1, 3, 'rust0');
     paintFlames(b, ts, f === 0 ? 5 : 4);
     if (f === 0) {
-      for (const [dx, dy] of [[0, -5], [-3, -3], [3, -3], [-4, 0], [4, 0], [0, -1], [-1, -2], [1, -2]] as const) px(b, cx + dx, by + dy, dx === 0 || Math.abs(dy) === 2 ? 'white' : 'sky');
+      for (const [dx, dy] of [
+        [0, -5],
+        [-3, -3],
+        [3, -3],
+        [-4, 0],
+        [4, 0],
+        [0, -1],
+        [-1, -2],
+        [1, -2],
+      ] as const)
+        px(b, cx + dx, by + dy, dx === 0 || Math.abs(dy) === 2 ? 'white' : 'sky');
       rect(b, cx - 1, by - 1, 3, 2, 'green3');
       px(b, cx, by - 1, 'lime');
     }
@@ -203,13 +258,29 @@ function shatter(): PixelBuffer[] {
 }
 
 export function registerFire(reg: SpriteRegistry): void {
-  reg.add('fx.molotov.bottle', { group: 'fx', frames: bottleFrames(), fps: 14, anchor: { x: 6, y: 7 } });
-  reg.add('fx.molotov.shatter', { group: 'fx', frames: shatter(), fps: 14, loop: false, anchor: { x: 17, y: 17 } });
+  reg.add('fx.molotov.bottle', {
+    group: 'fx',
+    frames: bottleFrames(),
+    fps: 14,
+    anchor: { x: 6, y: 7 },
+  });
+  reg.add('fx.molotov.shatter', {
+    group: 'fx',
+    frames: shatter(),
+    fps: 14,
+    loop: false,
+    anchor: { x: 17, y: 17 },
+  });
   const small = firePatch(22, 20, 9, 4, 5, 12, 3);
   reg.add('fx.fire.patch.small', { group: 'fx', frames: small, fps: 10, anchor: { x: 11, y: 15 } });
   const med = firePatch(36, 28, 15, 6.5, 8, 18, 9);
   reg.add('fx.fire.patch.medium', { group: 'fx', frames: med, fps: 10, anchor: { x: 18, y: 21 } });
-  reg.add('fx.fire.burning', { group: 'fx', frames: burningOverlay(), fps: 12, anchor: { x: 8, y: 21 } });
+  reg.add('fx.fire.burning', {
+    group: 'fx',
+    frames: burningOverlay(),
+    fps: 12,
+    anchor: { x: 8, y: 21 },
+  });
   // Tiny flame (wreck spots, torches, rag): 4 frames.
   const tiny = [0, 1, 2, 3].map((f) => {
     const b = buf(7, 10);

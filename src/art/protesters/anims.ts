@@ -15,7 +15,8 @@ export type Carry =
   | 'rifle'
   | 'bazooka'
   | 'camera'
-  | 'pot';
+  | 'pot'
+  | 'flag';
 export type Attack = 'none' | 'punch' | 'swing' | 'stab' | 'pistol' | 'rifle' | 'bazooka' | 'strap' | 'bonk';
 export type Idle =
   | 'chant'
@@ -82,6 +83,8 @@ function carried(k: Kit, ori = 'down'): Partial<Pose> {
       return { armR: 'face', armL: 'reach', itemR: it('camera', 'face') };
     case 'pot':
       return { itemR: it('pot', 'down') };
+    case 'flag':
+      return { armR: 'up', itemR: it('flag', ori === 'up2' ? 'up2' : 'up') };
     default:
       return {};
   }
@@ -89,7 +92,7 @@ function carried(k: Kit, ori = 'down'): Partial<Pose> {
 
 /** Two-handed carries lock both arms; one-handed lock only R. */
 function locksR(k: Kit): boolean {
-  return ['phone', 'megaphone', 'pole', 'card', 'bazooka', 'camera'].includes(k.carry);
+  return ['phone', 'megaphone', 'pole', 'card', 'bazooka', 'camera', 'flag'].includes(k.carry);
 }
 function locksL(k: Kit): boolean {
   return ['card', 'bazooka', 'camera'].includes(k.carry);
@@ -117,7 +120,11 @@ export function idle(k: Kit, _f: Facing): AnimSpec {
       }));
       break;
     case 'sign':
-      poses = P((i) => ({ armR: 'up', sign: 'pole', signDy: [0, -1, -2, -1][i], armL: i < 2 ? 'down' : 'swingB', face: i === 1 ? 'shout' : undefined }));
+      poses = P((i) =>
+        k.carry === 'flag'
+          ? { armR: 'up', itemR: it('flag', i % 2 ? 'up2' : 'up'), armL: i < 2 ? 'down' : 'upF', face: i === 1 ? 'shout' : undefined, hy: i === 2 ? -1 : 0 }
+          : { armR: 'up', sign: 'pole', signDy: [0, -1, -2, -1][i], armL: i < 2 ? 'down' : 'swingB', face: i === 1 ? 'shout' : undefined },
+      );
       break;
     case 'card':
       poses = P((i) => ({ armR: 'hold', armL: 'hold', sign: 'card', signDy: [0, -1, 0, 1][i], hy: i === 1 ? -1 : 0, face: i % 2 ? 'shout' : 'angry' }));
@@ -214,7 +221,7 @@ export function walk(k: Kit, _f: Facing): AnimSpec {
       default:
         break;
     }
-    const c = carried(k);
+    const c = carried(k, i % 4 < 2 ? 'down' : 'up2');
     p = { ...p, ...c };
     if (locksR(k) && !locksL(k) && k.gait === 'march') p.armL = PUMP_L[i]!;
     if (k.carry === 'item' || k.carry === 'rifle' || k.carry === 'pot') {

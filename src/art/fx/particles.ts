@@ -47,7 +47,14 @@ const MUZZLE: Record<string, MuzzleSpec> = {
  * Muzzle flash as a filled star in the barrel's frame: a long forward spike, two side petals
  * at ±~50° and (for big guns) two inner spikes; banded white → yellow → orange → red rim.
  */
-function flashShape(b: PixelBuffer, c: number, a: number, spec: MuzzleSpec, s: number, seed: number): void {
+function flashShape(
+  b: PixelBuffer,
+  c: number,
+  a: number,
+  spec: MuzzleSpec,
+  s: number,
+  seed: number,
+): void {
   const rnd = prng(seed);
   const spikes: Array<[number, number, number]> = [
     // [angle offset, length, half-width (radians)]
@@ -76,7 +83,20 @@ function flashShape(b: PixelBuffer, c: number, a: number, spec: MuzzleSpec, s: n
       }
       if (d > r) continue;
       const q = d / r;
-      const ref = s < 1 ? (q < 0.4 ? 'ochre4' : q < 0.75 ? 'ochre3' : 'rust3') : q < 0.4 ? 'white' : q < 0.65 ? 'ochre4' : q < 0.85 ? 'ochre3' : 'rust3';
+      const ref =
+        s < 1
+          ? q < 0.4
+            ? 'ochre4'
+            : q < 0.75
+              ? 'ochre3'
+              : 'rust3'
+          : q < 0.4
+            ? 'white'
+            : q < 0.65
+              ? 'ochre4'
+              : q < 0.85
+                ? 'ochre3'
+                : 'rust3';
       px(b, x, y, ref);
     }
   }
@@ -98,7 +118,11 @@ function muzzleFrames(spec: MuzzleSpec, dir: Dir8, seed: number): PixelBuffer[] 
         y: c + 0.5 + vy * spec.main * 0.4 + Math.sin(a + Math.PI / 2) * o * 3.5,
         r: 2.8 + (i % 2) * 0.8,
       }));
-      paintLobes(b, lobes.sort((p, q) => p.y - q.y), { ramp: ['gray2', 'gray4', 'gray5', 'gray6', 'gray7'] });
+      paintLobes(
+        b,
+        lobes.sort((p, q) => p.y - q.y),
+        { ramp: ['gray2', 'gray4', 'gray5', 'gray6', 'gray7'] },
+      );
     }
     flashShape(b, c, a, spec, f === 0 ? 1 : 0.55, seed + f);
     out.push(b);
@@ -117,7 +141,9 @@ function tracer(dir: Dir8, len: number): { b: PixelBuffer; anchor: { x: number; 
   const b = buf(w, h);
   const hx = ex >= 0 ? w - 1 : 0;
   const hy = ey >= 0 ? h - 1 : 0;
-  line(b, hx, hy, hx - ex, hy - ey, (t) => (t < 0.12 ? 'white' : t < 0.4 ? 'ochre4' : t < 0.75 ? 'ochre3' : 'ochre2'));
+  line(b, hx, hy, hx - ex, hy - ey, (t) =>
+    t < 0.12 ? 'white' : t < 0.4 ? 'ochre4' : t < 0.75 ? 'ochre3' : 'ochre2',
+  );
   return { b, anchor: { x: hx, y: hy } };
 }
 
@@ -136,10 +162,26 @@ function pellet(): PixelBuffer[] {
 
 function casing(): PixelBuffer[] {
   const shapes: Array<Array<[number, number, string]>> = [
-    [[1, 2, 'ochre1'], [2, 2, 'ochre2'], [3, 2, 'ochre3']],
-    [[1, 3, 'ochre1'], [2, 2, 'ochre2'], [3, 1, 'ochre4']],
-    [[2, 1, 'ochre3'], [2, 2, 'ochre2'], [2, 3, 'ochre1']],
-    [[1, 1, 'ochre3'], [2, 2, 'ochre2'], [3, 3, 'ochre1']],
+    [
+      [1, 2, 'ochre1'],
+      [2, 2, 'ochre2'],
+      [3, 2, 'ochre3'],
+    ],
+    [
+      [1, 3, 'ochre1'],
+      [2, 2, 'ochre2'],
+      [3, 1, 'ochre4'],
+    ],
+    [
+      [2, 1, 'ochre3'],
+      [2, 2, 'ochre2'],
+      [2, 3, 'ochre1'],
+    ],
+    [
+      [1, 1, 'ochre3'],
+      [2, 2, 'ochre2'],
+      [3, 3, 'ochre1'],
+    ],
   ];
   return shapes.map((s) => {
     const b = buf(5, 5);
@@ -157,7 +199,10 @@ function impactDirt(): PixelBuffer[] {
       { x: 5, y: 7 - f * 0.5, r: [1.5, 2.4, 2.6, 2][f]! },
       { x: 8, y: 7.5 - f * 0.4, r: [1.2, 2, 2.2, 1.6][f]! },
     ];
-    paintLobes(b, lobes, { ramp: ['stone0', 'stone1', 'stone2', 'stone3', 'stone4'], outlineLit: 'stone1' });
+    paintLobes(b, lobes, {
+      ramp: ['stone0', 'stone1', 'stone2', 'stone3', 'stone4'],
+      outlineLit: 'stone1',
+    });
     for (const p of bits) {
       const x = 6 + p.vx * (f + 1);
       const y = 7 + p.vy * (f + 1) + 0.7 * (f + 1) * (f + 1);
@@ -167,7 +212,13 @@ function impactDirt(): PixelBuffer[] {
   });
 }
 
-function sparkBurst(n: number, seed: number, frames: number, S: number, gravity: number): PixelBuffer[] {
+function sparkBurst(
+  n: number,
+  seed: number,
+  frames: number,
+  S: number,
+  gravity: number,
+): PixelBuffer[] {
   const rnd = prng(seed);
   const sp = Array.from({ length: n }, () => {
     const a = -Math.PI * rnd();
@@ -189,7 +240,9 @@ function sparkBurst(n: number, seed: number, frames: number, S: number, gravity:
       const y0 = c + p.vy * (t - 0.8) + gravity * (t - 0.8) * (t - 0.8);
       const life = f / (frames - 1);
       if (life > 0.9 && p.vx > 0) continue;
-      line(b, x0, y0, x, y, (q) => (q > 0.6 ? (life < 0.5 ? 'white' : 'ochre4') : life < 0.5 ? 'ochre3' : 'rust3'));
+      line(b, x0, y0, x, y, (q) =>
+        q > 0.6 ? (life < 0.5 ? 'white' : 'ochre4') : life < 0.5 ? 'ochre3' : 'rust3',
+      );
     }
     return b;
   });
@@ -197,7 +250,12 @@ function sparkBurst(n: number, seed: number, frames: number, S: number, gravity:
 
 function glassShards(): PixelBuffer[] {
   const rnd = prng(31);
-  const sh = Array.from({ length: 10 }, (_, i) => ({ vx: (rnd() - 0.5) * 3.2, vy: -1 - rnd() * 2.2, k: i % 3, rot: i % 2 }));
+  const sh = Array.from({ length: 10 }, (_, i) => ({
+    vx: (rnd() - 0.5) * 3.2,
+    vy: -1 - rnd() * 2.2,
+    k: i % 3,
+    rot: i % 2,
+  }));
   return [0, 1, 2, 3, 4, 5].map((f) => {
     const b = buf(23, 18);
     for (const s of sh) {
@@ -220,8 +278,17 @@ function glassShards(): PixelBuffer[] {
 function glassGround(): PixelBuffer {
   const b = buf(15, 7);
   const pts: Array<[number, number, string]> = [
-    [2, 3, 'sky'], [3, 3, 'zinc2'], [5, 1, 'white'], [6, 5, 'sky'], [7, 5, 'zinc3'], [9, 2, 'zinc3'],
-    [10, 2, 'white'], [12, 4, 'sky'], [11, 5, 'zinc2'], [4, 5, 'zinc3'], [8, 3, 'sky'],
+    [2, 3, 'sky'],
+    [3, 3, 'zinc2'],
+    [5, 1, 'white'],
+    [6, 5, 'sky'],
+    [7, 5, 'zinc3'],
+    [9, 2, 'zinc3'],
+    [10, 2, 'white'],
+    [12, 4, 'sky'],
+    [11, 5, 'zinc2'],
+    [4, 5, 'zinc3'],
+    [8, 3, 'sky'],
   ];
   for (const [x, y, r] of pts) px(b, x, y, r);
   return b;
@@ -234,10 +301,14 @@ function dust(kind: 'step' | 'trample' | 'land'): PixelBuffer[] {
     return [0, 1, 2].map((f) => {
       const b = buf(11, 6);
       const r = [1.3, 1.8, 1.2][f]!;
-      paintLobes(b, [
-        { x: 3.5 - f * 0.6, y: 3.5 - f * 0.4, r },
-        { x: 7.5 + f * 0.6, y: 3.5 - f * 0.4, r: r * 0.85 },
-      ], { ramp: DUST, outlineLit: 'stone2' });
+      paintLobes(
+        b,
+        [
+          { x: 3.5 - f * 0.6, y: 3.5 - f * 0.4, r },
+          { x: 7.5 + f * 0.6, y: 3.5 - f * 0.4, r: r * 0.85 },
+        ],
+        { ramp: DUST, outlineLit: 'stone2' },
+      );
       return b;
     });
   }
@@ -245,11 +316,15 @@ function dust(kind: 'step' | 'trample' | 'land'): PixelBuffer[] {
     return [0, 1, 2, 3].map((f) => {
       const b = buf(17, 9);
       const r = [1.6, 2.4, 2.4, 1.6][f]!;
-      paintLobes(b, [
-        { x: 5 - f, y: 5.5 - f * 0.5, r },
-        { x: 8.5, y: 4.5 - f * 0.6, r: r + 0.4 },
-        { x: 12 + f, y: 5.5 - f * 0.5, r },
-      ], { ramp: DUST, outlineLit: 'stone2' });
+      paintLobes(
+        b,
+        [
+          { x: 5 - f, y: 5.5 - f * 0.5, r },
+          { x: 8.5, y: 4.5 - f * 0.6, r: r + 0.4 },
+          { x: 12 + f, y: 5.5 - f * 0.5, r },
+        ],
+        { ramp: DUST, outlineLit: 'stone2' },
+      );
       return b;
     });
   }
@@ -270,7 +345,15 @@ function dust(kind: 'step' | 'trample' | 'land'): PixelBuffer[] {
 }
 
 /** Looping smoke column: puffs rise, grow, drift with the wind and thin out at the top. */
-function smokeColumn(W: number, H: number, n: number, rMin: number, rMax: number, ramp: string[], seed: number): PixelBuffer[] {
+function smokeColumn(
+  W: number,
+  H: number,
+  n: number,
+  rMin: number,
+  rMax: number,
+  ramp: string[],
+  seed: number,
+): PixelBuffer[] {
   const rnd = prng(seed);
   const jitter = Array.from({ length: n }, () => rnd() - 0.5);
   const frames: PixelBuffer[] = [];
@@ -280,7 +363,10 @@ function smokeColumn(W: number, H: number, n: number, rMin: number, rMax: number
     const lobes: Lobe[] = [];
     for (let i = 0; i < n; i++) {
       const p = ((i + f / F) / n) % 1; // 0 base → 1 top
-      const r = rMin + (rMax - rMin) * Math.sin(Math.min(1, p * 1.25) * Math.PI * 0.5) - (p > 0.82 ? (p - 0.82) * 14 : 0);
+      const r =
+        rMin +
+        (rMax - rMin) * Math.sin(Math.min(1, p * 1.25) * Math.PI * 0.5) -
+        (p > 0.82 ? (p - 0.82) * 14 : 0);
       if (r < 0.9) continue;
       const wob = Math.sin(i * 2.4) * (1 + p * 2.5);
       lobes.push({
@@ -290,7 +376,11 @@ function smokeColumn(W: number, H: number, n: number, rMin: number, rMax: number
       });
     }
     // Paint top (oldest) first so younger puffs overlap from below.
-    paintLobes(b, lobes.sort((a, c) => a.y - c.y), { ramp, outlineLit: ramp[1] });
+    paintLobes(
+      b,
+      lobes.sort((a, c) => a.y - c.y),
+      { ramp, outlineLit: ramp[1] },
+    );
     frames.push(b);
   }
   return frames;
@@ -302,7 +392,13 @@ export function registerParticles(reg: SpriteRegistry): void {
     for (const d of DIRS) {
       const frames = muzzleFrames(spec, d, seed++);
       const c = Math.floor(frames[0]!.w / 2);
-      reg.add(`fx.muzzle.${weapon}.${d}`, { group: 'fx', frames, fps: 20, loop: false, anchor: { x: c, y: c } });
+      reg.add(`fx.muzzle.${weapon}.${d}`, {
+        group: 'fx',
+        frames,
+        fps: 20,
+        loop: false,
+        anchor: { x: c, y: c },
+      });
     }
   }
   for (const d of DIRS) {
@@ -318,14 +414,56 @@ export function registerParticles(reg: SpriteRegistry): void {
   px(ground, 2, 3, 'ochre2');
   px(ground, 3, 3, 'ochre3');
   reg.add('fx.casing.ground', { group: 'fx', frames: ground, anchor: { x: 2, y: 3 } });
-  reg.add('fx.impact.dirt', { group: 'fx', frames: impactDirt(), fps: 14, loop: false, anchor: { x: 6, y: 8 } });
-  reg.add('fx.impact.spark', { group: 'fx', frames: sparkBurst(5, 3, 3, 11, 0.1), fps: 18, loop: false, anchor: { x: 5, y: 5 } });
-  reg.add('fx.sparks', { group: 'fx', frames: sparkBurst(9, 8, 6, 23, 0.32), fps: 14, loop: false, anchor: { x: 11, y: 11 } });
-  reg.add('fx.glass.shards', { group: 'fx', frames: glassShards(), fps: 14, loop: false, anchor: { x: 11, y: 15 } });
+  reg.add('fx.impact.dirt', {
+    group: 'fx',
+    frames: impactDirt(),
+    fps: 14,
+    loop: false,
+    anchor: { x: 6, y: 8 },
+  });
+  reg.add('fx.impact.spark', {
+    group: 'fx',
+    frames: sparkBurst(5, 3, 3, 11, 0.1),
+    fps: 18,
+    loop: false,
+    anchor: { x: 5, y: 5 },
+  });
+  reg.add('fx.sparks', {
+    group: 'fx',
+    frames: sparkBurst(9, 8, 6, 23, 0.32),
+    fps: 14,
+    loop: false,
+    anchor: { x: 11, y: 11 },
+  });
+  reg.add('fx.glass.shards', {
+    group: 'fx',
+    frames: glassShards(),
+    fps: 14,
+    loop: false,
+    anchor: { x: 11, y: 15 },
+  });
   reg.add('fx.glass.ground', { group: 'fx', frames: glassGround(), anchor: { x: 7, y: 3 } });
-  reg.add('fx.dust.step', { group: 'fx', frames: dust('step'), fps: 12, loop: false, anchor: { x: 5, y: 5 } });
-  reg.add('fx.dust.trample', { group: 'fx', frames: dust('trample'), fps: 10, loop: false, anchor: { x: 8, y: 8 } });
-  reg.add('fx.dust.land', { group: 'fx', frames: dust('land'), fps: 14, loop: false, anchor: { x: 15, y: 10 } });
+  reg.add('fx.dust.step', {
+    group: 'fx',
+    frames: dust('step'),
+    fps: 12,
+    loop: false,
+    anchor: { x: 5, y: 5 },
+  });
+  reg.add('fx.dust.trample', {
+    group: 'fx',
+    frames: dust('trample'),
+    fps: 10,
+    loop: false,
+    anchor: { x: 8, y: 8 },
+  });
+  reg.add('fx.dust.land', {
+    group: 'fx',
+    frames: dust('land'),
+    fps: 14,
+    loop: false,
+    anchor: { x: 15, y: 10 },
+  });
   reg.add('fx.smoke.column.grey', {
     group: 'fx',
     frames: smokeColumn(26, 50, 6, 2.5, 6.5, ['gray2', 'gray4', 'gray5', 'gray6', 'gray7'], 5),
@@ -341,11 +479,21 @@ export function registerParticles(reg: SpriteRegistry): void {
   // Single small smoke puff (gun smoke, exhaust, generic): 5 frames.
   const puff = [1.2, 2, 2.6, 2.4, 1.6].map((r, f) => {
     const b = buf(11, 12);
-    paintLobes(b, [
-      { x: 5, y: 7 - f, r },
-      { x: 6.5, y: 6.5 - f * 1.2, r: r * 0.7 },
-    ], { ramp: ['gray3', 'gray5', 'gray6', 'gray7', 'white'], outlineLit: 'gray4' });
+    paintLobes(
+      b,
+      [
+        { x: 5, y: 7 - f, r },
+        { x: 6.5, y: 6.5 - f * 1.2, r: r * 0.7 },
+      ],
+      { ramp: ['gray3', 'gray5', 'gray6', 'gray7', 'white'], outlineLit: 'gray4' },
+    );
     return b;
   });
-  reg.add('fx.smoke.puff', { group: 'fx', frames: puff, fps: 10, loop: false, anchor: { x: 5, y: 9 } });
+  reg.add('fx.smoke.puff', {
+    group: 'fx',
+    frames: puff,
+    fps: 10,
+    loop: false,
+    anchor: { x: 5, y: 9 },
+  });
 }

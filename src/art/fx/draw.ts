@@ -41,7 +41,14 @@ export function clearPx(b: PixelBuffer, x: number, y: number): void {
   b.data.fill(0, (y * b.w + x) * 4, (y * b.w + x) * 4 + 4);
 }
 
-export function rect(b: PixelBuffer, x: number, y: number, w: number, h: number, ref: string): void {
+export function rect(
+  b: PixelBuffer,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  ref: string,
+): void {
   const c = col(ref);
   for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) setPixel(b, i, j, c);
 }
@@ -115,7 +122,14 @@ export function mset(k: Mask, x: number, y: number, v = 1): void {
 }
 
 /** Is pixel (x, y) (centre x+.5, y+.5) inside the ellipse at (cx, cy) with radii rx, ry? */
-export function inEllipse(x: number, y: number, cx: number, cy: number, rx: number, ry: number): boolean {
+export function inEllipse(
+  x: number,
+  y: number,
+  cx: number,
+  cy: number,
+  rx: number,
+  ry: number,
+): boolean {
   const dx = (x + 0.5 - cx) / rx;
   const dy = (y + 0.5 - cy) / ry;
   return dx * dx + dy * dy <= 1;
@@ -187,7 +201,9 @@ export function ellipseRing(
       }
       if (!edge) continue;
       const r =
-        typeof ref === 'string' ? ref : ref(x, y, Math.atan2((y + 0.5 - cy) / ry, (x + 0.5 - cx) / rx));
+        typeof ref === 'string'
+          ? ref
+          : ref(x, y, Math.atan2((y + 0.5 - cy) / ry, (x + 0.5 - cx) / rx));
       if (r) setPixel(b, x, y, col(r));
     }
   }
@@ -218,7 +234,10 @@ export function outlineBuf(
       const l = has(b, x - 1, y) || has(b, x, y - 1);
       const c =
         corners &&
-        (has(b, x + 1, y + 1) || has(b, x - 1, y - 1) || has(b, x + 1, y - 1) || has(b, x - 1, y + 1));
+        (has(b, x + 1, y + 1) ||
+          has(b, x - 1, y - 1) ||
+          has(b, x + 1, y - 1) ||
+          has(b, x - 1, y + 1));
       if (!r && !l && !c) continue;
       const side = r ? 'tl' : 'br';
       marks.push([x, y, typeof ref === 'string' ? ref : ref(side)]);
@@ -323,7 +342,8 @@ export function paintLobes(b: PixelBuffer, lobes: readonly Lobe[], style: LobeSt
   // Paint lobes.
   const paint = new Int16Array(b.w * b.h).fill(-1);
   let specLobe: Lobe | null = null;
-  for (const l of lobes) if (!specLobe || l.r - l.y * 0.3 > specLobe.r - specLobe.y * 0.3) specLobe = l;
+  for (const l of lobes)
+    if (!specLobe || l.r - l.y * 0.3 > specLobe.r - specLobe.y * 0.3) specLobe = l;
   for (const l of lobes) {
     const ry = l.r * (l.sy ?? 1);
     for (let y = Math.floor(l.y - ry - 1); y <= Math.ceil(l.y + ry + 1); y++) {
@@ -333,7 +353,14 @@ export function paintLobes(b: PixelBuffer, lobes: readonly Lobe[], style: LobeSt
         if (mode === 'hot') {
           // Banded by depth from the cluster edge (chamfer distance), core biased up-left.
           const d = dist[y * b.w + x]! + (has2(k, x + 2, y + 2) ? 0 : -1);
-          step = d <= Math.max(1, maxR * 0.16) ? 1 : d <= maxR * 0.38 ? 2 : d <= maxR * 0.62 || ramp.length < 5 ? 3 : 4;
+          step =
+            d <= Math.max(1, maxR * 0.16)
+              ? 1
+              : d <= maxR * 0.38
+                ? 2
+                : d <= maxR * 0.62 || ramp.length < 5
+                  ? 3
+                  : 4;
         } else {
           // Shadow: the cluster's own lower-right rim (union-based) + a thin per-lobe crease.
           const sd = Math.max(1, Math.round(maxR * shade * 0.75));
@@ -376,30 +403,39 @@ export function chamfer(k: Mask): Float32Array {
   const d = new Float32Array(w * h);
   const INF = 1e6;
   for (let i = 0; i < w * h; i++) d[i] = k.m[i] ? INF : 0;
-  const at = (x: number, y: number): number => (x < 0 || y < 0 || x >= w || y >= h ? 0 : d[y * w + x]!);
+  const at = (x: number, y: number): number =>
+    x < 0 || y < 0 || x >= w || y >= h ? 0 : d[y * w + x]!;
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const i = y * w + x;
       if (!d[i]) continue;
-      d[i] = Math.min(d[i]!, at(x - 1, y) + 1, at(x, y - 1) + 1, at(x - 1, y - 1) + 1.4, at(x + 1, y - 1) + 1.4);
+      d[i] = Math.min(
+        d[i]!,
+        at(x - 1, y) + 1,
+        at(x, y - 1) + 1,
+        at(x - 1, y - 1) + 1.4,
+        at(x + 1, y - 1) + 1.4,
+      );
     }
   }
   for (let y = h - 1; y >= 0; y--) {
     for (let x = w - 1; x >= 0; x--) {
       const i = y * w + x;
       if (!d[i]) continue;
-      d[i] = Math.min(d[i]!, at(x + 1, y) + 1, at(x, y + 1) + 1, at(x + 1, y + 1) + 1.4, at(x - 1, y + 1) + 1.4);
+      d[i] = Math.min(
+        d[i]!,
+        at(x + 1, y) + 1,
+        at(x, y + 1) + 1,
+        at(x + 1, y + 1) + 1.4,
+        at(x - 1, y + 1) + 1.4,
+      );
     }
   }
   return d;
 }
 
 /** Outline the exterior of a mask into b. */
-export function outlineMaskInto(
-  b: PixelBuffer,
-  k: Mask,
-  ref: (side: 'tl' | 'br') => string,
-): void {
+export function outlineMaskInto(b: PixelBuffer, k: Mask, ref: (side: 'tl' | 'br') => string): void {
   for (let y = 0; y < k.h; y++) {
     for (let x = 0; x < k.w; x++) {
       if (mget(k, x, y)) continue;

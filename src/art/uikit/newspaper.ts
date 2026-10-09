@@ -14,9 +14,21 @@ import { FONTS, drawText, measureText } from './text';
 export type City = 'madrid' | 'london' | 'paris';
 
 export const MASTHEADS: Record<City, { title: string; dateline: string; motto: string }> = {
-  madrid: { title: 'El Orden', dateline: 'MADRID · EDICIÓN ESPECIAL · 2 €', motto: '«Todo en orden, nada en duda»' },
-  london: { title: 'The Daily Order', dateline: 'LONDON · LATE EXTRA · 50p', motto: '"Keep calm and obey"' },
-  paris: { title: "L'Ordre du Jour", dateline: 'PARIS · ÉDITION SPÉCIALE · 2 €', motto: '« Liberté, Égalité, Formulaire »' },
+  madrid: {
+    title: 'El Orden',
+    dateline: 'MADRID · EDICIÓN ESPECIAL · 2 €',
+    motto: '«Todo en orden, nada en duda»',
+  },
+  london: {
+    title: 'The Daily Order',
+    dateline: 'LONDON · LATE EXTRA · 50p',
+    motto: '"Keep calm and obey"',
+  },
+  paris: {
+    title: "L'Ordre du Jour",
+    dateline: 'PARIS · ÉDITION SPÉCIALE · 2 €',
+    motto: '« Liberté, Égalité, Formulaire »',
+  },
 };
 
 /** Integer upscale (nearest). */
@@ -34,7 +46,8 @@ export function scaleBuffer(src: PixelBuffer, n: number): PixelBuffer {
 /** Add 1-px slab serifs where vertical strokes meet the cap line or the baseline. */
 export function slabSerifs(k: { w: number; h: number; m: Uint8Array }, capH: number): void {
   const set: number[] = [];
-  const at = (x: number, y: number): number => (x < 0 || y < 0 || x >= k.w || y >= k.h ? 0 : k.m[y * k.w + x]!);
+  const at = (x: number, y: number): number =>
+    x < 0 || y < 0 || x >= k.w || y >= k.h ? 0 : k.m[y * k.w + x]!;
   for (const y of [0, 1, capH - 2, capH - 1]) {
     const edgeRow = y === 0 || y === capH - 1;
     for (let x = 0; x < k.w; x++) {
@@ -67,7 +80,14 @@ export function masthead(city: City, minW = 0, maxW = Infinity): PixelBuffer {
     t = textMask(f, m.title, 1, 1);
   }
   slabSerifs(t.m, f.capHeight * scale);
-  const W = Math.min(maxW, Math.max(minW, t.m.w + 64, measureText(FONTS.small, m.dateline).w + measureText(FONTS.small, m.motto).w + 24));
+  const W = Math.min(
+    maxW,
+    Math.max(
+      minW,
+      t.m.w + 64,
+      measureText(FONTS.small, m.dateline).w + measureText(FONTS.small, m.motto).w + 24,
+    ),
+  );
   const H = 9 + scale * f.capHeight + 3 + 17;
   const b = buf(W, H);
   rect(b, 0, 0, W, H, 'stone4');
@@ -100,9 +120,16 @@ export function masthead(city: City, minW = 0, maxW = Infinity): PixelBuffer {
 }
 
 /** Rows of "typeset" column text: dashes of ink/gray words with paragraph breaks. */
-function columnText(b: PixelBuffer, x: number, y: number, w: number, h: number, seed: number): void {
+function columnText(
+  b: PixelBuffer,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  seed: number,
+): void {
   let s = seed;
-  const rnd = (): number => ((s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+  const rnd = (): number => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
   for (let yy = y; yy < y + h - 1; yy += 3) {
     let xx = x + ((yy - y) % 27 === 0 ? 3 : 0);
     const end = (yy - y) % 27 === 24 ? x + w * (0.4 + rnd() * 0.4) : x + w;
@@ -118,7 +145,14 @@ function columnText(b: PixelBuffer, x: number, y: number, w: number, h: number, 
  * Front page: newsprint sheet, masthead, ×2 headline (wrapped), sub-deck, 3 columns of text,
  * a picture box (left for the screen to fill) and an optional rubber stamp over the corner.
  */
-export function frontPage(city: City, headline: string, deck: string, w = 300, h = 220, stampKey?: [string, string]): PixelBuffer {
+export function frontPage(
+  city: City,
+  headline: string,
+  deck: string,
+  w = 300,
+  h = 220,
+  stampKey?: [string, string],
+): PixelBuffer {
   const b = panel('newsprint', w, h);
   const mh = masthead(city, w - 12, w - 12);
   stamp(b, mh, 6, 6);
@@ -138,11 +172,16 @@ export function frontPage(city: City, headline: string, deck: string, w = 300, h
     const tm = textMask(FONTS.large, l, 2, 0);
     slabSerifs(tm.m, FONTS.large.capHeight * 2);
     const x0 = Math.floor((w - tm.m.w) / 2);
-    for (let yy = 0; yy < tm.m.h; yy++) for (let xx = 0; xx < tm.m.w; xx++) if (tm.m.m[yy * tm.m.w + xx]) px(b, x0 + xx, y + yy, 'ink');
+    for (let yy = 0; yy < tm.m.h; yy++)
+      for (let xx = 0; xx < tm.m.w; xx++)
+        if (tm.m.m[yy * tm.m.w + xx]) px(b, x0 + xx, y + yy, 'ink');
     y += FONTS.large.capHeight * 2 + 5;
   }
   const dm = measureText(FONTS.small, deck, w - 24);
-  drawText(b, FONTS.small, deck, Math.floor(w / 2), y, 'gray1', { align: 'center', maxWidth: w - 24 });
+  drawText(b, FONTS.small, deck, Math.floor(w / 2), y, 'gray1', {
+    align: 'center',
+    maxWidth: w - 24,
+  });
   y += dm.h + 6;
   hline(b, 8, y, w - 16, 'gray3');
   y += 4;
@@ -152,7 +191,14 @@ export function frontPage(city: City, headline: string, deck: string, w = 300, h
   rect(b, 8, y, colW * 2 + 4, Math.floor(pbH * 0.7), 'gray5');
   rect(b, 9, y + 1, colW * 2 + 2, Math.floor(pbH * 0.7) - 2, 'stone3');
   columnText(b, 8, y + Math.floor(pbH * 0.7) + 4, colW, pbH - Math.floor(pbH * 0.7) - 4, 3);
-  columnText(b, 8 + colW + 4, y + Math.floor(pbH * 0.7) + 4, colW, pbH - Math.floor(pbH * 0.7) - 4, 7);
+  columnText(
+    b,
+    8 + colW + 4,
+    y + Math.floor(pbH * 0.7) + 4,
+    colW,
+    pbH - Math.floor(pbH * 0.7) - 4,
+    7,
+  );
   vline(b, 8 + colW * 2 + 6, y, pbH, 'gray4');
   columnText(b, 8 + colW * 2 + 9, y, colW - 1, pbH, 11);
   if (stampKey) {

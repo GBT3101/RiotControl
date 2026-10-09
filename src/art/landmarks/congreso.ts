@@ -407,7 +407,7 @@ export function buildCongreso(state: DamageState): Build {
   s.box(2.7, 6.3, 1.3, 3.7, 54, 66, hallWall, { tag: 'hall' });
   s.hip(2.6, 6.4, 1.2, 3.8, 66, 72, 1.0, slateRoof);
   const glass: Material = (c) => {
-    if (c.night) return c.side === 'top' ? null : 'ochre3';
+    if (c.night) return mod(c.fx, 4) === 0 || c.side === 'top' ? null : 'ochre2';
     if (c.edge) return 'ink';
     if (state >= 2 && mod(c.fx, 8) < 3 && c.side !== 'top') return 'ink';
     if (mod(c.fx, 4) === 0 || c.side === 'top') return lv(R.metal, c.level);

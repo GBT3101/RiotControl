@@ -8,7 +8,16 @@ import type { BuildingKind, CityId, RoofType } from '../../../maps/contract';
 import type { RGBA } from '../../palette';
 import { C, darker, lighter } from '../color';
 import { Dice, hash } from '../util';
-import { Face, K_GLASS, K_RELIEF, K_WALL, n2, parseGrid, stampModule, type KeyResolver } from './face';
+import {
+  Face,
+  K_GLASS,
+  K_RELIEF,
+  K_WALL,
+  n2,
+  parseGrid,
+  stampModule,
+  type KeyResolver,
+} from './face';
 import type { Look, WallMat } from './looks';
 import * as M from './modules.grid';
 
@@ -46,18 +55,30 @@ export function bayLayout(len: number): BayLayout {
 }
 
 /** Storey programme from the top storey down to the ground floor (exclusive). */
-export function floorProgramme(city: CityId, storeys: number, roof: RoofType, kind: BuildingKind, d: Dice): FloorType[] {
+export function floorProgramme(
+  city: CityId,
+  storeys: number,
+  roof: RoofType,
+  kind: BuildingKind,
+  d: Dice,
+): FloorType[] {
   const upper = storeys - 1;
   const out: FloorType[] = [];
   for (let k = 0; k < upper; k++) {
     const fromGround = upper - k; // 1 = first floor
     if (city === 'paris') {
       // Haussmann: continuous balconies on the 2nd and 5th floors.
-      if (fromGround === 2 || (fromGround === 5 && roof !== 'mansard') || (fromGround === upper && upper >= 4 && roof !== 'mansard' && fromGround !== 1)) out.push('gallery');
+      if (
+        fromGround === 2 ||
+        (fromGround === 5 && roof !== 'mansard') ||
+        (fromGround === upper && upper >= 4 && roof !== 'mansard' && fromGround !== 1)
+      )
+        out.push('gallery');
       else out.push(fromGround === 1 && upper >= 3 ? 'plain' : 'balcony');
     } else if (city === 'london') {
       if (k === 0 && upper >= 3) out.push('small');
-      else if (fromGround === 1 && kind !== 'commercial') out.push(d.chance(0.6) ? 'tall' : 'plain');
+      else if (fromGround === 1 && kind !== 'commercial')
+        out.push(d.chance(0.6) ? 'tall' : 'plain');
       else out.push('plain');
     } else {
       if (k === 0 && upper >= 4 && d.chance(0.5)) out.push('small');
@@ -76,9 +97,8 @@ function wallPixel(mat: WallMat, base: RGBA, x: number, y: number, s: number): R
       const off = (course & 1) * 2;
       const bx = (x + off) >> 2;
       if ((y & 1) === 1 && ((x + off) & 3) === 0) return darker(base);
-      const h = hash(bx, course, s) % 23;
+      const h = hash(bx, course, s) % 41;
       if (h === 0) return darker(base);
-      if (h === 1) return lighter(base);
       return base;
     }
     case 'ashlar': {
@@ -256,12 +276,13 @@ export function paintFace(look: Look, plan: FacePlan): Face {
   paintTop(f, look, plan.roof, len);
 
   // 6. Drainpipes.
-  const pipe = look.city === 'london' ? C('gray1') : look.city === 'paris' ? C('zinc2') : C('gray4');
+  const pipe =
+    look.city === 'london' ? C('gray1') : look.city === 'paris' ? C('zinc2') : C('gray4');
   for (const px of plan.pipes) {
     if (px < 0 || px >= len) continue;
     for (let y = 1; y < H - 1; y++) {
       if (f.kindAt(px, y) === K_GLASS) continue;
-      f.set(px, y, (y % 9 === 4 ? darker(pipe) : pipe), K_RELIEF);
+      f.set(px, y, y % 9 === 4 ? darker(pipe) : pipe, K_RELIEF);
     }
     f.set(px, 1, lighter(pipe), K_RELIEF);
     f.set(px + 1, 1, pipe, K_RELIEF);
@@ -370,7 +391,8 @@ function paintGroundFloor(
   d: Dice,
   vars: () => WinVars,
 ): void {
-  const commercial = plan.kind === 'commercial' || (look.city === 'paris' && plan.kind !== 'civic' && d.chance(0.7));
+  const commercial =
+    plan.kind === 'commercial' || (look.city === 'paris' && plan.kind !== 'civic' && d.chance(0.7));
   const civic = plan.kind === 'civic';
   let b = 0;
   while (b < nb) {
@@ -379,7 +401,8 @@ function paintGroundFloor(
     const res = resolver(look, f, v);
     const door = plan.doorBays.has(b);
     if (door) {
-      const mod = look.city === 'madrid' ? M.MAD_PORTAL : look.city === 'london' ? M.LDN_DOOR : M.PAR_DOOR;
+      const mod =
+        look.city === 'madrid' ? M.MAD_PORTAL : look.city === 'london' ? M.LDN_DOOR : M.PAR_DOOR;
       stampModule(f, mod, x0, y0, res, d.chance(0.3) ? GLOW : 0, GLOW_HI);
       b++;
       continue;
@@ -402,7 +425,15 @@ function paintGroundFloor(
       // Each shop gets its own sign / awning colours.
       const sl = { ...look, ...shopColours(d) };
       const r2 = resolver(sl, f, v);
-      stampModule(f, mod, x0 + 1, y0, signText(r2, sl, x0 + 1, y0, d), lit ? GLOW : 0, lit ? GLOW_HI : 0);
+      stampModule(
+        f,
+        mod,
+        x0 + 1,
+        y0,
+        signText(r2, sl, x0 + 1, y0, d),
+        lit ? GLOW : 0,
+        lit ? GLOW_HI : 0,
+      );
       b += 2;
       continue;
     }
@@ -466,7 +497,9 @@ function signText(res: KeyResolver, look: Look, x0: number, y0: number, d: Dice)
     if (k === 'N') {
       const lx = px - x0;
       const row = py - y0;
-      return glyphs.has(lx) || (row === 1 && glyphs.has(lx - 1) && d.chance(0.5)) ? look.signText : look.sign;
+      return glyphs.has(lx) || (row === 1 && glyphs.has(lx - 1) && d.chance(0.5))
+        ? look.signText
+        : look.sign;
     }
     return res(k, px, py);
   };
@@ -509,7 +542,12 @@ function paintTop(f: Face, look: Look, roof: RoofType, len: number): void {
     for (let x = 0; x < len; x++) {
       f.set(x, 0, darker(look.wall, 2), K_WALL);
       f.set(x, 1, x % 3 === 0 ? darker(look.wall, 2) : darker(look.wall), K_WALL);
-      f.set(x, 2, look.city === 'london' ? T : f.get(x, 2), look.city === 'london' ? K_RELIEF : K_WALL);
+      f.set(
+        x,
+        2,
+        look.city === 'london' ? T : f.get(x, 2),
+        look.city === 'london' ? K_RELIEF : K_WALL,
+      );
     }
     return;
   }
@@ -546,7 +584,8 @@ function weather(f: Face, look: Look, plan: FacePlan, d: Dice): void {
   for (let k = 0; k < streaks; k++) {
     const x = d.int(0, len - 1);
     const l = d.int(3, 9);
-    for (let y = CORNICE; y < CORNICE + l; y++) if (f.kindAt(x, y) === K_WALL && n2(x, y, 5) < 0.8) f.darken(x, y);
+    for (let y = CORNICE; y < CORNICE + l; y++)
+      if (f.kindAt(x, y) === K_WALL && n2(x, y, 5) < 0.8) f.darken(x, y);
   }
   // A spray tag at street level now and then (not on civic stone).
   if (plan.kind !== 'civic' && d.chance(look.city === 'london' ? 0.2 : 0.45)) {

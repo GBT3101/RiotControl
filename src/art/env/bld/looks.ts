@@ -37,7 +37,18 @@ export interface Look {
 
 const pick = <T>(d: Dice, xs: readonly T[]): T => d.pick(xs);
 
-const CLOTH = ['white', 'sky', 'pink2', 'ochre3', 'crim2', 'blue1', 'lime', 'lilac', 'teal2', 'rust3'];
+const CLOTH = [
+  'white',
+  'sky',
+  'pink2',
+  'ochre3',
+  'crim2',
+  'blue1',
+  'lime',
+  'lilac',
+  'teal2',
+  'rust3',
+];
 
 const SHOP_SIGNS: ReadonlyArray<readonly [string, string]> = [
   ['green1', 'ochre3'],
@@ -107,7 +118,9 @@ export function makeLook(city: CityId, kind: BuildingKind, d: Dice): Look {
       wall: C(wallName),
       groundMat: civic ? 'ashlar' : 'smooth',
       ground: civic ? C('stone3') : d.chance(0.5) ? C('stone3') : darker(C(wallName)),
-      trim: light ? C(pick(d, ['white', 'stone5', 'ochre2'])) : C(pick(d, ['stone5', 'white', 'stone4'])),
+      trim: light
+        ? C(pick(d, ['white', 'stone5', 'ochre2']))
+        : C(pick(d, ['stone5', 'white', 'stone4'])),
       frame: C(pick(d, ['white', 'green2', 'earth2', 'white'])),
       shutter: C(pick(d, ['green2', 'green3', 'earth3', 'stone3', 'green2'])),
       iron: C('gray2'),
@@ -120,12 +133,14 @@ export function makeLook(city: CityId, kind: BuildingKind, d: Dice): Look {
   }
   if (city === 'london') {
     const civic = kind === 'civic';
-    const style = civic ? 'portland' : d.weighted<string>([
-      ['stock', 4],
-      ['red', 3],
-      ['stucco', 2],
-      ['grey', 2],
-    ]);
+    const style = civic
+      ? 'portland'
+      : d.weighted<string>([
+          ['stock', 4],
+          ['red', 3],
+          ['stucco', 2],
+          ['grey', 2],
+        ]);
     const wall = {
       stock: pick(d, ['earth4', 'stone2']),
       red: pick(d, ['rust2', 'rust1']),
@@ -153,12 +168,14 @@ export function makeLook(city: CityId, kind: BuildingKind, d: Dice): Look {
   }
   // Paris — Haussmann limestone.
   const civic = kind === 'civic';
-  const wallName = civic ? 'stone5' : d.weighted<string>([
-    ['stone4', 6],
-    ['stone5', 3],
-    ['stone3', 2],
-    ['gray7', 1],
-  ]);
+  const wallName = civic
+    ? 'stone5'
+    : d.weighted<string>([
+        ['stone4', 6],
+        ['stone5', 3],
+        ['stone3', 2],
+        ['gray7', 1],
+      ]);
   return {
     ...base,
     mat: 'ashlar',

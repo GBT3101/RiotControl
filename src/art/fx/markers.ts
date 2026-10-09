@@ -44,14 +44,22 @@ function tileHighlight(bright: string, mid: string, dim: string): PixelBuffer[] 
     for (let y = 0; y < 16; y++) {
       for (let x = 0; x < 32; x++) {
         if (!inTileDiamond(x, y)) continue;
-        const edge = !inTileDiamond(x - 2, y) || !inTileDiamond(x + 2, y) || !inTileDiamond(x, y - 1) || !inTileDiamond(x, y + 1);
+        const edge =
+          !inTileDiamond(x - 2, y) ||
+          !inTileDiamond(x + 2, y) ||
+          !inTileDiamond(x, y - 1) ||
+          !inTileDiamond(x, y + 1);
         if (edge) {
           // Perimeter coordinate ~ x for the top half going right, reversed for the bottom half.
           const s = y < 8 ? x : 64 - x;
           px(b, x, y, (Math.floor((s + f * 2) / 4) & 1) === 0 ? bright : mid);
           continue;
         }
-        const inner = !inTileDiamond(x - 4, y) || !inTileDiamond(x + 4, y) || !inTileDiamond(x, y - 2) || !inTileDiamond(x, y + 2);
+        const inner =
+          !inTileDiamond(x - 4, y) ||
+          !inTileDiamond(x + 4, y) ||
+          !inTileDiamond(x, y - 2) ||
+          !inTileDiamond(x, y + 2);
         if (inner && (x + y + f) % 2 === 0) px(b, x, y, dim);
       }
     }
@@ -61,7 +69,8 @@ function tileHighlight(bright: string, mid: string, dim: string): PixelBuffer[] 
 
 /* Waypoint ------------------------------------------------------------------------ */
 
-const FLAG = grid(`
+const FLAG = grid(
+  `
   ooooo..
   oRRRRo.
   oRrRRRo
@@ -74,7 +83,9 @@ const FLAG = grid(`
   oB.....
   ob.....
   .o.....
-`, { o: 'ink', R: 'crim2', r: 'stone5', B: 'ochre3', b: 'ochre1' });
+`,
+  { o: 'ink', R: 'crim2', r: 'stone5', B: 'ochre3', b: 'ochre1' },
+);
 
 function waypoint(): PixelBuffer[] {
   const W = 19;
@@ -87,7 +98,9 @@ function waypoint(): PixelBuffer[] {
     if (f >= 2) {
       const r = [0, 0, 4, 6, 8, 7][f]!;
       ellipseRing(b, ax + 0.5, ay + 0.5, r, r / 2, f < 5 ? 'hivis2' : 'hivis1');
-      ellipseRing(b, ax + 0.5, ay + 1.5, r, r / 2, (x, y) => (b.data[(y * W + x) * 4 + 3] ? null : 'olive1'));
+      ellipseRing(b, ax + 0.5, ay + 1.5, r, r / 2, (x, y) =>
+        b.data[(y * W + x) * 4 + 3] ? null : 'olive1',
+      );
     } else {
       ellipseRing(b, ax + 0.5, ay + 0.5, 3, 1.5, 'hivis1');
     }
@@ -151,7 +164,11 @@ export function ghostTint(src: PixelBuffer, kind: keyof typeof GHOST_RAMPS): Pix
 
 export function registerMarkers(reg: SpriteRegistry): void {
   for (const team of ['ally', 'enemy'] as const) {
-    for (const [size, rx] of [['s', 8], ['m', 12], ['l', 22]] as const) {
+    for (const [size, rx] of [
+      ['s', 8],
+      ['m', 12],
+      ['l', 22],
+    ] as const) {
       const fr = selectionRing(team, rx);
       reg.add(`ui.select.${team}.${size}`, {
         group: 'ui',
@@ -162,12 +179,38 @@ export function registerMarkers(reg: SpriteRegistry): void {
     }
   }
   const tile = { x: 16, y: 0 };
-  reg.add('ui.tile.valid', { group: 'ui', frames: tileHighlight('lime', 'green3', 'green4'), fps: 8, anchor: tile });
-  reg.add('ui.tile.invalid', { group: 'ui', frames: tileHighlight('rust4', 'crim1', 'crim2'), fps: 8, anchor: tile });
-  reg.add('ui.tile.target', { group: 'ui', frames: tileHighlight('hivis2', 'olive2', 'hivis1'), fps: 8, anchor: tile });
-  reg.add('ui.waypoint', { group: 'ui', frames: waypoint(), fps: 14, loop: false, anchor: { x: 9, y: 19 } });
+  reg.add('ui.tile.valid', {
+    group: 'ui',
+    frames: tileHighlight('lime', 'green3', 'green4'),
+    fps: 8,
+    anchor: tile,
+  });
+  reg.add('ui.tile.invalid', {
+    group: 'ui',
+    frames: tileHighlight('rust4', 'crim1', 'crim2'),
+    fps: 8,
+    anchor: tile,
+  });
+  reg.add('ui.tile.target', {
+    group: 'ui',
+    frames: tileHighlight('hivis2', 'olive2', 'hivis1'),
+    fps: 8,
+    anchor: tile,
+  });
+  reg.add('ui.waypoint', {
+    group: 'ui',
+    frames: waypoint(),
+    fps: 14,
+    loop: false,
+    anchor: { x: 9, y: 19 },
+  });
   for (let r = 3; r <= 14; r++) {
     const fr = rangeRing(r);
-    reg.add(`ui.range.r${r}`, { group: 'ui', frames: fr, fps: 4, anchor: { x: Math.floor(fr[0]!.w / 2), y: Math.floor(fr[0]!.h / 2) } });
+    reg.add(`ui.range.r${r}`, {
+      group: 'ui',
+      frames: fr,
+      fps: 4,
+      anchor: { x: Math.floor(fr[0]!.w / 2), y: Math.floor(fr[0]!.h / 2) },
+    });
   }
 }

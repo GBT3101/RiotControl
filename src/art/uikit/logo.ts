@@ -10,7 +10,12 @@ import { rubberStamp } from './banners';
 import { FONTS, measureText, type BitmapFont } from './text';
 
 /** Text → 1-bit mask, integer-scaled. Returns mask + per-glyph x ranges (scaled px). */
-export function textMask(font: BitmapFont, str: string, scale: number, spacing = 0): { m: Mask; glyphs: Array<[number, number]> } {
+export function textMask(
+  font: BitmapFont,
+  str: string,
+  scale: number,
+  spacing = 0,
+): { m: Mask; glyphs: Array<[number, number]> } {
   const chars = [...(font.upperOnly ? str.toUpperCase() : str)];
   let w = 0;
   const xs: Array<[number, number]> = [];
@@ -31,7 +36,9 @@ export function textMask(font: BitmapFont, str: string, scale: number, spacing =
           if (!g.mask[gy * g.w + gx]) continue;
           const yy = g.y0 + gy;
           if (yy < 0) continue;
-          for (let sy = 0; sy < scale; sy++) for (let sx = 0; sx < scale; sx++) m.m[(yy * scale + sy) * m.w + (x + gx) * scale + sx] = 1;
+          for (let sy = 0; sy < scale; sy++)
+            for (let sx = 0; sx < scale; sx++)
+              m.m[(yy * scale + sy) * m.w + (x + gx) * scale + sx] = 1;
         }
       }
     }
@@ -42,7 +49,9 @@ export function textMask(font: BitmapFont, str: string, scale: number, spacing =
 
 /** Cut a vertical stencil bridge (gap) through a mask: columns [x, x+w), rows [y0, y1). */
 function cut(m: Mask, x: number, w: number, y0: number, y1: number): void {
-  for (let y = y0; y < y1; y++) for (let i = x; i < x + w; i++) if (i >= 0 && i < m.w && y >= 0 && y < m.h) m.m[y * m.w + i] = 0;
+  for (let y = y0; y < y1; y++)
+    for (let i = x; i < x + w; i++)
+      if (i >= 0 && i < m.w && y >= 0 && y < m.h) m.m[y * m.w + i] = 0;
 }
 
 interface PaintedWord {
@@ -53,7 +62,12 @@ interface PaintedWord {
 }
 
 /** Paint a mask as chunky 3D letters: extrusion, ink outline, banded face, top highlights. */
-function paintWord(m: Mask, depth: number, faceRamp: readonly string[], extrude: readonly string[]): PaintedWord {
+function paintWord(
+  m: Mask,
+  depth: number,
+  faceRamp: readonly string[],
+  extrude: readonly string[],
+): PaintedWord {
   const pad = depth + 3;
   const W = m.w + pad * 2;
   const H = m.h + pad * 2;
@@ -63,18 +77,22 @@ function paintWord(m: Mask, depth: number, faceRamp: readonly string[], extrude:
   // Extrusion (down-right).
   for (let d = depth; d >= 1; d--) {
     for (let y = 0; y < m.h; y++) {
-      for (let x = 0; x < m.w; x++) if (m.m[y * m.w + x]) px(b, ox + x + d, oy + y + d, d === depth ? extrude[0]! : extrude[1]!);
+      for (let x = 0; x < m.w; x++)
+        if (m.m[y * m.w + x])
+          px(b, ox + x + d, oy + y + d, d === depth ? extrude[0]! : extrude[1]!);
     }
   }
   // Ink outline (8-neighbour) around face + extrusion.
   const occ = mask(W, H);
   for (let i = 0; i < W * H; i++) if (b.data[i * 4 + 3]) occ.m[i] = 1;
-  for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) if (m.m[y * m.w + x]) occ.m[(oy + y) * W + ox + x] = 1;
+  for (let y = 0; y < m.h; y++)
+    for (let x = 0; x < m.w; x++) if (m.m[y * m.w + x]) occ.m[(oy + y) * W + ox + x] = 1;
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       if (mget(occ, x, y)) continue;
       let n = false;
-      for (let dy = -1; dy <= 1 && !n; dy++) for (let dx = -1; dx <= 1 && !n; dx++) if (mget(occ, x + dx, y + dy)) n = true;
+      for (let dy = -1; dy <= 1 && !n; dy++)
+        for (let dx = -1; dx <= 1 && !n; dx++) if (mget(occ, x + dx, y + dy)) n = true;
       if (n) px(b, x, y, 'ink');
     }
   }
@@ -86,7 +104,8 @@ function paintWord(m: Mask, depth: number, faceRamp: readonly string[], extrude:
       const t = y / m.h;
       let ref = faceRamp[Math.min(faceRamp.length - 1, Math.floor(t * faceRamp.length))]!;
       if (!mget(m, x, y - 1)) ref = 'white';
-      else if (!mget(m, x, y + 1)) ref = extrude[1] === 'navy1' ? faceRamp[faceRamp.length - 1]! : ref;
+      else if (!mget(m, x, y + 1))
+        ref = extrude[1] === 'navy1' ? faceRamp[faceRamp.length - 1]! : ref;
       px(b, ox + x, oy + y, ref);
       face.m[(oy + y) * W + ox + x] = 1;
     }
@@ -141,7 +160,12 @@ function buildLogo(): LogoParts {
   cut(riot.m, oMid, 2, riot.m.h - 16, riot.m.h - 9);
   const tX = riot.glyphs[3]!;
   cut(riot.m, tX[0], tX[1] - tX[0], 6, 7); // T: bar / stem bridge
-  const word = paintWord(riot.m, 4, ['hivis2', 'hivis2', 'hivis1', 'hivis1', 'olive2'], ['navy0', 'navy1']);
+  const word = paintWord(
+    riot.m,
+    4,
+    ['hivis2', 'hivis2', 'hivis1', 'hivis1', 'olive2'],
+    ['navy0', 'navy1'],
+  );
   // CONTROL ×2 on tape.
   const ctl = textMask(f, 'CONTROL', 2, 0);
   const W = 232;
@@ -150,13 +174,35 @@ function buildLogo(): LogoParts {
   const out = buf(W, H);
   // Smoke behind (three clusters).
   const SM = ['gray2', 'gray3', 'gray4', 'gray5', 'gray6'];
-  paintLobes(out, [
-    { x: 40, y: 22, r: 9 }, { x: 28, y: 30, r: 8 }, { x: 52, y: 14, r: 6 }, { x: 20, y: 20, r: 5 },
-  ], { ramp: SM, outlineLit: 'gray2' });
-  paintLobes(out, [
-    { x: 182, y: 20, r: 10 }, { x: 198, y: 28, r: 8 }, { x: 170, y: 10, r: 6 }, { x: 206, y: 14, r: 5 },
-  ], { ramp: SM, outlineLit: 'gray2' });
-  paintLobes(out, [{ x: 112, y: 9, r: 6 }, { x: 122, y: 6, r: 4 }, { x: 102, y: 7, r: 4 }], { ramp: SM, outlineLit: 'gray2' });
+  paintLobes(
+    out,
+    [
+      { x: 40, y: 22, r: 9 },
+      { x: 28, y: 30, r: 8 },
+      { x: 52, y: 14, r: 6 },
+      { x: 20, y: 20, r: 5 },
+    ],
+    { ramp: SM, outlineLit: 'gray2' },
+  );
+  paintLobes(
+    out,
+    [
+      { x: 182, y: 20, r: 10 },
+      { x: 198, y: 28, r: 8 },
+      { x: 170, y: 10, r: 6 },
+      { x: 206, y: 14, r: 5 },
+    ],
+    { ramp: SM, outlineLit: 'gray2' },
+  );
+  paintLobes(
+    out,
+    [
+      { x: 112, y: 9, r: 6 },
+      { x: 122, y: 6, r: 4 },
+      { x: 102, y: 7, r: 4 },
+    ],
+    { ramp: SM, outlineLit: 'gray2' },
+  );
   const rx = Math.floor((W - word.buf.w) / 2) + 2;
   const ry = 4;
   stamp(out, word.buf, rx, ry);
@@ -177,12 +223,19 @@ function buildLogo(): LogoParts {
     for (let x = 0; x < ctl.m.w; x++) if (ctl.m.m[y * ctl.m.w + x]) px(out, cx + x, cy + y, 'ink');
   }
   // OFFICIAL stamp, slapped over the top-right of RIOT.
-  const st = rubberStamp('OFFICIAL', 'crim2', { font: FONTS.smallBold, tilt: -0.12, wear: 0.4, seed: 5 });
+  const st = rubberStamp('OFFICIAL', 'crim2', {
+    font: FONTS.smallBold,
+    tilt: -0.12,
+    wear: 0.4,
+    seed: 5,
+  });
   stamp(out, st, rx + word.buf.w - 22, ry + 2);
   // Hi-vis reflective strip highlight along the tape top.
   hline(out, 6, ty + 1, W - 12, 'hivis2');
   const riotFace = mask(W, H);
-  for (let y = 0; y < word.face.h; y++) for (let x = 0; x < word.face.w; x++) if (word.face.m[y * word.face.w + x]) riotFace.m[(y + ry) * W + x + rx] = 1;
+  for (let y = 0; y < word.face.h; y++)
+    for (let x = 0; x < word.face.w; x++)
+      if (word.face.m[y * word.face.w + x]) riotFace.m[(y + ry) * W + x + rx] = 1;
   return { frame: out, riotFace, riotAt: { x: rx, y: ry } };
 }
 
@@ -210,7 +263,16 @@ export function logoFrames(): PixelBuffer[] {
 
 export function registerLogo(reg: SpriteRegistry): void {
   const frames = logoFrames();
-  reg.add('ui.logo', { group: 'ui', frames: frames[0]!, anchor: { x: Math.floor(frames[0]!.w / 2), y: 0 } });
-  reg.add('ui.logo.glint', { group: 'ui', frames, fps: 12, anchor: { x: Math.floor(frames[0]!.w / 2), y: 0 } });
+  reg.add('ui.logo', {
+    group: 'ui',
+    frames: frames[0]!,
+    anchor: { x: Math.floor(frames[0]!.w / 2), y: 0 },
+  });
+  reg.add('ui.logo.glint', {
+    group: 'ui',
+    frames,
+    fps: 12,
+    anchor: { x: Math.floor(frames[0]!.w / 2), y: 0 },
+  });
   void measureText;
 }

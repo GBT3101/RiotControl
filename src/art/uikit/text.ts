@@ -81,12 +81,14 @@ function toGlyph(g: RawGlyph, spacing: number, y0 = 0): Glyph {
 }
 
 function topRow(g: Glyph): number {
-  for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) if (g.mask[y * g.w + x]) return y + g.y0;
+  for (let y = 0; y < g.h; y++)
+    for (let x = 0; x < g.w; x++) if (g.mask[y * g.w + x]) return y + g.y0;
   return g.y0;
 }
 
 function bottomRow(g: Glyph): number {
-  for (let y = g.h - 1; y >= 0; y--) for (let x = 0; x < g.w; x++) if (g.mask[y * g.w + x]) return y + g.y0;
+  for (let y = g.h - 1; y >= 0; y--)
+    for (let x = 0; x < g.w; x++) if (g.mask[y * g.w + x]) return y + g.y0;
   return g.y0;
 }
 
@@ -95,38 +97,79 @@ function compose(base: Glyph, acc: Glyph, below: boolean, spacing: number): Glyp
   const accH = acc.h;
   // Trim blank leading rows of the accent so diaeresis sits low.
   let lead = 0;
-  while (lead < accH - 1 && ![...acc.mask.subarray(lead * acc.w, (lead + 1) * acc.w)].some(Boolean)) lead++;
+  while (lead < accH - 1 && ![...acc.mask.subarray(lead * acc.w, (lead + 1) * acc.w)].some(Boolean))
+    lead++;
   const realH = accH - lead;
   const ay = below ? bottomRow(base) + 1 : topRow(base) - 1 - realH;
   const w = Math.max(base.w, acc.w);
   const bx = Math.floor((w - base.w) / 2);
-  const ax = Math.floor((w - acc.w) / 2) + (below ? 0 : base.w % 2 === 0 && acc.w % 2 === 1 ? 0 : 0);
+  const ax =
+    Math.floor((w - acc.w) / 2) + (below ? 0 : base.w % 2 === 0 && acc.w % 2 === 1 ? 0 : 0);
   const y0 = Math.min(base.y0, ay);
   const y1 = Math.max(base.y0 + base.h, ay + realH);
   const h = y1 - y0;
   const mask = new Uint8Array(w * h);
   for (let y = 0; y < base.h; y++) {
-    for (let x = 0; x < base.w; x++) if (base.mask[y * base.w + x]) mask[(y + base.y0 - y0) * w + x + bx] = 1;
+    for (let x = 0; x < base.w; x++)
+      if (base.mask[y * base.w + x]) mask[(y + base.y0 - y0) * w + x + bx] = 1;
   }
   for (let y = lead; y < accH; y++) {
-    for (let x = 0; x < acc.w; x++) if (acc.mask[y * acc.w + x]) mask[(ay + y - lead - y0) * w + x + ax] = 1;
+    for (let x = 0; x < acc.w; x++)
+      if (acc.mask[y * acc.w + x]) mask[(ay + y - lead - y0) * w + x + ax] = 1;
   }
   return { w, h, y0, mask, adv: w + spacing, x0: 0 };
 }
 
 const ACCENTED: Record<string, [string, string]> = {
-  á: ['a', 'acute'], à: ['a', 'grave'], â: ['a', 'circ'], ä: ['a', 'diaer'], ã: ['a', 'tilde'],
-  é: ['e', 'acute'], è: ['e', 'grave'], ê: ['e', 'circ'], ë: ['e', 'diaer'],
-  í: ['ı', 'acute'], ì: ['ı', 'grave'], î: ['ı', 'circ'], ï: ['ı', 'diaer'],
-  ó: ['o', 'acute'], ò: ['o', 'grave'], ô: ['o', 'circ'], ö: ['o', 'diaer'], õ: ['o', 'tilde'],
-  ú: ['u', 'acute'], ù: ['u', 'grave'], û: ['u', 'circ'], ü: ['u', 'diaer'],
-  ñ: ['n', 'tilde'], ç: ['c', 'cedilla'], ÿ: ['y', 'diaer'],
-  Á: ['A', 'acute'], À: ['A', 'grave'], Â: ['A', 'circ'], Ä: ['A', 'diaer'], Ã: ['A', 'tilde'],
-  É: ['E', 'acute'], È: ['E', 'grave'], Ê: ['E', 'circ'], Ë: ['E', 'diaer'],
-  Í: ['I', 'acute'], Ì: ['I', 'grave'], Î: ['I', 'circ'], Ï: ['I', 'diaer'],
-  Ó: ['O', 'acute'], Ò: ['O', 'grave'], Ô: ['O', 'circ'], Ö: ['O', 'diaer'], Õ: ['O', 'tilde'],
-  Ú: ['U', 'acute'], Ù: ['U', 'grave'], Û: ['U', 'circ'], Ü: ['U', 'diaer'],
-  Ñ: ['N', 'tilde'], Ç: ['C', 'cedilla'],
+  á: ['a', 'acute'],
+  à: ['a', 'grave'],
+  â: ['a', 'circ'],
+  ä: ['a', 'diaer'],
+  ã: ['a', 'tilde'],
+  é: ['e', 'acute'],
+  è: ['e', 'grave'],
+  ê: ['e', 'circ'],
+  ë: ['e', 'diaer'],
+  í: ['ı', 'acute'],
+  ì: ['ı', 'grave'],
+  î: ['ı', 'circ'],
+  ï: ['ı', 'diaer'],
+  ó: ['o', 'acute'],
+  ò: ['o', 'grave'],
+  ô: ['o', 'circ'],
+  ö: ['o', 'diaer'],
+  õ: ['o', 'tilde'],
+  ú: ['u', 'acute'],
+  ù: ['u', 'grave'],
+  û: ['u', 'circ'],
+  ü: ['u', 'diaer'],
+  ñ: ['n', 'tilde'],
+  ç: ['c', 'cedilla'],
+  ÿ: ['y', 'diaer'],
+  Á: ['A', 'acute'],
+  À: ['A', 'grave'],
+  Â: ['A', 'circ'],
+  Ä: ['A', 'diaer'],
+  Ã: ['A', 'tilde'],
+  É: ['E', 'acute'],
+  È: ['E', 'grave'],
+  Ê: ['E', 'circ'],
+  Ë: ['E', 'diaer'],
+  Í: ['I', 'acute'],
+  Ì: ['I', 'grave'],
+  Î: ['I', 'circ'],
+  Ï: ['I', 'diaer'],
+  Ó: ['O', 'acute'],
+  Ò: ['O', 'grave'],
+  Ô: ['O', 'circ'],
+  Ö: ['O', 'diaer'],
+  Õ: ['O', 'tilde'],
+  Ú: ['U', 'acute'],
+  Ù: ['U', 'grave'],
+  Û: ['U', 'circ'],
+  Ü: ['U', 'diaer'],
+  Ñ: ['N', 'tilde'],
+  Ç: ['C', 'cedilla'],
 };
 
 interface FontSpec {
@@ -149,7 +192,8 @@ function buildFont(spec: FontSpec): BitmapFont {
   const accents = new Map<string, Glyph>();
   for (const [n, g] of accRaw) accents.set(n, toGlyph(g, 0));
   for (const [ch, [b, a]] of Object.entries(ACCENTED)) {
-    const base = glyphs.get(b) ?? glyphs.get(b.toUpperCase()) ?? (b === 'ı' ? glyphs.get('I') : undefined);
+    const base =
+      glyphs.get(b) ?? glyphs.get(b.toUpperCase()) ?? (b === 'ı' ? glyphs.get('I') : undefined);
     const acc = accents.get(a);
     if (!base || !acc) continue;
     if (spec.upperOnly && ch !== ch.toUpperCase()) continue;
@@ -202,15 +246,57 @@ function boldFont(src: BitmapFont, name: string): BitmapFont {
 }
 
 const SMALL_KERN: Record<string, number> = {
-  Ta: -1, Tc: -1, Te: -1, To: -1, Tu: -1, Tr: -1, Ty: -1, 'T.': -1, 'T,': -1,
-  LT: -1, LV: -1, LY: -1, AV: -1, VA: -1, AT: -1, TA: -1, AY: -1, YA: -1,
-  'r.': -1, 'r,': -1, 'f.': -1, 'F.': -1, 'P.': -1, 'P,': -1, Yo: -1, Ya: -1, Va: -1, Ve: -1, Vo: -1,
+  Ta: -1,
+  Tc: -1,
+  Te: -1,
+  To: -1,
+  Tu: -1,
+  Tr: -1,
+  Ty: -1,
+  'T.': -1,
+  'T,': -1,
+  LT: -1,
+  LV: -1,
+  LY: -1,
+  AV: -1,
+  VA: -1,
+  AT: -1,
+  TA: -1,
+  AY: -1,
+  YA: -1,
+  'r.': -1,
+  'r,': -1,
+  'f.': -1,
+  'F.': -1,
+  'P.': -1,
+  'P,': -1,
+  Yo: -1,
+  Ya: -1,
+  Va: -1,
+  Ve: -1,
+  Vo: -1,
 };
 const LARGE_KERN: Record<string, number> = {
-  LT: -2, LV: -1, LY: -2, AV: -1, VA: -1, AT: -1, TA: -1, AY: -1, YA: -1, 'T.': -1, 'T,': -1, 'P.': -1,
+  LT: -2,
+  LV: -1,
+  LY: -2,
+  AV: -1,
+  VA: -1,
+  AT: -1,
+  TA: -1,
+  AY: -1,
+  YA: -1,
+  'T.': -1,
+  'T,': -1,
+  'P.': -1,
 };
 
-let cache: { small: BitmapFont; smallBold: BitmapFont; mono: BitmapFont; large: BitmapFont } | null = null;
+let cache: {
+  small: BitmapFont;
+  smallBold: BitmapFont;
+  mono: BitmapFont;
+  large: BitmapFont;
+} | null = null;
 
 function fonts(): NonNullable<typeof cache> {
   if (cache) return cache;
@@ -236,7 +322,12 @@ function fonts(): NonNullable<typeof cache> {
     upperOnly: true,
     kerning: LARGE_KERN,
   });
-  cache = { small, smallBold: boldFont(small, 'smallBold'), mono: monoFont(small, 6, 'mono'), large };
+  cache = {
+    small,
+    smallBold: boldFont(small, 'smallBold'),
+    mono: monoFont(small, 6, 'mono'),
+    large,
+  };
   return cache;
 }
 
@@ -266,7 +357,7 @@ function glyphFor(font: BitmapFont, ch: string): Glyph | null {
 }
 
 /** Width of a single line in px (no trailing letter-space). */
-export function lineWidth(font: BitmapFont, line: string): number {
+export function lineWidth(font: BitmapFont, line: string, tracking = 0): number {
   const chars = [...line];
   let w = 0;
   for (let i = 0; i < chars.length; i++) {
@@ -276,19 +367,19 @@ export function lineWidth(font: BitmapFont, line: string): number {
       w += g ? g.x0 + g.w : font.spaceAdv;
       break;
     }
-    w += (g ? g.adv : font.spaceAdv) + (font.kerning.get(ch + chars[i + 1]!) ?? 0);
+    w += (g ? g.adv : font.spaceAdv) + tracking + (font.kerning.get(ch + chars[i + 1]!) ?? 0);
   }
   return Math.max(0, w);
 }
 
 /** Greedy word wrap to `maxWidth` px (explicit \n respected). */
-export function wrapText(font: BitmapFont, str: string, maxWidth: number): string[] {
+export function wrapText(font: BitmapFont, str: string, maxWidth: number, tracking = 0): string[] {
   const out: string[] = [];
   for (const para of str.split('\n')) {
     let cur = '';
     for (const word of para.split(' ')) {
       const tryLine = cur ? `${cur} ${word}` : word;
-      if (cur && lineWidth(font, tryLine) > maxWidth) {
+      if (cur && lineWidth(font, tryLine, tracking) > maxWidth) {
         out.push(cur);
         cur = word;
       } else cur = tryLine;
@@ -305,10 +396,15 @@ export interface TextMetrics {
   lines: string[];
 }
 
-export function measureText(font: BitmapFont, str: string, maxWidth?: number): TextMetrics {
-  const lines = maxWidth ? wrapText(font, str, maxWidth) : str.split('\n');
+export function measureText(
+  font: BitmapFont,
+  str: string,
+  maxWidth?: number,
+  tracking = 0,
+): TextMetrics {
+  const lines = maxWidth ? wrapText(font, str, maxWidth, tracking) : str.split('\n');
   return {
-    w: Math.max(0, ...lines.map((l) => lineWidth(font, l))),
+    w: Math.max(0, ...lines.map((l) => lineWidth(font, l, tracking))),
     h: (lines.length - 1) * font.lineHeight + font.capHeight,
     lines,
   };
@@ -330,13 +426,32 @@ export interface TextOptions {
   align?: 'left' | 'center' | 'right';
   /** Wrap width in px. */
   maxWidth?: number;
+  /** Extra px between glyphs. Default: 1 with a thick (8-neighbour) outline, else 0. */
+  tracking?: number;
   /** Extra px between lines. */
   lineGap?: number;
 }
 
+/** Effective tracking for a set of options. */
+export function trackingOf(opts: TextOptions): number {
+  return opts.tracking ?? (opts.outline && !opts.outlineThin ? 1 : 0);
+}
+
 /** Render text into a mask (1 = glyph). Returns the mask and its origin offset. */
-function rasterise(font: BitmapFont, str: string, opts: TextOptions): { w: number; h: number; m: Uint8Array; rowOf: Int16Array; ox: number; oy: number; lines: string[] } {
-  const met = measureText(font, str, opts.maxWidth);
+function rasterise(
+  font: BitmapFont,
+  str: string,
+  opts: TextOptions,
+): {
+  w: number;
+  h: number;
+  m: Uint8Array;
+  rowOf: Int16Array;
+  ox: number;
+  oy: number;
+  lines: string[];
+} {
+  const met = measureText(font, str, opts.maxWidth, trackingOf(opts));
   const lh = font.lineHeight + (opts.lineGap ?? 0);
   const pad = 3;
   const w = met.w + pad * 2;
@@ -346,8 +461,13 @@ function rasterise(font: BitmapFont, str: string, opts: TextOptions): { w: numbe
   const ox = pad;
   const oy = pad + font.ascent;
   met.lines.forEach((line, li) => {
-    const lw = lineWidth(font, line);
-    let x = opts.align === 'center' ? Math.floor((met.w - lw) / 2) : opts.align === 'right' ? met.w - lw : 0;
+    const lw = lineWidth(font, line, trackingOf(opts));
+    let x =
+      opts.align === 'center'
+        ? Math.floor((met.w - lw) / 2)
+        : opts.align === 'right'
+          ? met.w - lw
+          : 0;
     const chars = [...line];
     chars.forEach((ch, i) => {
       const g = glyphFor(font, ch);
@@ -364,7 +484,10 @@ function rasterise(font: BitmapFont, str: string, opts: TextOptions): { w: numbe
         }
       }
       const next = chars[i + 1];
-      x += (g ? g.adv : font.spaceAdv) + (next ? (font.kerning.get(ch + next) ?? 0) : 0);
+      x +=
+        (g ? g.adv : font.spaceAdv) +
+        trackingOf(opts) +
+        (next ? (font.kerning.get(ch + next) ?? 0) : 0);
     });
   });
   return { w, h, m, rowOf, ox, oy, lines: met.lines };
@@ -422,8 +545,9 @@ export function drawText(
   opts: TextOptions = {},
 ): PixelBuffer {
   const r = rasterise(font, str, opts);
-  const met = measureText(font, str, opts.maxWidth);
-  const bx = opts.align === 'center' ? x - Math.floor(met.w / 2) : opts.align === 'right' ? x - met.w : x;
+  const met = measureText(font, str, opts.maxWidth, trackingOf(opts));
+  const bx =
+    opts.align === 'center' ? x - Math.floor(met.w / 2) : opts.align === 'right' ? x - met.w : x;
   const dx = bx - r.ox;
   const dy = y - r.oy;
   const ring = opts.outline ? dilate(r, !opts.outlineThin) : null;
@@ -437,20 +561,37 @@ export function drawText(
     if (!r.m[i]) return null;
     if (!ramp) return colour;
     const row = r.rowOf[i]!;
-    const k = Math.max(0, Math.min(ramp.length - 1, Math.floor((row / font.capHeight) * ramp.length)));
+    const k = Math.max(
+      0,
+      Math.min(ramp.length - 1, Math.floor((row / font.capHeight) * ramp.length)),
+    );
     return ramp[k]!;
   });
   return buf;
 }
 
 /** Text rendered into a tightly-fitting new buffer (outline / shadow included). */
-export function textSprite(font: BitmapFont, str: string, colour: string, opts: TextOptions = {}): PixelBuffer {
-  const met = measureText(font, str, opts.maxWidth);
-  const extra = (opts.outline ? 1 : 0) + (opts.shadow ? Math.max(1, Math.abs(opts.shadowOffset?.y ?? 1), Math.abs(opts.shadowOffset?.x ?? 1)) : 0);
+export function textSprite(
+  font: BitmapFont,
+  str: string,
+  colour: string,
+  opts: TextOptions = {},
+): PixelBuffer {
+  const met = measureText(font, str, opts.maxWidth, trackingOf(opts));
+  const extra =
+    (opts.outline ? 1 : 0) +
+    (opts.shadow
+      ? Math.max(1, Math.abs(opts.shadowOffset?.y ?? 1), Math.abs(opts.shadowOffset?.x ?? 1))
+      : 0);
   const W = met.w + extra * 2 + 2;
   const H = met.h + font.ascent + font.descent + extra * 2 + 2;
   const tmp = createBuffer(Math.max(1, W), Math.max(1, H));
-  const x0 = opts.align === 'center' ? Math.floor(W / 2) : opts.align === 'right' ? W - extra - 1 : extra + 1;
+  const x0 =
+    opts.align === 'center'
+      ? Math.floor(W / 2)
+      : opts.align === 'right'
+        ? W - extra - 1
+        : extra + 1;
   drawText(tmp, font, str, x0, extra + 1 + font.ascent, colour, opts);
   return trim(tmp);
 }
@@ -473,7 +614,10 @@ export function trim(src: PixelBuffer): PixelBuffer {
   if (x1 < 0) return createBuffer(1, 1);
   const out = createBuffer(x1 - x0 + 1, y1 - y0 + 1);
   for (let y = y0; y <= y1; y++) {
-    out.data.set(src.data.subarray((y * src.w + x0) * 4, (y * src.w + x1 + 1) * 4), (y - y0) * out.w * 4);
+    out.data.set(
+      src.data.subarray((y * src.w + x0) * 4, (y * src.w + x1 + 1) * 4),
+      (y - y0) * out.w * 4,
+    );
   }
   return out;
 }

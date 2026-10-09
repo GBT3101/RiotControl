@@ -139,7 +139,8 @@ function sleevesFor(top: string, rng: Rng): Wear['sleeves'] {
 
 function sign(rng: Rng, city: City, card: boolean, student: boolean, name: string): ReturnType<typeof makeSign> {
   const pool = [
-    ...(student ? STUDENT_SLOGANS : SLOGANS.any),
+    ...(student ? STUDENT_SLOGANS : []),
+    ...SLOGANS.any,
     ...(city !== 'any' ? SLOGANS[city] : []),
     ...(city !== 'any' ? SLOGANS[city] : []),
   ];
@@ -183,9 +184,9 @@ function rollStudent(rng: Rng, city: City, name: string): Rolled {
   }
   w.back = pw(rng, [['backpack', 5.5], ['tote', 2], [undefined, 2.5]]);
   w.expr = rng.pick(['neutral', 'neutral', 'happy']);
-  const carry: Carry = pw(rng, [['card', 3.5], ['pole', 2], ['phone', 2], ['none', 1.5], ['megaphone', 0.5], ['item', 0.8]]);
+  const carry: Carry = pw(rng, [['card', 2.6], ['pole', 1.6], ['phone', 2.2], ['none', 2], ['megaphone', 0.6], ['item', 1], ['flag', 0.6]]);
   const idle: Idle =
-    carry === 'card' ? 'card' : carry === 'pole' ? 'sign' : carry === 'phone' ? 'phone' : carry === 'megaphone' ? 'megaphone' : carry === 'item' && city === 'madrid' ? 'pot' : rng.chance(0.5) ? 'vape' : 'chant';
+    carry === 'card' ? 'card' : carry === 'pole' || carry === 'flag' ? 'sign' : carry === 'phone' ? 'phone' : carry === 'megaphone' ? 'megaphone' : carry === 'item' && city === 'madrid' ? 'pot' : rng.chance(0.5) ? 'vape' : 'chant';
   const item = CITY_ITEM[city];
   const kit: Kit = {
     carry: carry === 'item' && item === 'pot' ? 'pot' : carry,
@@ -221,14 +222,14 @@ function rollWoke(rng: Rng, city: City, name: string): Rolled {
   w.shoe = rng.chance(0.6) ? ['black', 'charcoal'] : w.shoe;
   w.back = pw(rng, [['tote', 4.5], ['backpack', 1.5], [undefined, 4]]);
   w.expr = 'angry';
-  const carry: Carry = pw(rng, [['megaphone', 2], ['item', 2], ['pole', 3], ['none', 3]]);
+  const carry: Carry = pw(rng, [['megaphone', 2], ['item', 2], ['pole', 3], ['none', 3], ['flag', 1]]);
   const item = city === 'paris' && rng.chance(0.4) ? 'baguette' : 'umbrella';
   const kit: Kit = {
     carry,
     carryItem: carry === 'item' ? item : carry === 'megaphone' ? 'megaphone' : undefined,
     attack: carry === 'item' || carry === 'megaphone' ? 'swing' : carry === 'pole' ? 'bonk' : 'punch',
     weapon: carry === 'item' ? item : carry === 'megaphone' ? 'megaphone' : undefined,
-    idle: carry === 'megaphone' ? 'megaphone' : carry === 'pole' ? 'sign' : 'chant',
+    idle: carry === 'megaphone' ? 'megaphone' : carry === 'pole' || carry === 'flag' ? 'sign' : 'chant',
     gait: pw(rng, [['march', 6], ['stroll', 4]]),
     climbs: true,
     molotov: false,
@@ -382,7 +383,7 @@ function rollProphet(rng: Rng, _city: City): Rolled {
   w.shoe = ['tan', 'brown'];
   w.back = 'board';
   w.boardWord = pw(rng, [['END', 4], ['END!', 2], ['NIGH', 2], ['SOON', 1.5], ['BYE', 1]]);
-  w.boardKeys = pw(rng, [[{}, 3], [{ y: 'earth3', c: 'stone2', C: 'stone3', Y: 'stone4', k: 'ink' }, 2], [{ y: 'gray5', c: 'gray6', C: 'white', Y: 'white', k: 'crim1' }, 1.5]]);
+  w.boardKeys = pw<Record<string, string>>(rng, [[{}, 3], [{ y: 'earth3', c: 'stone2', C: 'stone3', Y: 'stone4', k: 'ink' }, 2], [{ y: 'gray5', c: 'gray6', C: 'white', Y: 'white', k: 'crim1' }, 1.5]]);
   w.expr = 'shout';
   const kit: Kit = { carry: 'none', attack: 'none', idle: 'preach', gait: rng.chance(0.5) ? 'march' : 'stroll', climbs: false, molotov: false, special: 'prophet', mood: 'shout' };
   return { wear: w, kit, loadout: 'explode' };

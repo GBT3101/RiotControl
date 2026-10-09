@@ -33,7 +33,14 @@
  * i, repeating along j), `stopI` = stop line across an i-road at u = ½. `*J` = same, swapped axes.
  */
 import { inTileDiamond } from '../../core/iso';
-import { GROUNDS, MARKINGS, type CityId, type Ground, type MapData, type Marking } from '../../maps/contract';
+import {
+  GROUNDS,
+  MARKINGS,
+  type CityId,
+  type Ground,
+  type MapData,
+  type Marking,
+} from '../../maps/contract';
 import { createBuffer, getPixel, setPixel, type PixelBuffer } from '../lib/pixels';
 import type { RGBA } from '../palette';
 import { C, darker, lighter, shade } from './color';
@@ -328,7 +335,13 @@ const MATS: Record<CityId, CityMats> = {
     },
     grass: { base: 'grass', stripes: false, dry: 0.35 },
     gravel: { base: C('stone3'), dark: C('stone2'), light: C('stone4') },
-    water: { deep: C('green0'), base: C('green1'), ripple: C('green0'), hi: C('teal1'), spark: C('teal2') },
+    water: {
+      deep: C('green0'),
+      base: C('teal1'),
+      ripple: C('green1'),
+      hi: C('teal2'),
+      spark: C('sky'),
+    },
     quayLit: C('stone2'),
     quayShade: C('stone1'),
     quayJoint: C('stone0'),
@@ -362,7 +375,13 @@ const MATS: Record<CityId, CityMats> = {
     },
     grass: { base: 'grass', stripes: true, dry: 0 },
     gravel: { base: C('stone2'), dark: C('stone1'), light: C('stone3') },
-    water: { deep: C('navy0'), base: C('zinc1'), ripple: C('zinc0'), hi: C('zinc2'), spark: C('zinc4') },
+    water: {
+      deep: C('zinc0'),
+      base: C('zinc1'),
+      ripple: C('zinc0'),
+      hi: C('zinc3'),
+      spark: C('zinc4'),
+    },
     quayLit: C('gray5'),
     quayShade: C('gray4'),
     quayJoint: C('gray2'),
@@ -396,7 +415,13 @@ const MATS: Record<CityId, CityMats> = {
     },
     grass: { base: 'grass', stripes: false, dry: 0.12 },
     gravel: { base: C('stone4'), dark: C('stone3'), light: C('stone5') },
-    water: { deep: C('zinc0'), base: C('zinc1'), ripple: C('zinc0'), hi: C('teal1'), spark: C('teal2') },
+    water: {
+      deep: C('zinc1'),
+      base: C('zinc2'),
+      ripple: C('zinc1'),
+      hi: C('zinc3'),
+      spark: C('sky'),
+    },
     quayLit: C('stone3'),
     quayShade: C('stone2'),
     quayJoint: C('stone1'),
@@ -505,11 +530,17 @@ function cellPixelUV(g: CellGrid, sh: CellShading, u: number, v: number, scale: 
   const s = 1 / scale;
   const rc = cellOf(g, u, v);
   const id = cellId(rc);
-  if (id !== cellId(cellOf(g, u + s / 32, v - s / 32)) || id !== cellId(cellOf(g, u + s / 16, v + s / 16))) {
+  if (
+    id !== cellId(cellOf(g, u + s / 32, v - s / 32)) ||
+    id !== cellId(cellOf(g, u + s / 16, v + s / 16))
+  ) {
     return sh.joint;
   }
   const tone = sh.tone(mod(rc[0], g.rows), mod(rc[1], g.cols), false);
-  if (id !== cellId(cellOf(g, u - s / 32, v + s / 32)) || id !== cellId(cellOf(g, u - s / 16, v - s / 16))) {
+  if (
+    id !== cellId(cellOf(g, u - s / 32, v + s / 32)) ||
+    id !== cellId(cellOf(g, u - s / 16, v - s / 16))
+  ) {
     return lighter(tone);
   }
   return tone;
@@ -637,7 +668,18 @@ function placeIn(d: Dice, src: string): [number, number] {
 const ASPHALT_DETAILS: ReadonlyArray<readonly [Detail | null, number]> = [
   [null, 10],
   [(t, d, m) => stampRel(t, G.GRIT, ...placeIn(d, G.GRIT), m.asphalt, {}, inset), 4],
-  [(t, d, m) => stampRel(t, d.chance(0.5) ? G.CRACK_A : G.CRACK_B, ...placeIn(d, G.CRACK_A), m.asphalt, {}, inset), 3],
+  [
+    (t, d, m) =>
+      stampRel(
+        t,
+        d.chance(0.5) ? G.CRACK_A : G.CRACK_B,
+        ...placeIn(d, G.CRACK_A),
+        m.asphalt,
+        {},
+        inset,
+      ),
+    3,
+  ],
   [(t, d, m) => stampRel(t, G.MANHOLE, ...placeIn(d, G.MANHOLE), m.asphalt, {}, inset), 2],
   [(t, d, m) => stampRel(t, G.PATCH, ...placeIn(d, G.PATCH), m.asphalt, {}, inset), 2],
   [(t, d, m) => stampRel(t, G.STAIN, ...placeIn(d, G.STAIN), m.asphalt, {}, inset), 2],
@@ -657,8 +699,14 @@ const PAVING_DETAILS: ReadonlyArray<readonly [Detail | null, number]> = [
   [null, 12],
   [(t, d) => stampRel(t, G.SLAB_CRACK, ...placeIn(d, G.SLAB_CRACK), C('stone1'), {}, inset), 2],
   [(t, d) => stampRel(t, G.GUM, ...placeIn(d, G.GUM), C('gray4'), {}, inset), 3],
-  [(t, d, m) => stampRel(t, G.HATCH, ...placeIn(d, G.HATCH), darker(m.side.tones[0]!), {}, inset), 2],
-  [(t, d, m) => stampRel(t, G.STAIN, ...placeIn(d, G.STAIN), lighter(m.side.tones[0]!), {}, inset), 2],
+  [
+    (t, d, m) => stampRel(t, G.HATCH, ...placeIn(d, G.HATCH), darker(m.side.tones[0]!), {}, inset),
+    2,
+  ],
+  [
+    (t, d, m) => stampRel(t, G.STAIN, ...placeIn(d, G.STAIN), lighter(m.side.tones[0]!), {}, inset),
+    2,
+  ],
   [
     (t, d, m) => {
       if (!m.leaves) return;
@@ -700,7 +748,8 @@ const GRASS_DETAILS: ReadonlyArray<readonly [Detail | null, number]> = [
   [(t, d) => stampRel(t, G.FLOWERS, ...placeIn(d, G.FLOWERS), 0, GRASS_KEYS, inset), 1],
   [
     (t, d, m) => {
-      if (d.next() < m.grass.dry) stampRel(t, G.TUFT_SMALL, ...placeIn(d, G.TUFT_SMALL), 0, DRY_KEYS, inset);
+      if (d.next() < m.grass.dry)
+        stampRel(t, G.TUFT_SMALL, ...placeIn(d, G.TUFT_SMALL), 0, DRY_KEYS, inset);
       stampRel(t, G.TUFT, ...placeIn(d, G.TUFT), 0, GRASS_KEYS, inset);
     },
     3,
@@ -765,7 +814,12 @@ const CORNER_EDGES: Record<CornerName, [EdgeName, EdgeName]> = {
 };
 
 /** Smallest distance to any edge/corner whose relation satisfies `pred` (Infinity if none). */
-function bandDist(rels: Rels, pred: (r: Rel) => boolean, u: number, v: number): [number, EdgeName | null] {
+function bandDist(
+  rels: Rels,
+  pred: (r: Rel) => boolean,
+  u: number,
+  v: number,
+): [number, EdgeName | null] {
   let best = Infinity;
   let which: EdgeName | null = null;
   for (const e of ['nw', 'ne', 'se', 'sw'] as const) {
@@ -813,7 +867,13 @@ function drawCoping(t: PixelBuffer, rels: Rels, m: CityMats, self: Ground): void
 }
 
 /** Faces of higher neighbours hanging into this tile (kerb faces, quay walls, bridge piers). */
-function drawFaces(t: PixelBuffer, rels: Rels, m: CityMats, self: Ground, levels: Record<NeighbourDir, number>): void {
+function drawFaces(
+  t: PixelBuffer,
+  rels: Rels,
+  m: CityMats,
+  self: Ground,
+  levels: Record<NeighbourDir, number>,
+): void {
   const myLevel = GROUND_LEVEL[self];
   const tops: Array<[NeighbourDir, number, number]> = [
     ['nw', -16, -8],
@@ -874,7 +934,14 @@ function facePixel(rel: Rel, m: CityMats, lit: boolean, row: number, h: number, 
     case Rel.BridgeUp: {
       // Ashlar courses of 3 px with staggered joints; wet dark base + algae line.
       const course = Math.floor(row / 3);
-      const base = rel === Rel.BridgeUp ? (lit ? lighter(m.quayLit) : m.quayLit) : lit ? m.quayLit : m.quayShade;
+      const base =
+        rel === Rel.BridgeUp
+          ? lit
+            ? lighter(m.quayLit)
+            : m.quayLit
+          : lit
+            ? m.quayLit
+            : m.quayShade;
       if (row === 0) return lighter(base);
       if (row >= h - 1) return m.water.deep;
       if (row >= h - 2) return C('olive1');
@@ -930,7 +997,13 @@ function drawSoftEdges(t: PixelBuffer, rels: Rels, m: CityMats, self: Ground, se
         else if (dd < reach + 0.05 && (x * 7 + y * 3) % 5 === 0) setPixel(t, x, y, C('green3'));
       } else {
         // Paving/road: stone edging strip.
-        if (dd < 0.07) setPixel(t, x, y, mod((e === 'nw' || e === 'se' ? v : u) * 4, 1) < 0.08 ? m.kerbShade : m.kerbTop);
+        if (dd < 0.07)
+          setPixel(
+            t,
+            x,
+            y,
+            mod((e === 'nw' || e === 'se' ? v : u) * 4, 1) < 0.08 ? m.kerbShade : m.kerbTop,
+          );
         else if (dd < 0.1) setPixel(t, x, y, m.kerbShade);
       }
     }
@@ -1008,7 +1081,13 @@ function edgeRow(e: EdgeName, x: number): number {
   return -1;
 }
 
-function drawRailing(img: PixelBuffer, e: EdgeName, m: CityMats, kind: 'balustrade' | 'parapet', city: CityId): void {
+function drawRailing(
+  img: PixelBuffer,
+  e: EdgeName,
+  m: CityMats,
+  kind: 'balustrade' | 'parapet',
+  city: CityId,
+): void {
   const x0 = e === 'nw' || e === 'sw' ? 1 : 16;
   const x1 = e === 'nw' || e === 'sw' ? 15 : 30;
   const lit = e === 'ne' || e === 'sw';
@@ -1166,7 +1245,8 @@ function paintGround(ctx: GroundCtx): PixelBuffer {
       fill = lotFill(m);
       break;
   }
-  for (let y = 0; y < 16; y++) for (let x = 0; x < 32; x++) if (inTileDiamond(x, y)) setPixel(t, x, y, fill(x, y));
+  for (let y = 0; y < 16; y++)
+    for (let x = 0; x < 32; x++) if (inTileDiamond(x, y)) setPixel(t, x, y, fill(x, y));
 
   // Seeded detail.
   const set = DETAIL_SETS[g];
@@ -1199,4 +1279,3 @@ function paintGround(ctx: GroundCtx): PixelBuffer {
   }
   return img;
 }
-

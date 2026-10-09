@@ -334,7 +334,7 @@ export function treeSprite(species: TreeSpecies, seed: number): PropSprite {
   const b = createBuffer(W, H);
   const cx = 22;
   const base = H - 2;
-  let clumps: Clump[] = [];
+  let clumps: Clump[];
   const j = (n: number): number => (d.next() - 0.5) * n;
   if (species === 'plane') {
     const bark = [C('stone1'), C('stone3'), C('stone4'), C('gray6')];

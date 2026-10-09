@@ -853,13 +853,13 @@ export class Scene {
         ctx.rim = rim;
         ctx.prim = p;
         ctx.night = false;
+        ctx.night = false;
         const ref = p.mat(ctx);
         if (ref) put(img, i, colourOf(ref));
-        if (p.emit) {
-          ctx.night = true;
-          const e = p.emit(ctx);
-          if (e) put(night, i, colourOf(e));
-        }
+        // Night-lights mask: the prim's `emit`, else its material asked with ctx.night = true.
+        ctx.night = true;
+        const e = (p.emit ?? p.mat)(ctx);
+        if (e) put(night, i, colourOf(e));
       }
     }
     if (opts.outline !== false) {

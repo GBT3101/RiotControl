@@ -459,23 +459,23 @@ ob.
 o..
 
 # ---------------------------------------------------------------- bazooka (on the shoulder)
-== item.bazooka.fwd 5,2
+== item.bazooka.fwd 5,-2
 @tip 12,0
 @back -1,0
-yIIIIIYYYYYIy
-yiiiiiIIIIiiy
+BBBBBBFBBBBBm
+bbbbbbFbbbbbb
 ....kk.k.....
 
 == item.bazooka.down 1,1
-.yy
-yIi
-.Ii
-.Ii
-.Ii
-.Yi
-.Yi
-.Ii
-.yy
+.bb
+bBb
+.Bb
+.Bb
+.Fb
+.Bb
+.Bb
+.Bb
+.mm
 
 # ---------------------------------------------------------------- camera (big lens + flash)
 == item.camera.face 0,1

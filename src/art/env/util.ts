@@ -138,14 +138,21 @@ export function outlineDarker(buf: PixelBuffer, steps = 3): void {
   const { w, h, data } = buf;
   const src = new Uint32Array(w * h);
   for (let i = 0, p = 0; i < src.length; i++, p += 4) {
-    src[i] = data[p + 3] === 255 ? ((data[p]! << 24) | (data[p + 1]! << 16) | (data[p + 2]! << 8) | 255) >>> 0 : 0;
+    src[i] =
+      data[p + 3] === 255
+        ? ((data[p]! << 24) | (data[p + 1]! << 16) | (data[p + 2]! << 8) | 255) >>> 0
+        : 0;
   }
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const i = y * w + x;
       if (src[i]) continue;
       const n =
-        (y + 1 < h && src[i + w]) || (y > 0 && src[i - w]) || (x + 1 < w && src[i + 1]) || (x > 0 && src[i - 1]) || 0;
+        (y + 1 < h && src[i + w]) ||
+        (y > 0 && src[i - w]) ||
+        (x + 1 < w && src[i + 1]) ||
+        (x > 0 && src[i - 1]) ||
+        0;
       if (!n) continue;
       const c = darker(n, steps);
       const p = i * 4;

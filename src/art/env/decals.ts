@@ -5,7 +5,14 @@
  * Graffiti is drawn "on the ground" — letters wide and squashed to the 2:1 ground plane.
  */
 import type { RGBA } from '../palette';
-import { createBuffer, getPixel, mirrorX, setPixel, type PixelBuffer, type Point } from '../lib/pixels';
+import {
+  createBuffer,
+  getPixel,
+  mirrorX,
+  setPixel,
+  type PixelBuffer,
+  type Point,
+} from '../lib/pixels';
 import { C, darker, lighter } from './color';
 import { parseGrid } from './bld/face';
 import { Dice } from './util';
@@ -77,17 +84,23 @@ function tagSprite(src: string, colour: RGBA, outline: RGBA | null): DecalSprite
   }
   if (outline) {
     const marks: Array<[number, number]> = [];
-    for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) {
-      if (getPixel(b, x, y) & 255) continue;
-      // Throw-up style outline only below/right (reads as a drop shadow on the ground).
-      if (getPixel(b, x - 1, y) & 255 || getPixel(b, x, y - 1) & 255) marks.push([x, y]);
-    }
+    for (let y = 0; y < b.h; y++)
+      for (let x = 0; x < b.w; x++) {
+        if (getPixel(b, x, y) & 255) continue;
+        // Throw-up style outline only below/right (reads as a drop shadow on the ground).
+        if (getPixel(b, x - 1, y) & 255 || getPixel(b, x, y - 1) & 255) marks.push([x, y]);
+      }
     for (const [x, y] of marks) setPixel(b, x, y, outline);
   }
   return { img: b, anchor: { x: b.w >> 1, y: b.h >> 1 } };
 }
 
-function blob(d: Dice, w: number, h: number, paint: (b: PixelBuffer, x: number, y: number, r: number) => void): PixelBuffer {
+function blob(
+  d: Dice,
+  w: number,
+  h: number,
+  paint: (b: PixelBuffer, x: number, y: number, r: number) => void,
+): PixelBuffer {
   const b = createBuffer(w, h);
   const cx = w / 2;
   const cy = h / 2;
@@ -97,7 +110,8 @@ function blob(d: Dice, w: number, h: number, paint: (b: PixelBuffer, x: number, 
       const dx = (x + 0.5 - cx) / (w / 2);
       const dy = (y + 0.5 - cy) / (h / 2);
       const a = Math.atan2(dy, dx);
-      const r = Math.hypot(dx, dy) / (0.82 + 0.12 * Math.sin(a * 3 + ph) + 0.08 * Math.sin(a * 7 + ph * 2));
+      const r =
+        Math.hypot(dx, dy) / (0.82 + 0.12 * Math.sin(a * 3 + ph) + 0.08 * Math.sin(a * 7 + ph * 2));
       if (r < 1) paint(b, x, y, r);
     }
   }
@@ -117,10 +131,21 @@ function scorch(seed: number): DecalSprite {
   for (let k = 0; k < 6; k++) {
     const a = d.next() * Math.PI * 2;
     for (let t = 0.6; t < 1.25; t += 0.08) {
-      setPixel(b, Math.round(w / 2 + Math.cos(a) * t * (w / 2)), Math.round(w / 4 + Math.sin(a) * t * (w / 4)), C('gray2'));
+      setPixel(
+        b,
+        Math.round(w / 2 + Math.cos(a) * t * (w / 2)),
+        Math.round(w / 4 + Math.sin(a) * t * (w / 4)),
+        C('gray2'),
+      );
     }
   }
-  for (let k = 0; k < 3; k++) setPixel(b, d.int(w / 2 - 3, w / 2 + 3), d.int(w / 4 - 1, w / 4 + 1), d.chance(0.5) ? C('rust3') : C('ochre2'));
+  for (let k = 0; k < 3; k++)
+    setPixel(
+      b,
+      Math.round(w / 2) + d.int(-3, 3),
+      Math.round(w / 4) + d.int(-1, 1),
+      d.chance(0.5) ? C('rust3') : C('ochre2'),
+    );
   return { img: b, anchor: { x: w >> 1, y: Math.round(w / 4) } };
 }
 
@@ -147,7 +172,14 @@ function litterPile(seed: number): DecalSprite {
   const b = createBuffer(18, 10);
   const bits: Array<[string[], number, number]> = [];
   for (let k = 0; k < 9; k++) {
-    const kind = d.pick([['white', 'gray6'], ['gray6', 'gray5'], ['earth4', 'earth3'], ['crim2', 'crim1'], ['gray3', 'gray2'], ['ochre3', 'ochre2']]);
+    const kind = d.pick([
+      ['white', 'gray6'],
+      ['gray6', 'gray5'],
+      ['earth4', 'earth3'],
+      ['crim2', 'crim1'],
+      ['gray3', 'gray2'],
+      ['ochre3', 'ochre2'],
+    ]);
     bits.push([kind, d.int(2, 14), d.int(2, 7)]);
   }
   for (const [[a, s], x, y] of bits) {
@@ -200,7 +232,9 @@ function splat(seed: number): DecalSprite {
     const a = d.next() * Math.PI * 2;
     const t = 0.65 + d.next() * 0.35;
     const x = Math.round((w + 8) / 2 + Math.cos(a) * t * ((w + 8) / 2));
-    const y = Math.round((Math.round(w / 2) + 4) / 2 + Math.sin(a) * t * ((Math.round(w / 2) + 4) / 2));
+    const y = Math.round(
+      (Math.round(w / 2) + 4) / 2 + Math.sin(a) * t * ((Math.round(w / 2) + 4) / 2),
+    );
     setPixel(b, x, y, d.chance(0.5) ? col : darker(col));
   }
   return { img: b, anchor: { x: (w + 8) >> 1, y: (Math.round(w / 2) + 4) >> 1 } };
@@ -242,13 +276,18 @@ export function buildDecals(): DecalEntry[] {
   ];
   tags.forEach(([n, src], k) => {
     const col = C(SPRAY[(k * 3) % SPRAY.length]!);
-    out.push({ name: `decal.tag.${n}`, sprite: tagSprite(src, col, k % 2 === 0 ? C('ink') : null) });
+    out.push({
+      name: `decal.tag.${n}`,
+      sprite: tagSprite(src, col, k % 2 === 0 ? C('ink') : null),
+    });
   });
   for (let v = 0; v < 3; v++) out.push({ name: `decal.scorch.${v}`, sprite: scorch(v * 11 + 1) });
   for (let v = 0; v < 2; v++) out.push({ name: `decal.glass.${v}`, sprite: glass(v * 7 + 2) });
-  for (let v = 0; v < 3; v++) out.push({ name: `decal.litter.${v}`, sprite: litterPile(v * 5 + 3) });
+  for (let v = 0; v < 3; v++)
+    out.push({ name: `decal.litter.${v}`, sprite: litterPile(v * 5 + 3) });
   for (let v = 0; v < 2; v++) out.push({ name: `decal.puddle.${v}`, sprite: puddle(v * 9 + 4) });
-  for (let v = 0; v < 2; v++) out.push({ name: `decal.leaflets.${v}`, sprite: leaflets(v * 13 + 5) });
+  for (let v = 0; v < 2; v++)
+    out.push({ name: `decal.leaflets.${v}`, sprite: leaflets(v * 13 + 5) });
   for (let v = 0; v < 4; v++) out.push({ name: `decal.splat.${v}`, sprite: splat(v * 17 + 6) });
   for (let v = 0; v < 2; v++) {
     const t = tyre(v * 3 + 7);

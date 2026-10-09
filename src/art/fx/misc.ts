@@ -23,13 +23,22 @@ function rotorWash(): PixelBuffer[] {
       const r = 9 + p * 21;
       const c = p < 0.45 ? 'stone4' : p < 0.8 ? 'stone3' : 'stone2';
       // Long arcs with three gaps that rotate as the ring expands.
-      ellipseRing(b, cx, cy, r, r * 0.5, (_x, _y, a) => (Math.sin(a * 3 + p * 4) > -0.55 ? c : null));
+      ellipseRing(b, cx, cy, r, r * 0.5, (_x, _y, a) =>
+        Math.sin(a * 3 + p * 4) > -0.55 ? c : null,
+      );
     }
     // A few dust streaks blown outward, staggered.
     streakAngles.forEach((a, i) => {
       const p = (f / F + i * 0.37) % 1;
       const r0 = 12 + p * 16;
-      line(b, cx + Math.cos(a) * r0, cy + Math.sin(a) * r0 * 0.5, cx + Math.cos(a) * (r0 + 4), cy + Math.sin(a) * (r0 + 4) * 0.5, p < 0.5 ? 'stone5' : 'stone3');
+      line(
+        b,
+        cx + Math.cos(a) * r0,
+        cy + Math.sin(a) * r0 * 0.5,
+        cx + Math.cos(a) * (r0 + 4),
+        cy + Math.sin(a) * (r0 + 4) * 0.5,
+        p < 0.5 ? 'stone5' : 'stone3',
+      );
     });
     return b;
   });
@@ -43,12 +52,24 @@ function splash(): PixelBuffer[] {
   const cx = 12;
   const by = 17;
   const rnd = prng(5);
-  const drops = Array.from({ length: 9 }, () => ({ vx: (rnd() - 0.5) * 3, vy: -2.6 - rnd() * 1.6 }));
+  const drops = Array.from({ length: 9 }, () => ({
+    vx: (rnd() - 0.5) * 3,
+    vy: -2.6 - rnd() * 1.6,
+  }));
   return [0, 1, 2, 3, 4, 5].map((f) => {
     const b = buf(W, H);
     // Ripple rings.
-    if (f >= 1) ellipseRing(b, cx + 0.5, by + 0.5, 3 + f * 1.6, (3 + f * 1.6) * 0.45, f < 4 ? 'sky' : 'blue2');
-    if (f >= 3) ellipseRing(b, cx + 0.5, by + 0.5, 2 + (f - 3) * 1.6, (2 + (f - 3) * 1.6) * 0.45, 'blue2');
+    if (f >= 1)
+      ellipseRing(
+        b,
+        cx + 0.5,
+        by + 0.5,
+        3 + f * 1.6,
+        (3 + f * 1.6) * 0.45,
+        f < 4 ? 'sky' : 'blue2',
+      );
+    if (f >= 3)
+      ellipseRing(b, cx + 0.5, by + 0.5, 2 + (f - 3) * 1.6, (2 + (f - 3) * 1.6) * 0.45, 'blue2');
     // Crown column (frames 0-2).
     const ch = [5, 8, 5, 2, 0, 0][f]!;
     for (let i = 0; i < ch; i++) {
@@ -71,7 +92,17 @@ function splash(): PixelBuffer[] {
 
 /* Confetti ----------------------------------------------------------------- */
 
-const CONFETTI_COLOURS = ['crim2', 'hivis2', 'blue2', 'lime', 'pink2', 'ochre3', 'white', 'teal2', 'lilac'];
+const CONFETTI_COLOURS = [
+  'crim2',
+  'hivis2',
+  'blue2',
+  'lime',
+  'pink2',
+  'ochre3',
+  'white',
+  'teal2',
+  'lilac',
+];
 
 function confettiPiece(b: PixelBuffer, x: number, y: number, c: string, spin: number): void {
   x = Math.round(x);
@@ -107,7 +138,13 @@ function confettiLoop(): PixelBuffer[] {
     const b = buf(W, H);
     for (const p of pieces) {
       const t = (p.ph + f / F) % 1;
-      confettiPiece(b, p.x + Math.sin(t * Math.PI * 4 + p.ph * 6) * p.sway, t * (H - 3), p.c, p.sp + f);
+      confettiPiece(
+        b,
+        p.x + Math.sin(t * Math.PI * 4 + p.ph * 6) * p.sway,
+        t * (H - 3),
+        p.c,
+        p.sp + f,
+      );
     }
     return b;
   });
@@ -120,7 +157,12 @@ function confettiBurst(): PixelBuffer[] {
   const pieces = Array.from({ length: 26 }, (_, i) => {
     const a = -Math.PI * (0.15 + rnd() * 0.7);
     const v = 8 + rnd() * 6;
-    return { vx: Math.cos(a) * v, vy: Math.sin(a) * v, c: CONFETTI_COLOURS[i % CONFETTI_COLOURS.length]!, sp: i % 4 };
+    return {
+      vx: Math.cos(a) * v,
+      vy: Math.sin(a) * v,
+      c: CONFETTI_COLOURS[i % CONFETTI_COLOURS.length]!,
+      sp: i % 4,
+    };
   });
   return Array.from({ length: 8 }, (_, f) => {
     const b = buf(W, H);
@@ -188,12 +230,18 @@ export function waxSeal(r: number, sy = 1, emblem = true): PixelBuffer {
   for (let y = 0; y < S; y++) {
     for (let x = 0; x < S; x++) {
       if (!inSeal(x, y, r)) continue;
-      const lit = !inSeal(x + 1, y + 1, r) ? 'ochre1' : !inSeal(x - 1, y - 1, r) ? 'ochre4' : 'ochre2';
+      const lit = !inSeal(x + 1, y + 1, r)
+        ? 'ochre1'
+        : !inSeal(x - 1, y - 1, r)
+          ? 'ochre4'
+          : 'ochre2';
       px(b, x, y, lit);
     }
   }
   // Embossed inner ring.
-  ellipseRing(b, cx, cy, r * 0.62, r * 0.62 * sy, (x, y) => (x + y < cx + cy - 1 ? 'ochre1' : 'ochre3'));
+  ellipseRing(b, cx, cy, r * 0.62, r * 0.62 * sy, (x, y) =>
+    x + y < cx + cy - 1 ? 'ochre1' : 'ochre3',
+  );
   if (emblem && r >= 5) {
     // Tiny column: capital, shaft, base.
     const ex = Math.round(cx - 0.5);
@@ -225,12 +273,26 @@ function sealPop(): PixelBuffer[] {
     const b = buf(S, S);
     if (ring) {
       const rr = f === 1 ? 9 : 11;
-      ellipseRing(b, S / 2, S / 2 + 3, rr, rr * 0.5, (x, y) => ((x + y) % 2 === 0 ? 'ochre3' : null));
+      ellipseRing(b, S / 2, S / 2 + 3, rr, rr * 0.5, (x, y) =>
+        (x + y) % 2 === 0 ? 'ochre3' : null,
+      );
     }
     stamp(b, s, Math.round((S - s.w) / 2), Math.round((S - s.h) / 2) + dy);
     if (f >= 3) {
       // Sparkles.
-      const sp = f === 3 ? [[3, 4], [21, 6]] : f === 4 ? [[2, 3], [22, 5], [20, 19]] : [[21, 18]];
+      const sp =
+        f === 3
+          ? [
+              [3, 4],
+              [21, 6],
+            ]
+          : f === 4
+            ? [
+                [2, 3],
+                [22, 5],
+                [20, 19],
+              ]
+            : [[21, 18]];
       for (const [x, y] of sp) {
         px(b, x!, y!, 'white');
         if (f === 4) {
@@ -248,10 +310,28 @@ function sealPop(): PixelBuffer[] {
 
 export function registerMisc(reg: SpriteRegistry): void {
   reg.add('fx.rotorwash', { group: 'fx', frames: rotorWash(), fps: 12, anchor: { x: 32, y: 16 } });
-  reg.add('fx.splash', { group: 'fx', frames: splash(), fps: 12, loop: false, anchor: { x: 12, y: 17 } });
+  reg.add('fx.splash', {
+    group: 'fx',
+    frames: splash(),
+    fps: 12,
+    loop: false,
+    anchor: { x: 12, y: 17 },
+  });
   reg.add('fx.confetti', { group: 'fx', frames: confettiLoop(), fps: 10, anchor: { x: 24, y: 0 } });
-  reg.add('fx.confetti.burst', { group: 'fx', frames: confettiBurst(), fps: 12, loop: false, anchor: { x: 28, y: 47 } });
+  reg.add('fx.confetti.burst', {
+    group: 'fx',
+    frames: confettiBurst(),
+    fps: 12,
+    loop: false,
+    anchor: { x: 28, y: 47 },
+  });
   reg.add('fx.pickup.hate', { group: 'fx', frames: hatePickup(), fps: 10, anchor: { x: 5, y: 5 } });
-  reg.add('fx.seal.pop', { group: 'fx', frames: sealPop(), fps: 12, loop: false, anchor: { x: 12, y: 12 } });
+  reg.add('fx.seal.pop', {
+    group: 'fx',
+    frames: sealPop(),
+    fps: 12,
+    loop: false,
+    anchor: { x: 12, y: 12 },
+  });
   void ellipse;
 }

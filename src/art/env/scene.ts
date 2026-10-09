@@ -3,10 +3,23 @@
  * sprites, props and decals for a small tile map into one buffer with painter's ordering.
  * (The game's real world view is M8; this mirrors its conventions so previews are honest.)
  */
-import { GROUNDS, MARKINGS, type BuildingData, type CityId, type Ground, type Marking } from '../../maps/contract';
+import {
+  GROUNDS,
+  MARKINGS,
+  type BuildingData,
+  type CityId,
+  type Ground,
+  type Marking,
+} from '../../maps/contract';
 import { createBuffer, getPixel, setPixel, type PixelBuffer, type Point } from '../lib/pixels';
-import { darker } from './color';
-import { GROUND_ANCHOR, groundTile, NEIGHBOUR_DIRS, NEIGHBOUR_OFFSETS, type GroundCtx } from './ground';
+import { darker, lighter } from './color';
+import {
+  GROUND_ANCHOR,
+  groundTile,
+  NEIGHBOUR_DIRS,
+  NEIGHBOUR_OFFSETS,
+  type GroundCtx,
+} from './ground';
 import { stamp, hash } from './util';
 
 export const GROUND_CHARS: Readonly<Record<string, Ground>> = {
@@ -40,6 +53,8 @@ export interface SceneSprite {
   y: number;
   /** Painter's key: larger = in front. */
   depth: number;
+  /** Night-light layer (same size/anchor as img), drawn undimmed at night. */
+  light?: PixelBuffer;
 }
 
 export interface Scene {
@@ -51,9 +66,15 @@ export interface Scene {
   sprites: SceneSprite[];
   /** Ground-layer overlays (decals, cast shadows) drawn after terrain, before sprites. */
   decals: SceneSprite[];
+  /** Ground light pools (world x, y, radius px) around lamps, for the night render. */
+  pools: Array<[number, number, number]>;
 }
 
-export function sceneFromRows(city: CityId, rows: readonly string[], marks?: readonly string[]): Scene {
+export function sceneFromRows(
+  city: CityId,
+  rows: readonly string[],
+  marks?: readonly string[],
+): Scene {
   const h = rows.length;
   const w = rows[0]!.length;
   const ground = new Uint8Array(w * h);
@@ -66,7 +87,7 @@ export function sceneFromRows(city: CityId, rows: readonly string[], marks?: rea
       marking[j * w + i] = MARKINGS.indexOf(mk);
     }
   }
-  return { city, w, h, ground, marking, sprites: [], decals: [] };
+  return { city, w, h, ground, marking, sprites: [], decals: [], pools: [] };
 }
 
 export function groundAt(s: Scene, i: number, j: number): Ground {
@@ -98,7 +119,14 @@ export function sceneOrigin(s: Scene, top = 96): Point {
   return { x: s.h * 16, y: top };
 }
 
-export function addSprite(s: Scene, img: PixelBuffer, anchor: Point, wx: number, wy: number, depth?: number): void {
+export function addSprite(
+  s: Scene,
+  img: PixelBuffer,
+  anchor: Point,
+  wx: number,
+  wy: number,
+  depth?: number,
+): void {
   s.sprites.push({ img, anchor, x: wx, y: wy, depth: depth ?? wy * 4096 + wx });
 }
 
@@ -111,7 +139,12 @@ export function tileWorld(u: number, v: number): Point {
   return { x: Math.round((u - v) * 16), y: Math.round((u + v) * 8) };
 }
 
-export function renderScene(s: Scene, top = 96, bottom = 8): PixelBuffer {
+/**
+ * Render terrain, decals and depth-sorted sprites. `night` dims everything two palette steps
+ * (hue-shifted toward violet) and draws light layers + lamp light pools undimmed — a palette-safe
+ * stand-in for the game's GPU colour grade.
+ */
+export function renderScene(s: Scene, top = 96, bottom = 8, night = false): PixelBuffer {
   const o = sceneOrigin(s, top);
   const out = createBuffer((s.w + s.h) * 16, (s.w + s.h) * 8 + top + bottom);
   // Terrain back to front (i + j ascending).
@@ -124,9 +157,53 @@ export function renderScene(s: Scene, top = 96, bottom = 8): PixelBuffer {
     }
   }
   for (const d of s.decals) blitShadowAware(out, d, o);
+  if (night) {
+    dimAll(out);
+    for (const [x, y, r] of s.pools) pool(out, o.x + x, o.y + y, r);
+  }
   const sorted = [...s.sprites].sort((a, b) => a.depth - b.depth);
-  for (const sp of sorted) blitShadowAware(out, sp, o);
+  for (const sp of sorted) {
+    if (night) {
+      const dim = { ...sp, img: dimmed(sp.img) };
+      blitShadowAware(out, dim, o);
+      if (sp.light) blitShadowAware(out, { ...sp, img: sp.light }, o);
+    } else blitShadowAware(out, sp, o);
+  }
   return out;
+}
+
+function dimAll(b: PixelBuffer): void {
+  for (let y = 0; y < b.h; y++) {
+    for (let x = 0; x < b.w; x++) {
+      const c = getPixel(b, x, y);
+      if ((c & 255) === 255) setPixel(b, x, y, darker(c, 2));
+    }
+  }
+}
+
+const dimCache = new WeakMap<PixelBuffer, PixelBuffer>();
+function dimmed(src: PixelBuffer): PixelBuffer {
+  let d = dimCache.get(src);
+  if (!d) {
+    d = createBuffer(src.w, src.h);
+    d.data.set(src.data);
+    dimAll(d);
+    dimCache.set(src, d);
+  }
+  return d;
+}
+
+/** Warm light pool on the ground: two lighter rings, iso-squashed. */
+function pool(b: PixelBuffer, cx: number, cy: number, r: number): void {
+  for (let y = -r; y <= r; y++) {
+    for (let x = -2 * r; x <= 2 * r; x++) {
+      const d = (x * x) / (4 * r * r) + (y * y) / (r * r);
+      if (d > 1) continue;
+      const c = getPixel(b, cx + x, cy + y);
+      if ((c & 255) !== 255) continue;
+      setPixel(b, cx + x, cy + y, lighter(c, d < 0.35 ? 2 : 1));
+    }
+  }
 }
 
 /** Blit; shadow pixels darken what is below by one palette step (the game blends on the GPU). */

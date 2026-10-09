@@ -259,7 +259,11 @@ export function decalAt(decals: readonly Decal[], c: ShadeCtx): string | undefin
 /** Material for column-like curved stone with a crisp lit highlight line. */
 export function roundStone(r: Ramp5, opts: { night?: SwatchName } = {}): Material {
   return (c) => {
-    if (c.night) return opts.night ?? null;
+    if (c.night) {
+      // Floodlit from below: the lit flank of each column glows warm.
+      if (opts.night) return opts.night;
+      return c.side === 'curve' && c.lambert > 0.35 && c.z < 60 ? (c.lambert > 0.55 ? 'stone4' : 'stone2') : null;
+    }
     if (c.edge) return r[0];
     if (c.side === 'curve' && !c.shadow && c.lambert > 0.6) return r[4];
     return lv(r, c.level);

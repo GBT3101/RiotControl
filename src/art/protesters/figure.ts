@@ -409,7 +409,7 @@ export function renderFigure(look: Look, facing: Facing, pose: Pose, mirror = fa
       pose.sign === 'card'
         ? { x: Math.round((handR.x + handL.x) / 2), y: Math.min(handR.y, handL.y) + 2 + dy }
         : pose.sign === 'cardL'
-          ? { x: handL.x + 3, y: handL.y + 2 + dy }
+          ? { x: handL.x - 2, y: handL.y + 2 + dy }
           : { x: handR.x, y: handR.y + dy };
     parts.push({ part: art, at, z: pose.sign === 'pole' ? 5 : 3.8, keys: look.sign.keys, text: true });
   }

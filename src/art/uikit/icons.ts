@@ -57,18 +57,37 @@ export const ICONS = {
   hate: (): PixelBuffer => grid(HATE, HEART_KEYS, {}, 'hate'),
   hateTiny: (): PixelBuffer => grid(HATE_TINY, HEART_KEYS, {}, 'hateTiny'),
   legit: (): PixelBuffer => waxSeal(5),
-  capitol: (): PixelBuffer => grid(CAPITOL, { o: 'ink', W: 'white', S: 'stone4', s: 'stone3' }, {}, 'capitol'),
-  wave: (): PixelBuffer => grid(MEGAPHONE, { o: 'ink', R: 'crim2', r: 'crim1', W: 'stone5', B: 'gray3' }, {}, 'megaphone'),
+  capitol: (): PixelBuffer =>
+    grid(CAPITOL, { o: 'ink', W: 'white', S: 'stone4', s: 'stone3' }, {}, 'capitol'),
+  wave: (): PixelBuffer =>
+    grid(MEGAPHONE, { o: 'ink', R: 'crim2', r: 'crim1', W: 'stone5', B: 'gray3' }, {}, 'megaphone'),
   crowd: crowdIcon,
-  timer: (): PixelBuffer => grid(STOPWATCH, { o: 'ink', W: 'stone5', s: 'stone3', B: 'ochre2' }, {}, 'stopwatch'),
+  timer: (): PixelBuffer =>
+    grid(STOPWATCH, { o: 'ink', W: 'stone5', s: 'stone3', B: 'ochre2' }, {}, 'stopwatch'),
   padlock: (): PixelBuffer =>
-    grid(PADLOCK, { o: 'ink', Z: 'zinc3', z: 'zinc2', B: 'ochre2', b: 'ochre1', Y: 'ochre3' }, {}, 'padlock'),
-  grenade: (): PixelBuffer => grid(GRENADE, { o: 'ink', Z: 'zinc4', z: 'zinc2', G: 'green3', g: 'green2', L: 'lime' }, {}, 'grenade'),
-  prophets: (): PixelBuffer => grid(PROPHET_WARN, { o: 'ink', Y: 'hivis2', r: 'crim2' }, {}, 'prophets'),
+    grid(
+      PADLOCK,
+      { o: 'ink', Z: 'zinc3', z: 'zinc2', B: 'ochre2', b: 'ochre1', Y: 'ochre3' },
+      {},
+      'padlock',
+    ),
+  grenade: (): PixelBuffer =>
+    grid(
+      GRENADE,
+      { o: 'ink', Z: 'zinc4', z: 'zinc2', G: 'green3', g: 'green2', L: 'lime' },
+      {},
+      'grenade',
+    ),
+  prophets: (): PixelBuffer =>
+    grid(PROPHET_WARN, { o: 'ink', Y: 'hivis2', r: 'crim2' }, {}, 'prophets'),
 };
 
 /** A 9×9 button glyph in `colour` with a 1-px drop shadow (11×11 result, glyph at 1,1). */
-export function glyph(name: GlyphName, colour = 'stone5', shadow: string | null = 'ink'): PixelBuffer {
+export function glyph(
+  name: GlyphName,
+  colour = 'stone5',
+  shadow: string | null = 'ink',
+): PixelBuffer {
   if (name === 'speed1' || name === 'speed2' || name === 'speed3') {
     const b = buf(11, 11);
     const t = `${name.slice(5)}×`;
@@ -86,7 +105,12 @@ export function glyph(name: GlyphName, colour = 'stone5', shadow: string | null 
 }
 
 export type GlyphName = keyof typeof GLYPHS | 'speed1' | 'speed2' | 'speed3';
-export const GLYPH_NAMES: GlyphName[] = [...(Object.keys(GLYPHS) as GlyphName[]), 'speed1', 'speed2', 'speed3'];
+export const GLYPH_NAMES: GlyphName[] = [
+  ...(Object.keys(GLYPHS) as GlyphName[]),
+  'speed1',
+  'speed2',
+  'speed3',
+];
 
 /** Ability-charged indicator: grenade bouncing with a squash and a ground shadow (4 frames). */
 function abilityFrames(): PixelBuffer[] {
@@ -105,7 +129,15 @@ function abilityFrames(): PixelBuffer[] {
   });
 }
 
-const CURSOR_KEYS: KeyMap = { o: 'ink', W: 'white', Y: 'hivis2', R: 'crim2', B: 'ochre2', b: 'ochre1', r: 'crim1' };
+const CURSOR_KEYS: KeyMap = {
+  o: 'ink',
+  W: 'white',
+  Y: 'hivis2',
+  R: 'crim2',
+  B: 'ochre2',
+  b: 'ochre1',
+  r: 'crim1',
+};
 
 /** Cursor sprites and their hotspots (anchor). */
 export const CURSORS: Record<string, { src: string; hot: { x: number; y: number } }> = {
@@ -117,17 +149,34 @@ export const CURSORS: Record<string, { src: string; hot: { x: number; y: number 
 };
 
 export function registerIcons(reg: SpriteRegistry): void {
-  const centre = (b: PixelBuffer): { x: number; y: number } => ({ x: Math.floor(b.w / 2), y: Math.floor(b.h / 2) });
+  const centre = (b: PixelBuffer): { x: number; y: number } => ({
+    x: Math.floor(b.w / 2),
+    y: Math.floor(b.h / 2),
+  });
   for (const [name, make] of Object.entries(ICONS)) {
     if (name === 'prophets' || name === 'grenade') continue;
     const b = make();
-    reg.add(`ui.icon.${name === 'hateTiny' ? 'hate.tiny' : name}`, { group: 'ui', frames: b, anchor: centre(b) });
+    reg.add(`ui.icon.${name === 'hateTiny' ? 'hate.tiny' : name}`, {
+      group: 'ui',
+      frames: b,
+      anchor: centre(b),
+    });
   }
-  reg.add('ui.icon.ability', { group: 'ui', frames: abilityFrames(), fps: 8, anchor: { x: 6, y: 15 } });
+  reg.add('ui.icon.ability', {
+    group: 'ui',
+    frames: abilityFrames(),
+    fps: 8,
+    anchor: { x: 6, y: 15 },
+  });
   const pw = ICONS.prophets();
   reg.add('ui.icon.prophets', { group: 'portraits-ui', frames: pw, anchor: centre(pw) });
-  for (const n of GLYPH_NAMES) reg.add(`ui.glyph.${n}`, { group: 'ui', frames: glyph(n), anchor: { x: 5, y: 5 } });
+  for (const n of GLYPH_NAMES)
+    reg.add(`ui.glyph.${n}`, { group: 'ui', frames: glyph(n), anchor: { x: 5, y: 5 } });
   for (const [n, c] of Object.entries(CURSORS)) {
-    reg.add(`ui.cursor.${n}`, { group: 'ui', frames: grid(c.src, CURSOR_KEYS, {}, `cursor.${n}`), anchor: c.hot });
+    reg.add(`ui.cursor.${n}`, {
+      group: 'ui',
+      frames: grid(c.src, CURSOR_KEYS, {}, `cursor.${n}`),
+      anchor: c.hot,
+    });
   }
 }

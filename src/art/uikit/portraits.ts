@@ -11,11 +11,37 @@ import { MINISTER_BASE } from './minister.grid';
 import { panel } from './panels';
 
 export const MINISTER_KEYS: KeyMap = {
-  o: 'ink', K: 'ink', H: 'gray1', J: 'gray3', j: 'zinc2',
-  L: 'earth6', l: 'earth7', S: 'earth5', s: 'earth4', d: 'earth3', r: 'rust4',
-  W: 'white', P: 'ink', F: 'ochre2', f: 'ochre1', G: 'navy0', g: 'zinc1', Q: 'sky',
-  N: 'navy1', n: 'navy0', b: 'navy2', C: 'stone5', c: 'stone3',
-  X: 'crim1', x: 'crim2', z: 'rust0', Y: 'blue1', I: 'white', i: 'stone3', p: 'earth3', e: 'crim2',
+  o: 'ink',
+  K: 'ink',
+  H: 'gray1',
+  J: 'gray3',
+  j: 'zinc2',
+  L: 'earth6',
+  l: 'earth7',
+  S: 'earth5',
+  s: 'earth4',
+  d: 'earth3',
+  r: 'rust4',
+  W: 'white',
+  P: 'ink',
+  F: 'ochre2',
+  f: 'ochre1',
+  G: 'navy0',
+  g: 'zinc1',
+  Q: 'sky',
+  N: 'navy1',
+  n: 'navy0',
+  b: 'navy2',
+  C: 'stone5',
+  c: 'stone3',
+  X: 'crim1',
+  x: 'crim2',
+  z: 'rust0',
+  Y: 'blue1',
+  I: 'white',
+  i: 'stone3',
+  p: 'earth3',
+  e: 'crim2',
   B: 'blue2',
 };
 
@@ -45,10 +71,22 @@ function clearMouth(b: PixelBuffer): void {
 const MOUTHS: Record<string, { y: number; x: number; rows: string[] }> = {
   smirk: { x: 17, y: 29, rows: ['........oo', 'doooooooo.', '..ddddd...'] },
   open1: { x: 17, y: 29, rows: ['........oo', '.oooooooo.', '..ozzzzo..', '...oooo...'] },
-  open2: { x: 17, y: 29, rows: ['..........', 'oooooooooo', 'oWWWWWWWWo', '.ozzzzzzo.', '..oooooo..'] },
-  oh: { x: 17, y: 29, rows: ['..........', '...oooo...', '..ozzzzo..', '..ozxxzo..', '...oooo...'] },
+  open2: {
+    x: 17,
+    y: 29,
+    rows: ['..........', 'oooooooooo', 'oWWWWWWWWo', '.ozzzzzzo.', '..oooooo..'],
+  },
+  oh: {
+    x: 17,
+    y: 29,
+    rows: ['..........', '...oooo...', '..ozzzzo..', '..ozxxzo..', '...oooo...'],
+  },
   grin: { x: 16, y: 29, rows: ['.o.........o', '..ooooooooo.', '..oWWWWWWWo.', '...ooooooo..'] },
-  panic: { x: 17, y: 29, rows: ['..........', '.oooooooo.', '.ozzzzzzo.', '.oWoWoWoWo', '..oooooo..'] },
+  panic: {
+    x: 17,
+    y: 29,
+    rows: ['..........', '.oooooooo.', '.ozzzzzzo.', '.oWoWoWoWo', '..oooooo..'],
+  },
 };
 
 function withMouth(b: PixelBuffer, m: keyof typeof MOUTHS): PixelBuffer {
@@ -68,7 +106,12 @@ const EYES = {
 function withEyes(b: PixelBuffer, e: keyof typeof EYES): PixelBuffer {
   const out = copy(b);
   over(out, 12, 16, EYES[e]);
-  over(out, 24, 16, EYES[e].map((r) => r.slice(0, 5) + (e === 'closed' || e === 'happy' ? r[5] : 'o')));
+  over(
+    out,
+    24,
+    16,
+    EYES[e].map((r) => r.slice(0, 5) + (e === 'closed' || e === 'happy' ? r[5] : 'o')),
+  );
   return out;
 }
 
@@ -130,10 +173,28 @@ export interface MinisterAnims {
 export function ministerAnims(): MinisterAnims {
   const base = ministerBase();
   const closed = withEyes(base, 'closed');
-  const idle = [base, base, base, base, glint(base, 0), glint(base, 1), glint(base, 2), base, base, closed, base, base];
+  const idle = [
+    base,
+    base,
+    base,
+    base,
+    glint(base, 0),
+    glint(base, 1),
+    glint(base, 2),
+    base,
+    base,
+    closed,
+    base,
+    base,
+  ];
   const mouths = (['smirk', 'open1', 'open2', 'oh'] as const).map((m) => withMouth(base, m));
   const talk = [mouths[1]!, mouths[2]!, mouths[1]!, mouths[0]!, mouths[3]!, mouths[1]!];
-  const sweat = [sweatDrop(base, 31, 11), sweatDrop(base, 31, 13), sweatDrop(base, 32, 15), sweatDrop(base, 32, 18)];
+  const sweat = [
+    sweatDrop(base, 31, 11),
+    sweatDrop(base, 31, 13),
+    sweatDrop(base, 32, 15),
+    sweatDrop(base, 32, 18),
+  ];
   const smugBase = withEyes(withMouth(base, 'grin'), 'happy');
   const smug = [smugBase, glint(smugBase, 1)];
   const panicFace = withMouth(panicBrows(withEyes(base, 'wide')), 'panic');
@@ -171,7 +232,15 @@ oYyyyYYYooYYooYYyyYo
 `;
 
 const BRETA_KEYS: KeyMap = {
-  o: 'ink', Y: 'ochre3', y: 'ochre2', H: 'earth2', h: 'earth1', L: 'earth7', W: 'white', P: 'ink', r: 'pink3',
+  o: 'ink',
+  Y: 'ochre3',
+  y: 'ochre2',
+  H: 'earth2',
+  h: 'earth1',
+  L: 'earth7',
+  W: 'white',
+  P: 'ink',
+  r: 'pink3',
 };
 
 export function bretaPortrait(): PixelBuffer {
@@ -203,7 +272,8 @@ function bretaAlert(): PixelBuffer[] {
 export function portraitBox(face: PixelBuffer): PixelBuffer {
   const b = panel('brass', face.w + 10, face.h + 10);
   rect(b, 4, 4, face.w + 2, face.h + 2, 'navy1');
-  for (let y = 5; y < face.h + 5; y += 4) for (let x = 5; x < face.w + 5; x++) if ((x + y) % 8 === 0) px(b, x, y, 'navy2');
+  for (let y = 5; y < face.h + 5; y += 4)
+    for (let x = 5; x < face.w + 5; x++) if ((x + y) % 8 === 0) px(b, x, y, 'navy2');
   stamp(b, face, 5, 5);
   void col;
   return b;
@@ -215,12 +285,34 @@ export function registerPortraits(reg: SpriteRegistry): void {
   const g = 'portraits-ui';
   reg.add('ui.portrait.minister.idle', { group: g, frames: a.idle, fps: 6, anchor });
   reg.add('ui.portrait.minister.talk', { group: g, frames: a.talk, fps: 10, anchor });
-  reg.add('ui.portrait.minister.mouths', { group: g, frames: a.mouths, fps: 0, anchor, tags: ['states'] });
-  reg.add('ui.portrait.minister.blink', { group: g, frames: a.blink, fps: 10, loop: false, anchor });
+  reg.add('ui.portrait.minister.mouths', {
+    group: g,
+    frames: a.mouths,
+    fps: 0,
+    anchor,
+    tags: ['states'],
+  });
+  reg.add('ui.portrait.minister.blink', {
+    group: g,
+    frames: a.blink,
+    fps: 10,
+    loop: false,
+    anchor,
+  });
   reg.add('ui.portrait.minister.sweat', { group: g, frames: a.sweat, fps: 6, anchor });
   reg.add('ui.portrait.minister.smug', { group: g, frames: a.smug, fps: 3, anchor });
   reg.add('ui.portrait.minister.panic', { group: g, frames: a.panic, fps: 12, anchor });
-  reg.add('ui.portrait.minister.boxed', { group: g, frames: a.idle.map(portraitBox), fps: 6, anchor: { x: 0, y: 0 } });
+  reg.add('ui.portrait.minister.boxed', {
+    group: g,
+    frames: a.idle.map(portraitBox),
+    fps: 6,
+    anchor: { x: 0, y: 0 },
+  });
   reg.add('ui.portrait.breta', { group: g, frames: bretaPortrait(), anchor: { x: 10, y: 19 } });
-  reg.add('ui.portrait.breta.alert', { group: g, frames: bretaAlert(), fps: 4, anchor: { x: 0, y: 0 } });
+  reg.add('ui.portrait.breta.alert', {
+    group: g,
+    frames: bretaAlert(),
+    fps: 4,
+    anchor: { x: 0, y: 0 },
+  });
 }

@@ -217,7 +217,7 @@ export function buildBourbon(state: DamageState): Build {
   s.box(1.0, 10.0, 0.5, 4.6, 1, 46, wall('body'), { tag: 'body', cut: bodyCut });
   s.hip(1.2, 9.8, 0.7, 4.4, 46, 54, 1.2, roof, { cut: roofCut });
   const glass: Material = (c) => {
-    if (c.night) return 'ochre3';
+    if (c.night) return mod(c.fx, 4) === 0 || mod(c.fz, 4) === 0 ? null : mod(c.fx + c.fz, 9) === 0 ? 'ochre3' : 'ochre1';
     if (c.edge) return 'ink';
     if (state >= 2 && mod(c.fx, 7) < 2) return 'ink';
     if (mod(c.fx, 4) === 0 || mod(c.fz, 4) === 0) return lv(R.metal, c.level);

@@ -5,26 +5,43 @@
 import { grid, sheet } from '../lib/grid';
 import type { SpriteRegistry } from '../lib/registry';
 import type { PixelBuffer } from '../lib/pixels';
-import { buf, ellipse, mask, ellipseMask, fillMask, outlineBuf, paintLobes, prng, px, stamp, mget, type Lobe } from './draw';
+import {
+  buf,
+  ellipse,
+  mask,
+  ellipseMask,
+  fillMask,
+  outlineBuf,
+  paintLobes,
+  prng,
+  px,
+  stamp,
+  mget,
+  type Lobe,
+} from './draw';
 
 const BLOOD = ['rust0', 'crim1', 'crim2', 'crim2', 'rust4'];
 
 function bloodPuff(seed: number, n: number): PixelBuffer[] {
   const rnd = prng(seed);
-  const drops = Array.from({ length: n }, () => ({ vx: (rnd() - 0.5) * 3.2, vy: -0.8 - rnd() * 1.6 }));
+  const drops = Array.from({ length: n }, () => ({
+    vx: (rnd() - 0.5) * 3.2,
+    vy: -0.8 - rnd() * 1.6,
+  }));
   return [0, 1, 2, 3].map((f) => {
     const b = buf(17, 15);
     const r = [2.2, 3.4, 3, 2][f]!;
-    const lobes: Lobe[] = f < 3
-      ? [
-          { x: 8 - f * 0.6, y: 7 - f * 0.3, r },
-          { x: 9.5 + f * 0.5, y: 6 - f * 0.4, r: r * 0.75 },
-          { x: 7.5, y: 8.5, r: r * 0.6 },
-        ]
-      : [
-          { x: 6, y: 6, r: 1.6 },
-          { x: 11, y: 5.5, r: 1.3 },
-        ];
+    const lobes: Lobe[] =
+      f < 3
+        ? [
+            { x: 8 - f * 0.6, y: 7 - f * 0.3, r },
+            { x: 9.5 + f * 0.5, y: 6 - f * 0.4, r: r * 0.75 },
+            { x: 7.5, y: 8.5, r: r * 0.6 },
+          ]
+        : [
+            { x: 6, y: 6, r: 1.6 },
+            { x: 11, y: 5.5, r: 1.3 },
+          ];
     paintLobes(b, lobes, { ramp: BLOOD, outlineLit: 'crim1' });
     for (const d of drops) {
       const t = f + 1;
@@ -70,7 +87,13 @@ function splat(seed: number, W: number, H: number): PixelBuffer {
     for (let x = 0; x < W; x++) {
       if (!mget(k, x, y)) continue;
       if (!mget(k, x + 1, y + 1) || !mget(k, x, y + 1)) px(b, x, y, 'rust0');
-      else if (mget(k, x - 1, y - 1) && mget(k, x - 2, y - 1) && mget(k, x + 2, y + 1) && mget(k, x - 1, y - 2) === 0) px(b, x, y, 'crim2');
+      else if (
+        mget(k, x - 1, y - 1) &&
+        mget(k, x - 2, y - 1) &&
+        mget(k, x + 2, y + 1) &&
+        mget(k, x - 1, y - 2) === 0
+      )
+        px(b, x, y, 'crim2');
     }
   }
   // Wet glint on the main pool.
@@ -80,21 +103,28 @@ function splat(seed: number, W: number, H: number): PixelBuffer {
 
 /* KO stars & birds ------------------------------------------------------- */
 
-const STAR_BIG = grid(`
+const STAR_BIG = grid(
+  `
   ..o..
   .oYo.
   oYWYo
   .oYo.
   ..o..
-`, { o: 'rust1', Y: 'ochre3', W: 'ochre4' });
-const STAR_SMALL = grid(`
+`,
+  { o: 'rust1', Y: 'ochre3', W: 'ochre4' },
+);
+const STAR_SMALL = grid(
+  `
   .o.
   oYo
   .o.
-`, { o: 'rust1', Y: 'ochre2' });
+`,
+  { o: 'rust1', Y: 'ochre2' },
+);
 
 const BIRD_KEYS = { o: 'earth1', Y: 'ochre3', y: 'ochre2', k: 'ink', r: 'rust3', W: 'ochre4' };
-const BIRDS = sheet(`
+const BIRDS = sheet(
+  `
   .o.o...
   oYoYo..
   .oYYkro
@@ -106,7 +136,9 @@ const BIRDS = sheet(`
   .oYYkro
   oYYYYo.
   .ooyo..
-`, BIRD_KEYS);
+`,
+  BIRD_KEYS,
+);
 
 function koFrames(kind: 'stars' | 'birds'): PixelBuffer[] {
   const W = 25;
@@ -154,7 +186,8 @@ function mirror(src: PixelBuffer): PixelBuffer {
 
 /* Sweat, anger, camera flash -------------------------------------------- */
 
-const SWEAT = sheet(`
+const SWEAT = sheet(
+  `
   .......
   ...o...
   ..oSo..
@@ -198,7 +231,9 @@ const SWEAT = sheet(`
   .S...S.
   ..o.o..
   .......
-`, { o: 'blue1', S: 'sky', W: 'white', B: 'blue2' });
+`,
+  { o: 'blue1', S: 'sky', W: 'white', B: 'blue2' },
+);
 
 /** Anger vein "💢": four curved brackets, convex sides to the centre. Pop: small → big → settle → pulse. */
 const ANGER = (() => {
@@ -279,18 +314,55 @@ function camFlash(): PixelBuffer[] {
 }
 
 export function registerCombat(reg: SpriteRegistry): void {
-  reg.add('fx.blood.puff.a', { group: 'fx', frames: bloodPuff(3, 5), fps: 14, loop: false, anchor: { x: 8, y: 8 } });
-  reg.add('fx.blood.puff.b', { group: 'fx', frames: bloodPuff(8, 7), fps: 14, loop: false, anchor: { x: 8, y: 8 } });
+  reg.add('fx.blood.puff.a', {
+    group: 'fx',
+    frames: bloodPuff(3, 5),
+    fps: 14,
+    loop: false,
+    anchor: { x: 8, y: 8 },
+  });
+  reg.add('fx.blood.puff.b', {
+    group: 'fx',
+    frames: bloodPuff(8, 7),
+    fps: 14,
+    loop: false,
+    anchor: { x: 8, y: 8 },
+  });
   const splats: Array<[number, number, number]> = [
-    [1, 18, 9], [2, 16, 8], [3, 22, 11], [4, 14, 7], [5, 20, 10],
+    [1, 18, 9],
+    [2, 16, 8],
+    [3, 22, 11],
+    [4, 14, 7],
+    [5, 20, 10],
   ];
   splats.forEach(([seed, w, h], i) => {
     const b = splat(seed * 13, w, h);
-    reg.add(`fx.blood.splat.${'abcde'[i]}`, { group: 'fx', frames: b, anchor: { x: Math.floor(w / 2), y: Math.floor(h / 2) }, tags: ['decal'] });
+    reg.add(`fx.blood.splat.${'abcde'[i]}`, {
+      group: 'fx',
+      frames: b,
+      anchor: { x: Math.floor(w / 2), y: Math.floor(h / 2) },
+      tags: ['decal'],
+    });
   });
-  reg.add('fx.ko.stars', { group: 'fx', frames: koFrames('stars'), fps: 8, anchor: { x: 12, y: 6 } });
-  reg.add('fx.ko.birds', { group: 'fx', frames: koFrames('birds'), fps: 8, anchor: { x: 12, y: 6 } });
+  reg.add('fx.ko.stars', {
+    group: 'fx',
+    frames: koFrames('stars'),
+    fps: 8,
+    anchor: { x: 12, y: 6 },
+  });
+  reg.add('fx.ko.birds', {
+    group: 'fx',
+    frames: koFrames('birds'),
+    fps: 8,
+    anchor: { x: 12, y: 6 },
+  });
   reg.add('fx.sweat', { group: 'fx', frames: SWEAT, fps: 8, loop: false, anchor: { x: 3, y: 1 } });
   reg.add('fx.anger', { group: 'fx', frames: ANGER, fps: 10, loop: false, anchor: { x: 6, y: 6 } });
-  reg.add('fx.camflash', { group: 'fx', frames: camFlash(), fps: 16, loop: false, anchor: { x: 10, y: 10 } });
+  reg.add('fx.camflash', {
+    group: 'fx',
+    frames: camFlash(),
+    fps: 16,
+    loop: false,
+    anchor: { x: 10, y: 10 },
+  });
 }

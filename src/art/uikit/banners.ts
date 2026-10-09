@@ -34,7 +34,10 @@ export function rubberStamp(text: string, ink: string, opts: StampOptions = {}):
   const H = innerH + 8;
   const flat = buf(W, H);
   // Outer 2-px border, 1-px gap, inner 1-px border.
-  for (const [o, t] of [[0, 2], [3, 1]] as const) {
+  for (const [o, t] of [
+    [0, 2],
+    [3, 1],
+  ] as const) {
     for (let i = 0; i < t; i++) {
       hline(flat, o + i, o + i, W - (o + i) * 2, ink);
       hline(flat, o + i, H - 1 - o - i, W - (o + i) * 2, ink);
@@ -43,7 +46,15 @@ export function rubberStamp(text: string, ink: string, opts: StampOptions = {}):
     }
   }
   drawText(flat, font, text, Math.floor((W - m.w) / 2), 3 + pad, ink);
-  if (opts.sub && subM) drawText(flat, FONTS.smallBold, opts.sub, Math.floor((W - subM.w) / 2), 4 + pad + font.capHeight + 4, ink);
+  if (opts.sub && subM)
+    drawText(
+      flat,
+      FONTS.smallBold,
+      opts.sub,
+      Math.floor((W - subM.w) / 2),
+      4 + pad + font.capHeight + 4,
+      ink,
+    );
   // Worn ink: carve a few small cluster-shaped holes (never single-pixel noise).
   const rnd = prng(opts.seed ?? text.length * 31 + 7);
   const wear = opts.wear ?? 0.5;
@@ -55,12 +66,14 @@ export function rubberStamp(text: string, ink: string, opts: StampOptions = {}):
     const ry = r * (0.5 + rnd() * 0.5);
     for (let y = Math.floor(cy - 2); y <= cy + 2; y++) {
       for (let x = Math.floor(cx - 2); x <= cx + 2; x++) {
-        if (x >= 0 && y >= 0 && x < W && y < H && inEllipse(x, y, cx, cy, r, ry)) flat.data.fill(0, (y * W + x) * 4, (y * W + x) * 4 + 4);
+        if (x >= 0 && y >= 0 && x < W && y < H && inEllipse(x, y, cx, cy, r, ry))
+          flat.data.fill(0, (y * W + x) * 4, (y * W + x) * 4 + 4);
       }
     }
   }
   // Uneven pressure: one edge prints fainter (every other pixel of the right border column).
-  for (let y = 1; y < H - 1; y += 3) flat.data.fill(0, (y * W + W - 1) * 4, (y * W + W - 1) * 4 + 4);
+  for (let y = 1; y < H - 1; y += 3)
+    flat.data.fill(0, (y * W + W - 1) * 4, (y * W + W - 1) * 4 + 4);
   const tilt = opts.tilt ?? -0.09;
   if (!tilt) return flat;
   const lift = Math.ceil(Math.abs(tilt) * W);
@@ -111,7 +124,9 @@ export function ribbon(text: string, font: BitmapFont = FONTS.large): PixelBuffe
     }
     // Fold shadow (dark triangle where the tail tucks under the band).
     const fx = side === 0 ? tail : W - tail - 1;
-    for (let i = 0; i < drop; i++) for (let k = 0; k <= i; k++) px(b, side === 0 ? fx + 5 - k : fx - 5 + k, bandH - 2 + i - 2, 'rust0');
+    for (let i = 0; i < drop; i++)
+      for (let k = 0; k <= i; k++)
+        px(b, side === 0 ? fx + 5 - k : fx - 5 + k, bandH - 2 + i - 2, 'rust0');
   }
   // Band.
   const bx = tail;
@@ -128,7 +143,8 @@ export function ribbon(text: string, font: BitmapFont = FONTS.large): PixelBuffe
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       if (b.data[(y * W + x) * 4 + 3]) continue;
-      const n = (xx: number, yy: number): boolean => xx >= 0 && yy >= 0 && xx < W && yy < H && b.data[(yy * W + xx) * 4 + 3]! > 0;
+      const n = (xx: number, yy: number): boolean =>
+        xx >= 0 && yy >= 0 && xx < W && yy < H && b.data[(yy * W + xx) * 4 + 3]! > 0;
       if (n(x + 1, y) || n(x - 1, y) || n(x, y + 1) || n(x, y - 1)) marks.push([x, y]);
     }
   }
@@ -137,7 +153,12 @@ export function ribbon(text: string, font: BitmapFont = FONTS.large): PixelBuffe
   vline(b, bx, 0, bandH, 'ink');
   vline(b, bx + bandW - 1, 0, bandH, 'ink');
   hline(b, bx, 0, bandW, 'ink');
-  drawText(b, font, text, bx + 12, 6, 'stone5', { outline: 'rust0', outlineThin: true, shadow: 'ink', ramp: ['white', 'stone5', 'stone5', 'stone4'] });
+  drawText(b, font, text, bx + 12, 6, 'stone5', {
+    outline: 'rust0',
+    outlineThin: true,
+    shadow: 'ink',
+    ramp: ['white', 'stone5', 'stone5', 'stone4'],
+  });
   return b;
 }
 
@@ -156,7 +177,8 @@ export function waveBanner(wave: number | string, label = 'INCOMING'): PixelBuff
   const b = buf(W, H);
   for (const y0 of [0, H - stripe - 1]) {
     for (let y = 0; y < stripe; y++) {
-      for (let x = 0; x < W; x++) px(b, x, y0 + y + 1, Math.floor((x + y + (y0 ? 3 : 0)) / 4) % 2 === 0 ? 'hivis2' : 'ink');
+      for (let x = 0; x < W; x++)
+        px(b, x, y0 + y + 1, Math.floor((x + y + (y0 ? 3 : 0)) / 4) % 2 === 0 ? 'hivis2' : 'ink');
     }
   }
   rect(b, 0, stripe + 1, W, midH, 'stone4');
@@ -176,10 +198,18 @@ export function waveBanner(wave: number | string, label = 'INCOMING'): PixelBuff
 export function registerBanners(reg: SpriteRegistry): void {
   for (const [key, [text, ink]] of Object.entries(STAMPS)) {
     const s = rubberStamp(text, ink);
-    reg.add(`ui.stamp.${key}`, { group: 'ui', frames: s, anchor: { x: Math.floor(s.w / 2), y: Math.floor(s.h / 2) } });
+    reg.add(`ui.stamp.${key}`, {
+      group: 'ui',
+      frames: s,
+      anchor: { x: Math.floor(s.w / 2), y: Math.floor(s.h / 2) },
+    });
   }
   const lv = ribbon('NEW TOOL OF ORDER APPROVED');
-  reg.add('ui.banner.levelup', { group: 'ui', frames: lv, anchor: { x: Math.floor(lv.w / 2), y: 0 } });
+  reg.add('ui.banner.levelup', {
+    group: 'ui',
+    frames: lv,
+    anchor: { x: Math.floor(lv.w / 2), y: 0 },
+  });
   const wv = waveBanner(3);
   reg.add('ui.banner.wave', { group: 'ui', frames: wv, anchor: { x: Math.floor(wv.w / 2), y: 0 } });
   void col;
