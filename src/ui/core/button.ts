@@ -36,6 +36,8 @@ export interface ButtonOptions {
   onTap: (e: UiPointerEvent) => void;
   /** Extra hit padding (UI px) — keeps touch targets ≥ 44 CSS px. */
   pad?: number;
+  /** Vertical hit padding (default `pad`). */
+  padY?: number;
   sound?: boolean;
   longPress?: (e: UiPointerEvent) => boolean | void;
   hover?: (over: boolean) => void;
@@ -60,12 +62,13 @@ export class Button extends Container {
     this.sprite = new Sprite(faces.normal);
     this.addChild(this.sprite);
     const pad = opts.pad ?? 0;
+    const padY = opts.padY ?? pad;
     makeInteractive(this, {
       hit: (): Rect => ({
         x: -pad,
-        y: -pad,
+        y: -padY,
         w: this.sprite.texture.width + pad * 2,
-        h: this.sprite.texture.height + pad * 2,
+        h: this.sprite.texture.height + padY * 2,
       }),
       tap: (e) => {
         if (this._disabled) return;

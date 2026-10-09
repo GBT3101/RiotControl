@@ -20,6 +20,10 @@ import { dossier } from './common';
 import { backdrop, fitBackdrop, type Screen } from './screen';
 
 const STEPS = 10;
+/** Settings row pitch on touch screens (UI px). */
+const TOUCH_ROW_H = 27;
+/** Widgets built for touch (taller hit areas); set by SettingsScreen before building them. */
+let touchWidgets = false;
 
 /** Small toggle chip (13 px tall): paper when off, red ink stamp when on. */
 export function chip(label: string, on: boolean, state: string): PixelBuffer {
@@ -77,6 +81,7 @@ class Slider extends Container {
     private readonly get: () => number,
     private readonly set: (v: number) => void,
     private readonly muted: () => boolean,
+    touchHit = touchWidgets,
   ) {
     super();
     this.addChild(this.track, this.pct);
@@ -89,7 +94,7 @@ class Slider extends Container {
       }
     };
     makeInteractive(this.track, {
-      hit: { x: -2, y: -4, w: w + 4, h: 17 },
+      hit: touchHit ? { x: -2, y: -9, w: w + 4, h: 27 } : { x: -2, y: -4, w: w + 4, h: 17 },
       tap: (e) => apply(e.x),
       drag: (_dx, _dy, e) => {
         void e;
@@ -136,6 +141,7 @@ class Options<T> extends Container {
     choices: Choice<T>[],
     private readonly get: () => T,
     set: (v: T) => void,
+    padY = touchWidgets ? 7 : 3,
   ) {
     super();
     let x = 0;
@@ -148,6 +154,7 @@ class Options<T> extends Container {
           this.refresh();
         },
         pad: 3,
+        padY,
       });
       b.position.set(x, 0);
       x += b.w + 2;
@@ -174,6 +181,7 @@ export class SettingsScreen implements Screen {
   private readonly labels = new Container();
 
   constructor(private readonly app: UiApp) {
+    touchWidgets = app.touch;
     makeInteractive(this.panel, { blockOnly: true });
     this.root.addChild(this.dim, this.panel, this.labels);
     const audio = app.audio;
@@ -293,36 +301,50 @@ export class SettingsScreen implements Screen {
 
   layout(l: HudLayout): void {
     fitBackdrop(this.dim, l);
-    const rowH = l.H < 260 ? 16 : 19;
-    const w = Math.min(244, l.W - 8);
-    const h = 18 + this.rows.length * rowH + this.back.h + 10;
+    // Touch: rows ≥ 27 UI px (every control's hit area ≥ 44 CSS px at the phone UI scale);
+    // two columns when one would not fit (phone landscape).
+    const touch = this.app.touch;
+    const rowH = touch ? TOUCH_ROW_H : l.H < 260 ? 16 : 19;
+    const colW = 244;
+    const n = this.rows.length;
+    const heightFor = (rows: number): number => 18 + rows * rowH + this.back.h + 10;
+    const cols = touch && heightFor(n) > l.H - 4 && l.W >= colW * 2 + 8 ? 2 : 1;
+    const perCol = Math.ceil(n / cols);
+    const w = Math.min(colW * cols, l.W - 8);
+    const cw = Math.floor(w / cols);
+    const h = heightFor(perCol);
     const b = dossier(w, h, 'FILE: PREFERENCES');
     const labelW = Math.max(...this.rows.map((r) => measureText(FONTS.smallBold, r.label).w)) + 8;
-    let y = 10 + 14;
-    for (const r of this.rows) {
-      drawText(b, FONTS.smallBold, r.label, 10, y + Math.floor((rowH - 7) / 2) - 1, 'ink');
+    const cell = (k: number): { cx: number; cy: number } => ({
+      cx: Math.floor(k / perCol) * cw,
+      cy: 10 + 14 + (k % perCol) * rowH,
+    });
+    this.rows.forEach((r, k) => {
+      const { cx, cy: y } = cell(k);
+      const ty = y + Math.floor((rowH - 7) / 2) - 1;
+      drawText(b, FONTS.smallBold, r.label, cx + 10, ty, 'ink');
       if (r.note && r.widget) {
         const m = measureText(FONTS.small, r.note);
-        drawText(b, FONTS.small, r.note, w - 10 - m.w, y + Math.floor((rowH - 7) / 2), 'stone1');
+        drawText(b, FONTS.small, r.note, cx + cw - 10 - m.w, ty + 1, 'stone1');
       } else if (r.note) {
-        drawText(b, FONTS.mono, r.note, labelW + 10, y + Math.floor((rowH - 7) / 2) - 1, 'gray1');
+        drawText(b, FONTS.mono, r.note, cx + labelW + 10, ty, 'gray1');
       }
-      for (let x = 10; x < w - 10; x += 2) px(b, x, y + rowH - 2, 'stone2');
-      y += rowH;
-    }
+      for (let x = cx + 10; x < cx + cw - 10; x += 2) px(b, x, y + rowH - 2, 'stone2');
+    });
     swapOwned(this.panel, b, 'ui:settings');
     const x0 = Math.floor((l.W - w) / 2);
     const y0 = Math.max(l.safe.top + 1, Math.floor((l.H - h - 10) / 2));
     this.panel.position.set(x0, y0);
-    let ry = y0 + 10 + 14;
-    for (const r of this.rows) {
-      if (r.widget) {
-        const wh = r.widget instanceof Slider ? 9 : 13;
-        r.widget.position.set(x0 + labelW + 10, ry + Math.floor((rowH - wh) / 2) - 1);
-      }
-      ry += rowH;
-    }
-    this.back.position.set(x0 + Math.floor((w - this.back.w) / 2), ry + 3);
+    this.rows.forEach((r, k) => {
+      if (!r.widget) return;
+      const { cx, cy } = cell(k);
+      const wh = r.widget instanceof Slider ? 9 : 13;
+      r.widget.position.set(x0 + cx + labelW + 10, y0 + cy + Math.floor((rowH - wh) / 2) - 1);
+    });
+    this.back.position.set(
+      x0 + Math.floor((w - this.back.w) / 2),
+      y0 + 10 + 14 + perCol * rowH + 3,
+    );
   }
 
   update(): void {}

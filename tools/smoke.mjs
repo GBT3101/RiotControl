@@ -79,6 +79,17 @@ try {
     `wheel zooms in to an integer level (${s1.zoom} → ${s2.zoom})`,
   );
 
+  // M13b: a two-finger trackpad scroll (horizontal pixel deltas) pans instead of zooming.
+  const sp0 = await state(page);
+  for (let k = 0; k < 4; k++) await page.mouse.wheel(12, 6);
+  await page.waitForTimeout(300);
+  const sp1 = await state(page);
+  check(
+    sp1.x > sp0.x && sp1.zoom === sp0.zoom,
+    `trackpad scroll pans without zooming (Δx ${(sp1.x - sp0.x).toFixed(1)}, zoom ${sp1.zoom})`,
+  );
+  await page.waitForTimeout(300);
+
   await page.keyboard.down('KeyD');
   await page.waitForTimeout(300);
   await page.keyboard.up('KeyD');

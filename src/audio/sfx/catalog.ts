@@ -126,15 +126,18 @@ export const SFX: Readonly<Record<SfxId, SfxDef>> = {
   crowdBoo: def('ambience', 2.2, 0.5, 0, pol(4, 1, 2), W.crowdBoo, { spatial: false }),
   clapChant: def('ambience', 2, 0.9, 0, pol(4, 1, 1), W.clapChant, { spatial: false }),
   // UI
-  click: def('ui', 0.08, 0.6, 1, UI, U.click),
+  // M13b mix: UI feedback and the advisor's typing duck the crowd bed (ambience bus).
+  click: def('ui', 0.08, 0.6, 1, UI, U.click, { duck: { bus: 'ambience', db: 3, hold: 0.15 } }),
   hover: def('ui', 0.04, 0.5, 1, pol(10, 2, 0.03, { aggregate: false }), U.hover),
   deploy: def('ui', 0.3, 0.5, 1, UI, U.deploy),
   error: def('ui', 0.35, 0.4, 1, pol(10, 1, 0.2, { aggregate: false }), U.error),
-  stamp: def('ui', 0.35, 0.5, 1, UI, U.stamp),
+  stamp: def('ui', 0.35, 0.5, 1, UI, U.stamp, { duck: { bus: 'ambience', db: 4, hold: 0.3 } }),
   typeTick: def('ui', 0.05, 0.5, 3, pol(10, 3, 0.03, { boostCap: 1 }), U.typeTick, {
     jitter: 0.08,
+    // Held while the Minister talks (a tick every ~50 ms re-arms it).
+    duck: { bus: 'ambience', db: 7, hold: 0.5 },
   }),
-  typeBell: def('ui', 1, 0.6, 1, UI, U.typeBell),
+  typeBell: def('ui', 1, 0.6, 1, UI, U.typeBell, { duck: { bus: 'ambience', db: 5, hold: 0.8 } }),
   levelUp: def('ui', 1.6, 0.55, 0, UI, U.levelUp, { jitter: 0, duck: { bus: 'music', db: 9, hold: 1.2 } }),
   waveAlarm: def('ui', 1.2, 0.65, 0, pol(10, 1, 1, { aggregate: false }), U.waveAlarm, {
     jitter: 0,

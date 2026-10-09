@@ -2,8 +2,12 @@
  * Pixel-art loading screen: the RIOT CONTROL logo (with its glint), a hazard-tape progress bar
  * in a recessed well, the city being prepared and a satirical tip. Drawn with Pixi in screen
  * space at the UI scale; the main thread stays free while the art workers run.
+ *
+ * M13b: the bar eases toward the reported progress and creeps through the current job (jobs
+ * report coarsely, so a long one used to freeze the bar), tips rotate every 6 s, and every
+ * texture is freed on destroy.
  */
-import { Container, Sprite, type Texture } from 'pixi.js';
+import { Container, Sprite, Texture } from 'pixi.js';
 import { createBuffer, setPixel, type PixelBuffer } from '../art/lib/pixels';
 import { resolveColor } from '../art/palette';
 import { logoFrames } from '../art/uikit/logo';
@@ -26,7 +30,13 @@ export class LoadingScreen {
   private readonly tip: Sprite;
   private readonly well: Sprite;
   private shownPct = -1;
+  /** Reported progress (0..1) and the size of the last reported step. */
   private progress = 0;
+  private step = 0.1;
+  /** Displayed progress (eased + creeping, never past the next expected step). */
+  private shown = 0;
+  private tipIndex = 0;
+  private tipT = 0;
   private t = 0;
   private raf = 0;
   private last = -1;
@@ -50,16 +60,12 @@ export class LoadingScreen {
       ),
     );
     this.label.anchor.set(0.5, 0);
-    const tip = TIPS[Math.abs(seed * 7 + Math.floor(Date.now() / 1000)) % TIPS.length]!;
-    this.tip = new Sprite(
-      bufferTexture(
-        textSprite(FONTS.small, tip, 'stone4', { maxWidth: 220, align: 'center', lineGap: 1 }),
-      ),
-    );
+    this.tipIndex = Math.abs(seed * 7 + Math.floor(Date.now() / 1000)) % TIPS.length;
+    this.tip = new Sprite(tipTexture(TIPS[this.tipIndex]!));
     this.tip.anchor.set(0.5, 0);
     this.root.addChild(this.logo, this.well, this.bar, this.label, this.tip);
     this.unsub = stage.onResize(() => this.layout());
-    this.setProgress(0);
+    this.drawBar(0);
     // Render at the glint's 12 fps only: the art workers need the CPU more than we do.
     const frame = (now: number): void => {
       this.raf = requestAnimationFrame(frame);
@@ -70,6 +76,7 @@ export class LoadingScreen {
       // Glint sweeps every ~2.5 s.
       const g = Math.floor(((this.t % 2.5) / 2.5) * 30);
       this.logo.texture = this.logoFrames[g < this.logoFrames.length ? g : 0]!;
+      this.animate(dt);
       this.stage.app.render();
     };
     this.raf = requestAnimationFrame(frame);
@@ -90,8 +97,33 @@ export class LoadingScreen {
   }
 
   setProgress(p: number): void {
-    this.progress = Math.max(this.progress, Math.min(1, p));
-    const pct = Math.round(this.progress * 100);
+    const v = Math.max(this.progress, Math.min(1, p));
+    if (v > this.progress) this.step = Math.max(0.02, v - this.progress);
+    this.progress = v;
+  }
+
+  private animate(dt: number): void {
+    // Ease toward the reported value, then creep (slowly, asymptotically) into the current
+    // job's share so a long job still shows life — never beyond 85 % of the next step.
+    const target = this.progress;
+    if (this.shown < target) this.shown += (target - this.shown) * Math.min(1, dt * 8);
+    else {
+      const cap = Math.min(0.99, target + this.step * 0.85);
+      this.shown += (cap - this.shown) * Math.min(1, dt * 0.35);
+    }
+    this.drawBar(this.shown);
+    this.tipT += dt;
+    if (this.tipT > 6 && TIPS.length > 1) {
+      this.tipT = 0;
+      this.tipIndex = (this.tipIndex + 1) % TIPS.length;
+      const old = this.tip.texture;
+      this.tip.texture = tipTexture(TIPS[this.tipIndex]!);
+      old.destroy(true);
+    }
+  }
+
+  private drawBar(p: number): void {
+    const pct = Math.round(Math.max(0, Math.min(1, p)) * 100);
     if (pct === this.shownPct) return;
     this.shownPct = pct;
     const old = this.bar.texture;
@@ -102,8 +134,18 @@ export class LoadingScreen {
   destroy(): void {
     cancelAnimationFrame(this.raf);
     this.unsub();
+    for (const t of this.logoFrames) t.destroy(true);
+    for (const sp of [this.well, this.bar, this.label, this.tip])
+      if (sp.texture && sp.texture !== Texture.EMPTY) sp.texture.destroy(true);
     this.root.destroy({ children: true });
   }
+}
+
+function tipTexture(tip: string): Texture {
+  return bufferTexture(
+    textSprite(FONTS.small, tip, 'stone4', { maxWidth: 220, align: 'center', lineGap: 1 }),
+    'tip',
+  );
 }
 
 /** Hazard-tape fill: hi-vis / ink diagonal stripes with a lit top row and shaded bottom row. */

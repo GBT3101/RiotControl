@@ -60,6 +60,7 @@ export class Juice {
 
   /** Freeze the simulation for `ms` (real time). */
   hitStop(ms: number, nowMs: number): void {
+    if (this.reducedMotion) return; // M13b: reduced motion = no freeze-frames either
     this.stopUntil = Math.max(this.stopUntil, nowMs + ms);
   }
 

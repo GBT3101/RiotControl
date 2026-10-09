@@ -2,7 +2,8 @@
 /**
  * Headless screenshots with Playwright Chromium (pre-installed in /opt/pw-browsers).
  *
- *   npm run shots                                  # default set (game ×3 viewports + gallery)
+ *   npm run shots                                  # default set (game ×3 viewports + a gallery viewport)
+ *   npm run shots -- --gallery                     # … plus the FULL-page gallery (slow under SwiftShader)
  *   node tools/shoot.mjs --page gallery --query group=units --out units
  *   node tools/shoot.mjs --page game --viewport phone-portrait --query "zoom=5&u=36&v=36" --out zoomed
  *   node tools/shoot.mjs --page game --viewport 1280x720 --wait 2000 --no-build
@@ -18,6 +19,7 @@
  *   --timeout ms                      max wait for the page to report ready (default 20000)
  *   --full / --no-full                full-page screenshot (default: gallery full, game not)
  *   --clip x,y,w,h                    clip rectangle in CSS px
+ *   --gallery                         default set: full-page gallery of every group (slow)
  *   --no-build                        reuse the existing dist/ (preview mode)
  *   --dev                             serve from the dev server (no build)
  *
@@ -43,6 +45,7 @@ const { values: args } = parseArgs({
     'no-full': { type: 'boolean' },
     clip: { type: 'string' },
     'no-build': { type: 'boolean', default: false },
+    gallery: { type: 'boolean', default: false },
     dev: { type: 'boolean', default: false },
   },
 });
@@ -96,13 +99,23 @@ function jobs() {
         out: `game-${v}`,
         full: false,
       })),
-      {
-        page: 'gallery',
-        query: args.query,
-        viewport: viewportFor('desktop'),
-        out: 'gallery',
-        full: true,
-      },
+      // The full-page gallery (every sprite of every group) takes minutes under SwiftShader:
+      // by default only the first screen of the units group; `--gallery` for everything.
+      args.gallery
+        ? {
+            page: 'gallery',
+            query: args.query,
+            viewport: viewportFor('desktop'),
+            out: 'gallery',
+            full: true,
+          }
+        : {
+            page: 'gallery',
+            query: 'group=units',
+            viewport: viewportFor('desktop'),
+            out: 'gallery-units',
+            full: false,
+          },
     ];
   }
   const vps = (args.viewport?.length ? args.viewport : ['desktop']).map(viewportFor);

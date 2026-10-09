@@ -81,8 +81,26 @@ export function sanitizeGameSettings(raw: unknown): GameSettings {
   };
 }
 
-export function loadGameSettings(storage: KeyValueStorage | null = browserStorage()): GameSettings {
-  return sanitizeGameSettings(readJson(storage, GAME_SETTINGS_KEY));
+export function loadGameSettings(
+  storage: KeyValueStorage | null = browserStorage(),
+  prefersReducedMotion = systemReducedMotion(),
+): GameSettings {
+  const raw = readJson(storage, GAME_SETTINGS_KEY);
+  const s = sanitizeGameSettings(raw);
+  // First run: follow the OS "reduce motion" preference (no screen shake / freeze-frames).
+  if ((raw === null || raw === undefined) && prefersReducedMotion) s.shake = false;
+  return s;
+}
+
+function systemReducedMotion(): boolean {
+  try {
+    return (
+      typeof window !== 'undefined' &&
+      !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function saveGameSettings(

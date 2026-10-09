@@ -12,7 +12,10 @@
  *
  * No allocation in the per-frame loop.
  */
-import { Sprite, type Container } from 'pixi.js';
+import { Sprite, Texture, type Container } from 'pixi.js';
+import { px } from '../art/fx/draw';
+import { createBuffer } from '../art/lib/pixels';
+import { bufferTexture } from '../art/uikit/pixi';
 import { art, type AnimClip } from '../art/lib/atlas';
 import { PROTESTER_TYPES, type ProtesterType } from '../art/protesters';
 import { protesterSprite } from '../art/protesters/build';
@@ -171,6 +174,33 @@ const CULTIST = PROTESTER_TYPES.indexOf('cultist');
  */
 const MAX_GHOSTS = 8;
 
+/**
+ * "!" warning pip over enemy x-ray ghosts (M13b): a shape cue so hidden threats differ from
+ * hidden allies (chevron) without relying on red vs blue. White + ink keyline; the enemy ghost
+ * layer's tint makes it red.
+ */
+let enemyPipTex: Texture | null = null;
+function enemyPip(): Texture {
+  if (enemyPipTex) return enemyPipTex;
+  // Diamond plate with a "!" punched out of it.
+  const rows = ['...X...', '..XXX..', '.XX.XX.', 'XXX.XXX', '.XXXXX.', '..X.X..', '...X...'];
+  const w = rows[0]!.length + 2;
+  const h = rows.length + 2;
+  const b = createBuffer(w, h);
+  const on = (x: number, y: number): boolean => rows[y - 1]?.[x - 1] === 'X';
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      if (on(x, y)) px(b, x, y, 'white');
+      else if (on(x - 1, y) || on(x + 1, y) || on(x, y - 1) || on(x, y + 1)) px(b, x, y, 'ink');
+    }
+  enemyPipTex = new Texture({
+    source: bufferTexture(b, 'cue:enemy').source,
+    defaultAnchor: { x: 0.5, y: 1 },
+    label: 'cue:enemy',
+  });
+  return enemyPipTex;
+}
+
 export interface ProtesterViewOpts {
   /** Ghost silhouettes for occluded protesters. */
   occluded?: (x: number, y: number) => boolean;
@@ -182,6 +212,7 @@ export class ProtesterView {
   readonly variants: VariantTable;
   private readonly pool: PoolEntry[] = [];
   private readonly ghosts: Sprite[] = [];
+  private readonly pips: Sprite[] = [];
   private used = 0;
   private ghostUsed = 0;
   /** M13a: de-stack enemy ghosts (one per screen cell; prophets always shown). */
@@ -303,11 +334,20 @@ export class ProtesterView {
     }
     const sil = silhouetteOf(tex.texture);
     if (!sil) return;
+    let pip = this.pips[this.ghostUsed];
+    if (!pip) {
+      pip = new Sprite(enemyPip());
+      this.ghostLayer.addChild(pip);
+      this.pips.push(pip);
+    }
     this.ghostUsed++;
     g.visible = true;
     setTex(g, sil);
     g.position.copyFrom(tex.position);
     g.scale.x = tex.scale.x;
+    pip.visible = true;
+    const top = sil.height * (sil.defaultAnchor?.y ?? 1);
+    pip.position.set(tex.position.x, Math.round(tex.position.y - top - 1));
   }
 
   /** A ground unit on or next to the tile at (x, y)? (sim's per-tick unit grid) */
@@ -483,7 +523,10 @@ export class ProtesterView {
       }
     }
     for (let k = this.used; k < prevUsed; k++) this.pool[k]!.sprite.visible = false;
-    for (let k = this.ghostUsed; k < prevGhosts; k++) this.ghosts[k]!.visible = false;
+    for (let k = this.ghostUsed; k < prevGhosts; k++) {
+      this.ghosts[k]!.visible = false;
+      this.pips[k]!.visible = false;
+    }
     this.visibleCount = this.used;
   }
 }

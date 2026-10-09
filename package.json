@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Riot Control — isometric pixel-art horde tower-defense parody",
+  "description": "Riot Control \u2014 isometric pixel-art horde tower-defense parody",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -18,7 +18,9 @@
     "sprites": "node tools/export-sprites.mjs",
     "check": "npm run typecheck && npm run lint && npm test && npm run build",
     "smoke": "node tools/smoke.mjs",
-    "playtest": "node tools/playtest.mjs"
+    "playtest": "node tools/playtest.mjs",
+    "icons": "node tools/icons.mjs",
+    "soak": "node tools/soak.mjs"
   },
   "dependencies": {
     "pixi.js": "^8.22.0"

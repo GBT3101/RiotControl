@@ -80,7 +80,13 @@ const INSTRUMENT = () => {
     rejections: [],
   });
   const kind = (t) =>
-    t === window ? 'window' : t === document ? 'document' : t?.tagName ? t.tagName : t?.constructor?.name ?? '?';
+    t === window
+      ? 'window'
+      : t === document
+        ? 'document'
+        : t?.tagName
+          ? t.tagName
+          : (t?.constructor?.name ?? '?');
   const live = new WeakMap();
   const add = EventTarget.prototype.addEventListener;
   const rem = EventTarget.prototype.removeEventListener;
@@ -137,7 +143,12 @@ const INSTRUMENT = () => {
   S.draws = 0;
   for (const C of [window.WebGL2RenderingContext, window.WebGLRenderingContext]) {
     if (!C) continue;
-    for (const name of ['drawElements', 'drawArrays', 'drawElementsInstanced', 'drawArraysInstanced']) {
+    for (const name of [
+      'drawElements',
+      'drawArrays',
+      'drawElementsInstanced',
+      'drawArraysInstanced',
+    ]) {
       const f = C.prototype[name];
       if (!f) continue;
       C.prototype[name] = function (...a) {
@@ -174,7 +185,8 @@ async function newPage(viewport = { width: vw, height: vh }) {
   page.on('console', (m) => {
     const t = m.text();
     if (m.type() === 'error') log.errors.push(t);
-    else if (m.type() === 'warning' && !/GPU stall|WebGL|swiftshader/i.test(t)) log.warnings.push(t);
+    else if (m.type() === 'warning' && !/GPU stall|WebGL|swiftshader/i.test(t))
+      log.warnings.push(t);
   });
   page.on('pageerror', (e) =>
     log.errors.push(`pageerror @${log.step ?? '?'}: ${e.stack ?? e.message}`),
@@ -235,7 +247,8 @@ async function frameStats(page) {
     const S = window.__soak;
     const f = S.frames.splice(0).sort((a, b) => a - b);
     const lt = S.longTasks.splice(0);
-    const q = (p) => (f.length ? +f[Math.min(f.length - 1, Math.floor(f.length * p))].toFixed(1) : 0);
+    const q = (p) =>
+      f.length ? +f[Math.min(f.length - 1, Math.floor(f.length * p))].toFixed(1) : 0;
     const g = window.__riot.game;
     let perf = null;
     if (g) {
@@ -261,7 +274,13 @@ async function frameStats(page) {
   });
 }
 
-const report = { when: new Date().toISOString(), viewport: args.viewport, speed, flows: null, games: [] };
+const report = {
+  when: new Date().toISOString(),
+  viewport: args.viewport,
+  speed,
+  flows: null,
+  games: [],
+};
 let failed = false;
 const fail = (msg) => {
   failed = true;
@@ -270,7 +289,9 @@ const fail = (msg) => {
 
 // ── Flows ──────────────────────────────────────────────────────────────────────────────────
 async function flows() {
-  console.log('\n== Flows: title → select → game → pause → settings → restart ×N → other city → end');
+  console.log(
+    '\n== Flows: title → select → game → pause → settings → restart ×N → other city → end',
+  );
   const { context, page, log, cdp } = await newPage();
   const screens = [];
   await page.exposeFunction('__soakScreen', (n) => screens.push(n));
@@ -307,7 +328,10 @@ async function flows() {
   await page.waitForTimeout(1500);
   await step('Esc → pause menu', async () => {
     await page.keyboard.press('Escape');
-    await waitFor(page, () => window.__riot.ui.topScreen?.constructor?.name && window.__riot.ui.game.paused);
+    await waitFor(
+      page,
+      () => window.__riot.ui.topScreen?.constructor?.name && window.__riot.ui.game.paused,
+    );
   });
   await step('settings → close → resume', async () => {
     await page.evaluate(() => window.__riot.ui.openSettings(true));
@@ -385,7 +409,8 @@ async function flows() {
   };
   console.log('  heap (MB after GC):', r.heap.map((h) => `${h.at} ${h.heapMB}`).join(' · '));
   console.log('  growth run 1 → last restart:', JSON.stringify(r.growth));
-  if (r.growth.heapMB > Number(args['leak-mb'])) fail(`heap grew ${r.growth.heapMB} MB across restarts`);
+  if (r.growth.heapMB > Number(args['leak-mb']))
+    fail(`heap grew ${r.growth.heapMB} MB across restarts`);
   if (r.growth.listeners > 2) fail(`listeners grew by ${r.growth.listeners} across restarts`);
   if (r.growth.workers > 0) fail(`workers grew by ${r.growth.workers}`);
   if (r.growth.nodes > 50) fail(`scene graph grew by ${r.growth.nodes} nodes`);
@@ -533,7 +558,8 @@ async function game(city, bot) {
   );
   if (res.outcome !== want) fail(`${city}/${bot}: ${res.outcome}, expected ${want}`);
   if (!res.endScreen) fail(`${city}/${bot}: end screen did not finish`);
-  if (ledger && !ledger.consistent) fail(`${city}/${bot}: Hate ledger inconsistent ${JSON.stringify(ledger)}`);
+  if (ledger && !ledger.consistent)
+    fail(`${city}/${bot}: Hate ledger inconsistent ${JSON.stringify(ledger)}`);
   if (log.errors.length) fail(`${city}/${bot}: ${log.errors.length} console/page errors`);
   if (rejections.length) fail(`${city}/${bot}: unhandled rejections`);
   for (const e of log.errors.slice(0, 5)) console.error(`    ${e.slice(0, 300)}`);
@@ -548,7 +574,10 @@ async function probe(name, query, viewport, opts = {}) {
   await page.goto(new URL(`index.html?${query}`, base).href);
   await waitReady(page, 90000);
   if (opts.title)
-    await waitFor(page, () => window.__riot.ui.game?.attract && window.__riot.ui.game.perf.frames > 3);
+    await waitFor(
+      page,
+      () => window.__riot.ui.game?.attract && window.__riot.ui.game.perf.frames > 3,
+    );
   await page.waitForTimeout(opts.settle ?? 3000);
   await page.evaluate(() => {
     const g = window.__riot.ui.game;
@@ -600,7 +629,9 @@ async function probe(name, query, viewport, opts = {}) {
       frameP50: f.length ? +f[Math.floor(f.length / 2)].toFixed(1) : 0,
       crowd: g.world.crowd.count,
       drawn: g.view.stats?.protesters ?? g.view.protesters.visibleCount,
-      bot: S.bot.n ? { n: S.bot.n, avgMs: +(S.bot.total / S.bot.n).toFixed(2), maxMs: +S.bot.max.toFixed(1) } : null,
+      bot: S.bot.n
+        ? { n: S.bot.n, avgMs: +(S.bot.total / S.bot.n).toFixed(2), maxMs: +S.bot.max.toFixed(1) }
+        : null,
       quality: window.__riot.ui.quality?.(window.__riot.ui.params) ?? null,
     };
   });
@@ -614,8 +645,16 @@ async function perf() {
   console.log('\n== Perf probes');
   const desk = { width: 1440, height: 900 };
   report.perf = {
-    stress3000: await probe('stress 3000 (Madrid, crowd)', 'city=madrid&stress=3000&focus=crowd&tutorial=0&hints=0&mute', desk),
-    stress3000far: await probe('stress 3000 zoomed out', 'city=madrid&stress=3000&focus=crowd&zoom=1&tutorial=0&hints=0&mute', desk),
+    stress3000: await probe(
+      'stress 3000 (Madrid, crowd)',
+      'city=madrid&stress=3000&focus=crowd&tutorial=0&hints=0&mute',
+      desk,
+    ),
+    stress3000far: await probe(
+      'stress 3000 zoomed out',
+      'city=madrid&stress=3000&focus=crowd&zoom=1&tutorial=0&hints=0&mute',
+      desk,
+    ),
     title: await probe('title attract bot', 'mute', desk, { title: true, settle: 1500 }),
   };
 }
@@ -650,13 +689,19 @@ async function touchAudit() {
           const name = c.label || c.constructor.name;
           if (h && (h.tap || h.longPress) && !h.blockOnly && !h.disabled) {
             const r = h.hit ? (typeof h.hit === 'function' ? h.hit() : h.hit) : null;
-            const b = r ?? (() => { const q = c.getLocalBounds(); return { x: q.x, y: q.y, w: q.width, h: q.height }; })();
+            const b =
+              r ??
+              (() => {
+                const q = c.getLocalBounds();
+                return { x: q.x, y: q.y, w: q.width, h: q.height };
+              })();
             const a = c.toGlobal({ x: b.x, y: b.y });
             const z = c.toGlobal({ x: b.x + b.w, y: b.y + b.h });
             const dpr = window.devicePixelRatio;
             const w = (z.x - a.x) / dpr;
             const hh = (z.y - a.y) / dpr;
-            if (w < 43.5 || hh < 43.5) small.push(`${label} ${path}/${name} ${w.toFixed(0)}×${hh.toFixed(0)}`);
+            if (w < 43.5 || hh < 43.5)
+              small.push(`${label} ${path}/${name} ${w.toFixed(0)}×${hh.toFixed(0)}`);
           }
           for (const ch of c.children ?? []) walk(ch, `${path}/${name}`);
         };

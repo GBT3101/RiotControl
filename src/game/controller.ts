@@ -159,6 +159,7 @@ export class GameController {
       maxX: b.maxX + margin,
       maxY: b.maxY + margin,
     });
+    this.camera.diamond = { w: map.w, h: map.h, inset: 0.6 };
     this.disposers.push(
       stage.onResize((size) =>
         this.camera.setViewport(size.width, size.height, zoomRange(size.width, size.height)),

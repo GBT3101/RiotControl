@@ -34,6 +34,12 @@ export class Camera {
   height = 1;
   range: ZoomRange = { min: 1, max: 5, def: 2 };
   bounds: Bounds = { minX: -1e6, minY: -1e6, maxX: 1e6, maxY: 1e6 };
+  /**
+   * Iso map diamond (tiles) the view should stay over (M13b): the centre's tile coordinates
+   * are kept `inset` × (view half-extent in tiles) away from the map edges, so the empty void
+   * beyond the diamond's sides only peeks in at the very edges. null = box bounds only.
+   */
+  diamond: { w: number; h: number; inset: number } | null = null;
 
   private focus: { sx: number; sy: number } | null = null;
   private readonly decayPerSec: number;
@@ -162,6 +168,22 @@ export class Camera {
   clamp(): void {
     const hw = this.width / 2 / this.zoom;
     const hh = this.height / 2 / this.zoom;
+    const d = this.diamond;
+    if (d) {
+      // World → continuous tile coords (tile (i,j) top vertex at ((i−j)·16, (i+j)·8)).
+      const m = d.inset * (hw / 32 + hh / 16);
+      const cl = (t: number, n: number): number =>
+        m * 2 >= n ? n / 2 : Math.min(Math.max(t, m), n - m);
+      const u0 = this.y / 16 + this.x / 32;
+      const v0 = this.y / 16 - this.x / 32;
+      const u = cl(u0, d.w);
+      const v = cl(v0, d.h);
+      if (u !== u0 || v !== v0) {
+        this.x = (u - v) * 16;
+        this.y = (u + v) * 8;
+        this.vx = this.vy = 0;
+      }
+    }
     const b = this.bounds;
     const clampAxis = (v: number, lo: number, hi: number, half: number): number =>
       hi - lo <= half * 2 ? (lo + hi) / 2 : Math.min(Math.max(v, lo + half), hi - half);

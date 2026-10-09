@@ -42,6 +42,33 @@ function anchored(t: Texture, a: { x: number; y: number }): Texture {
 }
 const ringCache = new Map<number, Texture>();
 
+/**
+ * Shape cues so team / validity never rely on colour alone (M13b, colour-blind safety):
+ * an iso "✖" over an invalid placement spot, and a downward ally chevron over the selected
+ * unit (enemy x-ray ghosts get a "!" pip in the protester view). Drawn from a key grid in
+ * RIOT-64 colours with an `ink` keyline.
+ */
+function cueTexture(rows: readonly string[], fill: string, label: string): Texture {
+  const h = rows.length + 2;
+  const w = rows[0]!.length + 2;
+  const b = createBuffer(w, h);
+  const on = (x: number, y: number): boolean => rows[y - 1]?.[x - 1] === 'X';
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      if (on(x, y)) px(b, x, y, fill);
+      else if (on(x - 1, y) || on(x + 1, y) || on(x, y - 1) || on(x, y + 1)) px(b, x, y, 'ink');
+    }
+  return anchored(bufferTexture(b, label), { x: 0.5, y: 0.5 });
+}
+
+const CROSS_ROWS = ['XX.....XX', '..XX.XX..', '....X....', '..XX.XX..', 'XX.....XX'];
+const ALLY_PIP_ROWS = ['XXXXXXX', '.XXXXX.', '..XXX..', '...X...'];
+let crossTex: Texture | null = null;
+let allyPipTex: Texture | null = null;
+const crossTexture = (): Texture => (crossTex ??= cueTexture(CROSS_ROWS, 'crim2', 'cue:cross'));
+const allyPipTexture = (): Texture =>
+  (allyPipTex ??= cueTexture(ALLY_PIP_ROWS, 'blue2', 'cue:ally'));
+
 function ghostTexture(unit: UnitId, ok: boolean): Texture | null {
   const key = `${unit}:${ok}`;
   let t = ghostCache.get(key);
@@ -149,6 +176,9 @@ export class OverlayView {
   private readonly ring = new Sprite();
   private readonly range = new Sprite();
   private readonly waypoint = new Sprite();
+  /** Shape cues: ✖ on an invalid spot, ▼ over the selected ally. */
+  private readonly cross = new Sprite();
+  private readonly pip = new Sprite();
   private readonly roofMarks = new Map<number, RoofMark>();
   private waypointT = -99;
   private waypointUntil = -99;
@@ -165,6 +195,10 @@ export class OverlayView {
     for (const s of [this.ghost, this.waypoint]) {
       s.visible = false;
       layers.entities.addChild(s);
+    }
+    for (const s of [this.cross, this.pip]) {
+      s.visible = false;
+      layers.overlays.addChild(s);
     }
   }
 
@@ -213,6 +247,8 @@ export class OverlayView {
     // Deploy mode: tile highlights around the cursor + ghost.
     let used = 0;
     this.ghost.visible = false;
+    this.cross.visible = false;
+    this.pip.visible = false;
     for (const m of this.roofMarks.values()) m.sprite.visible = false;
     if (st.deploy && UNITS[st.deploy].placement === 'rooftop') this.updateRoofs(st, now);
     else if (st.deploy && st.hasHover) {
@@ -266,6 +302,7 @@ export class OverlayView {
         const parent = hidden ? this.layers.overlays : this.layers.entities;
         if (this.ghost.parent !== parent) parent.addChild(this.ghost);
         this.ghost.alpha = hidden ? 0.5 : 0.75;
+        if (!chk.ok && chk.reason !== 'hate') this.showCross(x, y - 1);
       }
     }
     for (let k = used; k < this.tiles.length; k++) this.tiles[k]!.visible = false;
@@ -292,6 +329,12 @@ export class OverlayView {
           this.ring.zIndex = pos.key - 1;
           this.ring.position.set(pos.x, pos.y - (onRoof ? pos.lift : 0));
           this.ring.visible = true;
+          // Ally chevron above the head (bobs 1 px).
+          const head = u.type === 'tank' || u.type === 'heli' ? 40 : u.type === 'humvee' ? 30 : 26;
+          const bob = Math.floor(now * 3) % 2;
+          setTex(this.pip, allyPipTexture());
+          this.pip.position.set(pos.x, pos.y - pos.lift - head - bob);
+          this.pip.visible = true;
         }
         const r = u.def.attack?.range ?? 0;
         const rt = r >= 1.5 ? ringTexture(r) : null;
@@ -309,6 +352,12 @@ export class OverlayView {
       const f = Math.min(wc.frames.length - 1, Math.floor((now - this.waypointT) * wc.fps));
       setTex(this.waypoint, wc.frames[f]!);
     } else this.waypoint.visible = false;
+  }
+
+  private showCross(x: number, y: number): void {
+    setTex(this.cross, crossTexture());
+    this.cross.position.set(Math.round(x), Math.round(y));
+    this.cross.visible = true;
   }
 
   /** Rooftop deploy: highlight every free rooftop; the hovered building in hi-vis / red. */
@@ -333,6 +382,10 @@ export class OverlayView {
       }
       const s = this.roofMark(b.id, style);
       if (s) s.alpha = isHover ? 1 : pulse;
+      if (isHover && style === 'invalid') {
+        const roof = this.deps.roof(b.id);
+        if (roof) this.showCross(roof.x, roof.y - roof.top - 2);
+      }
     }
     // Ghost on the hovered roof.
     if (hovered < 0) return;

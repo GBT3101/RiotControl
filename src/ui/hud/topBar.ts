@@ -74,7 +74,16 @@ export class TopBar {
       pad: 3,
     });
     makeInteractive(this.bg, { blockOnly: true });
+    // Touch: grow the meters' hit areas vertically to ≥ 44 CSS px (they are ~18 UI px tall).
+    const padY = app.touch ? 6 : 1;
+    const meterHit = (sp: Sprite) => () => ({
+      x: -2,
+      y: -padY,
+      w: sp.texture.width + 4,
+      h: sp.texture.height + padY * 2,
+    });
     makeInteractive(this.legit, {
+      hit: meterHit(this.legit),
       hover: (o) => app.tooltip.showFor(o ? this.legit : null, () => this.legitTip()),
       longPress: () => {
         app.tooltip.showFor(this.legit, () => this.legitTip(), 2.5);
@@ -83,6 +92,7 @@ export class TopBar {
       tap: () => app.tooltip.showFor(this.legit, () => this.legitTip(), 2.5),
     });
     makeInteractive(this.integ, {
+      hit: meterHit(this.integ),
       hover: (o) => app.tooltip.showFor(o ? this.integ : null, () => this.integTip()),
       tap: () => {
         const c = game.world.map.capitol;
@@ -113,7 +123,7 @@ export class TopBar {
       this.pause.setFaces(roundFaces(e.paused ? 'play' : 'pause', big)),
     );
     game.bus.on('capitolState', () => {
-      this.shake = 0.5;
+      if (this.app.settings.shake) this.shake = 0.5; // reduced motion: no HUD shake
     });
     game.bus.on('capitolDamaged', () => {
       this.flashT = 0.3;

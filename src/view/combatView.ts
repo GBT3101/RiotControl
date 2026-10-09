@@ -432,7 +432,7 @@ export class CombatView {
             fi = clip.frameAt(age + pf.dx * 0.01);
           }
           s.tint = this.gasTint;
-          s.alpha = 0.9;
+          s.alpha = 0.8; // M13b: softer with the see-through gas puffs (M13a)
         } else {
           clip = art.anim(`fx.fire.patch.${pf.variant}`);
           fi = clip.frameAt(now - pf.start);
