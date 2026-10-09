@@ -90,14 +90,14 @@ export function makeLook(city: CityId, kind: BuildingKind, d: Dice): Look {
     const wallName = civic
       ? pick(d, ['stone4', 'stone5', 'earth6'])
       : d.weighted<string>([
-          ['ochre2', 5],
-          ['ochre3', 3],
-          ['stone4', 3],
-          ['earth6', 3],
+          ['ochre2', 6],
+          ['ochre3', 4],
+          ['stone4', 4],
+          ['earth6', 4],
           ['earth5', 2],
-          ['rust3', 2],
+          ['rust3', 1],
           ['stone5', 2],
-          ['rust2', 2],
+          ['rust2', 1],
         ]);
     const brick = wallName === 'rust2';
     const light = ['stone4', 'stone5', 'earth6', 'ochre3'].includes(wallName);

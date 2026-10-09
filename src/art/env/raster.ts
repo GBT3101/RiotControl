@@ -80,7 +80,6 @@ export class IsoCanvas {
     const minY = Math.max(0, Math.floor(Math.min(...ys)));
     const maxY = Math.min(this.img.h - 1, Math.ceil(Math.max(...ys)));
     const n = pts.length;
-    const n = pts.length;
     const W = this.img.w;
     const data = this.img.data;
     const ldata = this.light.data;
@@ -98,8 +97,8 @@ export class IsoCanvas {
         const x0 = xs[k]!;
         const x1 = xs[k2]!;
         if (Math.abs(y1 - y0) < 1e-9) {
-          if (x0 < lo) lo = Math.min(x0, x1);
-          if (x1 > hi || x0 > hi) hi = Math.max(x0, x1);
+          lo = Math.min(lo, x0, x1);
+          hi = Math.max(hi, x0, x1);
           continue;
         }
         const t = Math.min(1, Math.max(0, (cy - y0) / (y1 - y0)));

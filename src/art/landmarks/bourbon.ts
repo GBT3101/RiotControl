@@ -7,6 +7,8 @@ import { Scene, type Material } from './engine/scene';
 import { R, hash, lv, mod, mod_, moduleColour, plain, sampleModule } from './engine/materials';
 import {
   balustradeCut,
+  banner,
+  rubble,
   column,
   decalAt,
   paintWindow,
@@ -206,7 +208,7 @@ export function buildBourbon(state: DamageState): Build {
   // --- Main block, wings, roofs ----------------------------------------------------------------
   const bodyCut =
     state >= 4
-      ? (u: number, v: number, z: number, f: number): boolean => {
+      ? (_u: number, v: number, z: number, f: number): boolean => {
           if (f !== 1) return false;
           const d = Math.hypot((v - 2.9) * 16, (z - 26) * 1.3);
           return d < 9 + Math.sin(Math.atan2(z - 26, v - 2.9) * 5) * 1.6;
@@ -348,6 +350,9 @@ export function buildBourbon(state: DamageState): Build {
   const lp = lamp(state >= 2);
   for (const u of [1.6, 9.4]) s.sprite(lp.img, 2, 14, u, 6.95, 1, { emit: state >= 2 ? undefined : lp.night });
 
+  banner(s, state, 3.1, 7.9, 5.68, 46, 10, 'MERDE ALORS');
+  rubble(s, state, 1.4, 9.6, 4.7, 5.75, 18, 10, seed);
+  rubble(s, state, 0.1, 1.2, 5.75, 6.95, 1, 4, seed + 1);
   return { scene: s, overlays: ov };
 }
 

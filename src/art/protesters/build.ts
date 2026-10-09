@@ -257,5 +257,5 @@ export function protesterSprite(
   if (has(alt)) return { name: alt, flip: base !== facing };
   // single-facing anims: climb (ne only), body / kobody / door (se only)
   const other = `${prefix}.${anim}.${base === 'se' ? 'ne' : 'se'}`;
-  return { name: other, flip: facing === 'sw' || facing === 'nw' ? base === 'se' ? false : true : false };
+  return { name: other, flip: facing === 'sw' || facing === 'nw' };
 }

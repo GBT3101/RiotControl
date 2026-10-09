@@ -21,7 +21,6 @@ import {
   VICTORY,
   figure,
   guard,
-  lamp,
   marbleStatue,
 } from './props';
 import { grid } from '../lib/grid';
@@ -285,7 +284,7 @@ function puertaAlcala(): Build {
     return mod(z, 5) === 0 ? lv(g, c.level - 1) : lv(g, c.level);
   };
   s.box(0.2, 3.8, 0.6, 1.4, 1, 46, gate, {
-    cut: (u, v, z, f) => (f === 2 || f === 3 ? opening(u, z) : false) || (f < 0 && false && v > 0),
+    cut: (u, _v, z, f) => (f === 2 || f === 3 ? opening(u, z) : false),
   });
   // Attic with pediment and trophies.
   s.box(1.2, 2.8, 0.7, 1.3, 46, 58, plain(R.marble, { rim: true }));

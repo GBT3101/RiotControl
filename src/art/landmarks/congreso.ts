@@ -7,6 +7,8 @@ import { Scene, type Material, type ShadeCtx } from './engine/scene';
 import { R, hash, lv, mod, mod_, plain, sampleModule, moduleColour } from './engine/materials';
 import {
   balustradeCut,
+  banner,
+  rubble,
   column,
   decalAt,
   paintWindow,
@@ -584,6 +586,10 @@ export function buildCongreso(state: DamageState): Build {
   s.sprite(lp.img, 2, 14, 0.9, 6.55, 1, { emit: state >= 2 ? undefined : lp.night });
   s.sprite(lp.img, 2, 14, 8.1, 6.55, 1, { emit: lp.night });
 
+  banner(s, state, 3.05, 5.95, 5.92, 44, 10, 'NO A TODO');
+  rubble(s, state, 2.4, 6.6, 4.9, 5.95, 16, 8, seed);
+  rubble(s, state, 0.3, 1.4, 5.0, 6.9, 1, 5, seed + 1);
+  rubble(s, state, 7.6, 8.7, 5.0, 6.9, 1, 5, seed + 2);
   return { scene: s, overlays: ov };
 
   function lunette(c: ShadeCtx): 'g' | 'f' | null {

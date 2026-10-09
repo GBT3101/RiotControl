@@ -57,13 +57,18 @@ export function slabSerifs(k: { w: number; h: number; m: Uint8Array }, capH: num
 }
 
 /** Masthead strip (newsprint background): crest seals, ×2 title, rules, dateline + motto. */
-export function masthead(city: City, minW = 0): PixelBuffer {
+export function masthead(city: City, minW = 0, maxW = Infinity): PixelBuffer {
   const m = MASTHEADS[city];
   const f = FONTS.large;
-  const t = textMask(f, m.title, 2, 1);
-  slabSerifs(t.m, f.capHeight * 2);
-  const W = Math.max(minW, t.m.w + 64, measureText(FONTS.small, m.dateline).w + measureText(FONTS.small, m.motto).w + 24);
-  const H = t.m.h + 30;
+  let scale = 2;
+  let t = textMask(f, m.title, 2, 1);
+  if (t.m.w + 64 > maxW) {
+    scale = 1;
+    t = textMask(f, m.title, 1, 1);
+  }
+  slabSerifs(t.m, f.capHeight * scale);
+  const W = Math.min(maxW, Math.max(minW, t.m.w + 64, measureText(FONTS.small, m.dateline).w + measureText(FONTS.small, m.motto).w + 24));
+  const H = 9 + scale * f.capHeight + 3 + 17;
   const b = buf(W, H);
   rect(b, 0, 0, W, H, 'stone4');
   // Double rules top and bottom (thick + thin).
@@ -80,9 +85,9 @@ export function masthead(city: City, minW = 0): PixelBuffer {
   }
   // Crest seals either side.
   const seal = waxSeal(6);
-  stamp(b, seal, tx - seal.w - 8, ty + 4);
-  stamp(b, seal, tx + t.m.w + 8, ty + 4);
-  const ry = ty + 2 * (f.capHeight) + 3;
+  stamp(b, seal, tx - seal.w - 8, ty + (scale === 2 ? 4 : -1));
+  stamp(b, seal, tx + t.m.w + 8, ty + (scale === 2 ? 4 : -1));
+  const ry = ty + scale * f.capHeight + 3;
   hline(b, 2, ry, W - 4, 'ink');
   const dl = measureText(FONTS.small, m.dateline);
   drawText(b, FONTS.small, m.dateline, 4, ry + 3, 'ink');
@@ -115,7 +120,7 @@ function columnText(b: PixelBuffer, x: number, y: number, w: number, h: number, 
  */
 export function frontPage(city: City, headline: string, deck: string, w = 300, h = 220, stampKey?: [string, string]): PixelBuffer {
   const b = panel('newsprint', w, h);
-  const mh = masthead(city, w - 16);
+  const mh = masthead(city, w - 12, w - 12);
   stamp(b, mh, 6, 6);
   let y = 6 + mh.h + 4;
   // Headline ×2 (wrap at the page width).

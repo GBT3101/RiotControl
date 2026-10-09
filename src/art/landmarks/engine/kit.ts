@@ -4,7 +4,7 @@
  */
 import type { SwatchName } from '../../palette';
 import { keyGrid, type KeyGrid } from '../../lib/grid';
-import { R, hash, lv, mod, type Module, type Ramp5, sampleModule, moduleColour } from './materials';
+import { R, hash, lv, mod, plain, type Module, type Ramp5, sampleModule, moduleColour } from './materials';
 import type { Material, Scene, ShadeCtx } from './scene';
 
 // ---------------------------------------------------------------------------------------------
@@ -21,7 +21,7 @@ export type WinStatus = 'ok' | 'smashed' | 'burning' | 'gutted';
 export function windowStatus(state: DamageState, id: number, seed = 0): WinStatus {
   if (state < 2) return 'ok';
   const h = hash(id, seed, 17);
-  if (state === 2) return h < 0.45 ? 'smashed' : 'ok';
+  if (state === 2) return h < 0.62 ? 'smashed' : 'ok';
   if (state === 3) return h < 0.16 ? 'burning' : h < 0.32 ? 'gutted' : h < 0.75 ? 'smashed' : 'ok';
   return h < 0.3 ? 'burning' : h < 0.62 ? 'gutted' : 'smashed';
 }
@@ -556,6 +556,9 @@ const FONT: Record<string, string> = {
   T: '###.#..#..#..#.',
   U: '#.##.##.##.####',
   Y: '#.##.#.#..#..#.',
+  W: '#.##.##.#####.#',
+  H: '#.##.#####.##.#',
+  '!': '.#..#..#.....#.',
 };
 
 /** Letters as a key grid ('t' = letter pixel), 3×5 glyphs, 1 px spacing. */
@@ -570,4 +573,76 @@ export function textGrid(str: string): KeyGrid {
     for (let y = 0; y < 5; y++) rows[y] += g.slice(y * 3, y * 3 + 3).replace(/#/g, 't') + '.';
   }
   return keyGrid(rows.map((r) => r.slice(0, -1)).join('\n'));
+}
+
+// ---------------------------------------------------------------------------------------------
+// Protest dressing: banners (state ≥ 1) and rubble (state ≥ 2)
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A bed-sheet banner hung flat on the +v side at plane v, spanning u0..u1 from zTop down `h` px,
+ * with a spray-painted slogan. Ragged lower edge; torn & scorched from state 3.
+ */
+export function banner(
+  s: Scene,
+  state: DamageState,
+  u0: number,
+  u1: number,
+  v: number,
+  zTop: number,
+  h: number,
+  text: string,
+): void {
+  if (state < 1) return;
+  const g = textGrid(text);
+  const c0 = Math.round(((u0 + u1) / 2) * 16 - g.w / 2);
+  const zText = Math.round(zTop - (h - g.h) / 2);
+  const mat: Material = (c) => {
+    if (c.night) return null;
+    const mx = c.fx - c0;
+    const my = zText - c.fz;
+    if (mx >= 0 && my >= 0 && mx < g.w && my < g.h && g.rows[my]![mx] === 't') return state >= 3 && hash(c.fx, 1) < 0.3 ? 'ink' : 'crim1';
+    if (c.edge) return 'gray5';
+    if (state >= 3 && hash(c.fx >> 1, c.fz >> 1, 4) < 0.18) return lv(R.char, c.level);
+    return c.fz >= zTop - 1 ? 'gray6' : c.level >= 3 ? 'white' : 'gray7';
+  };
+  const cut = (u: number, _v: number, z: number): boolean => {
+    const rag = Math.round(Math.sin(u * 37) * 1.2 + Math.sin(u * 13) * 1.0) + (state >= 3 ? Math.round(hash(Math.floor(u * 16), 2) * 4) : 0);
+    return z < zTop - h + 1 + rag;
+  };
+  s.box(u0, u1, v - 0.03, v, zTop - h - 4, zTop, mat, { cut, tag: 'banner', cast: false });
+  // Ropes at the corners.
+  s.line([[u0, v, zTop], [u0, v, zTop + 2]], 'stone2');
+  s.line([[u1, v, zTop], [u1, v, zTop + 2]], 'stone2');
+}
+
+/** Scatter rubble: bricks, cobbles, bottles and placards in a u/v rectangle at height z. */
+export function rubble(
+  s: Scene,
+  state: DamageState,
+  u0: number,
+  u1: number,
+  v0: number,
+  v1: number,
+  z: number,
+  n: number,
+  seed: number,
+): void {
+  if (state < 2) return;
+  const count = Math.round(n * (state - 1) * 0.7);
+  const kinds: Material[] = [
+    plain(R.brick),
+    plain(R.granite),
+    plain(R.cream),
+    (c) => (c.night ? null : c.edge ? 'green0' : lv(R.grass, c.level - 1)),
+    (c) => (c.night ? null : c.edge ? 'earth1' : c.side === 'top' ? 'stone5' : 'ochre3'),
+  ];
+  for (let k = 0; k < count; k++) {
+    const u = u0 + hash(seed, k, 1) * (u1 - u0);
+    const v = v0 + hash(seed, k, 2) * (v1 - v0);
+    const kind = Math.floor(hash(seed, k, 3) * kinds.length);
+    const sz = 0.05 + hash(seed, k, 4) * 0.06;
+    const hgt = 1 + Math.floor(hash(seed, k, 5) * 2);
+    s.box(u - sz, u + sz, v - sz * 0.7, v + sz * 0.7, z, z + hgt, kinds[kind]!, { cast: false, tag: 'rubble' });
+  }
 }

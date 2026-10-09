@@ -158,8 +158,8 @@ export function signKeys(board: Tone, ink: string): Record<string, string> {
  * Prophet sandwich board, front side: "END" lettered on cream board, comic red dynamite
  * sticks poking out of the top and sides. Origin = neck (board top sits on the shoulders).
  */
-export function makeBoard(): { part: PartDef; keys: Record<string, string> } {
-  const text = textRows('END').map((r) => r.replace(/#/g, 'k').replace(/\./g, 'C'));
+export function makeBoard(word = 'END', board: Readonly<Record<string, string>> = {}): { part: PartDef; keys: Record<string, string> } {
+  const text = textRows(word).map((r) => r.replace(/#/g, 'k').replace(/\./g, 'C'));
   const tw = text[0]!.length;
   const w = tw + 2;
   const rows: string[] = [];
@@ -176,6 +176,6 @@ export function makeBoard(): { part: PartDef; keys: Record<string, string> } {
   rows.push(line((x) => (x < 0 || x >= w ? '.' : x === 0 || x === w - 1 ? 'y' : 'c')));
   return {
     part: { name: 'prophet.board', grid: keyGrid(rows, 'prophet.board'), origin: { x: Math.floor((w + 2) / 2), y: 1 }, anchors: {} },
-    keys: { y: 'stone1', c: 'stone3', C: 'stone4', Y: 'stone5', k: 'crim1', R: 'crim2', r: 'crim1', f: 'ochre3' },
+    keys: { y: 'stone1', c: 'stone3', C: 'stone4', Y: 'stone5', k: 'crim1', R: 'crim2', r: 'crim1', f: 'ochre3', ...board },
   };
 }

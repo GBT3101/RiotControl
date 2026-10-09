@@ -190,10 +190,10 @@ export function composeFonts(reg: SpriteRegistry): PixelBuffer {
 /** Title + newspapers sheet (export at 2×). */
 export function composeTitle(): PixelBuffer {
   const logo = logoFrames()[3]!;
-  const win = frontPage('london', 'ORDER RESTORED', 'Ministry hails "proportionate response". Officials deny everything, including this newspaper.', 250, 190, ['APPROVED', 'green2']);
-  const lose = frontPage('paris', 'THE REGIME HAS FALLEN', 'Protesters dance on the Assemblée. Minister last seen boarding a "routine" flight.', 250, 190, ['DENIED', 'crim1']);
+  const win = frontPage('london', 'ORDER RESTORED', 'Ministry hails "proportionate response". Officials deny everything, including this newspaper.', 250, 230, ['APPROVED', 'green2']);
+  const lose = frontPage('paris', 'THE REGIME HAS FALLEN', 'Protesters dance on the Assemblée. Minister last seen boarding a "routine" flight.', 250, 230, ['DENIED', 'crim1']);
   const W = 520;
-  const H = logo.h + 200 + 12;
+  const H = logo.h + 240 + 12;
   const b = buf(W, H);
   rect(b, 0, 0, W, H, 'navy0');
   stamp(b, logo, Math.floor((W - logo.w) / 2), 4);

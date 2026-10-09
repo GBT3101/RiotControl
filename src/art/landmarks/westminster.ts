@@ -6,7 +6,9 @@
 import { Scene, type Material, type ShadeCtx } from './engine/scene';
 import { R, hash, lv, mod, plain, type Ramp5 } from './engine/materials';
 import {
+  banner,
   breakAbove,
+  rubble,
   decalAt,
   gothicWall,
   roofMat,
@@ -117,7 +119,7 @@ export function buildWestminster(state: DamageState): Build {
   });
   const bodyCut =
     state >= 4
-      ? (u: number, v: number, z: number, f: number): boolean => {
+      ? (u: number, _v: number, z: number, f: number): boolean => {
           if (f !== 3) return false;
           const d = Math.hypot((u - 10.6) * 16, (z - 22) * 1.3);
           return d < 9 + Math.sin(Math.atan2(z - 22, u - 10.6) * 5) * 1.5;
@@ -160,7 +162,7 @@ export function buildWestminster(state: DamageState): Build {
     state,
     seed: seed + 1,
     decals,
-    blank: (side, fx, z) => side === 'left' && z < 32,
+    blank: (side, _fx, z) => side === 'left' && z < 32,
     extra: (c) => {
       // Great pointed entrance arch on the front.
       if (c.side !== 'left') return undefined;
@@ -396,6 +398,9 @@ export function buildWestminster(state: DamageState): Build {
     ],
     'ink',
   );
+  banner(s, state, 9.4, 13.4, 5.99, 10, 8, 'DOWN WITH THINGS');
+  banner(s, state, 2.2, 4.6, 5.99, 10, 8, 'OI NO');
+  rubble(s, state, 2.0, 13.5, 4.5, 5.85, 1, 14, seed);
   return { scene: s, overlays: ov.filter((o) => o.sprite) };
 }
 

@@ -106,6 +106,8 @@ interface Wear {
   itemTone: ClothTone;
   expr: string;
   build: Build;
+  boardWord?: string;
+  boardKeys?: Record<string, string>;
 }
 
 function baseWear(rng: Rng): Wear {
@@ -379,6 +381,8 @@ function rollProphet(rng: Rng, _city: City): Rolled {
   w.botTone = 'robe';
   w.shoe = ['tan', 'brown'];
   w.back = 'board';
+  w.boardWord = pw(rng, [['END', 4], ['END!', 2], ['NIGH', 2], ['SOON', 1.5], ['BYE', 1]]);
+  w.boardKeys = pw(rng, [[{}, 3], [{ y: 'earth3', c: 'stone2', C: 'stone3', Y: 'stone4', k: 'ink' }, 2], [{ y: 'gray5', c: 'gray6', C: 'white', Y: 'white', k: 'crim1' }, 1.5]]);
   w.expr = 'shout';
   const kit: Kit = { carry: 'none', attack: 'none', idle: 'preach', gait: rng.chance(0.5) ? 'march' : 'stroll', climbs: false, molotov: false, special: 'prophet', mood: 'shout' };
   return { wear: w, kit, loadout: 'explode' };
@@ -459,7 +463,7 @@ function toLook(w: Wear, skinTone: Tone, s?: ReturnType<typeof makeSign>): Look 
     back: w.back,
     front: w.front,
     sign: s,
-    board: w.back === 'board' ? makeBoard() : undefined,
+    board: w.back === 'board' ? makeBoard(w.boardWord, w.boardKeys) : undefined,
     expr: w.expr,
     skirt: w.bottom === 'skirt',
   };
