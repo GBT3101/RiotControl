@@ -11,6 +11,7 @@ export default defineConfig({
         main: resolve(import.meta.dirname, 'index.html'),
         gallery: resolve(import.meta.dirname, 'gallery.html'),
         maps: resolve(import.meta.dirname, 'maps.html'),
+        audio: resolve(import.meta.dirname, 'audio.html'),
       },
     },
   },

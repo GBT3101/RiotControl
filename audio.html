@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Riot Control — Audio Lab</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #17141f;
+        --panel: #221d2e;
+        --ink: #e8e0d0;
+        --dim: #9a90a8;
+        --accent: #e0a040;
+        --line: #3a3248;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 12px 16px 40px;
+        background: var(--bg);
+        color: var(--ink);
+        font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace;
+      }
+      h1 {
+        font-size: 16px;
+        margin: 0 0 8px;
+        letter-spacing: 0.08em;
+      }
+      h1 span {
+        color: var(--dim);
+        font-weight: normal;
+      }
+      section {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        padding: 8px 10px;
+        margin: 8px 0;
+      }
+      h2 {
+        font-size: 12px;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin: 0 0 6px;
+      }
+      button {
+        background: #2e2740;
+        color: var(--ink);
+        border: 1px solid var(--line);
+        padding: 4px 8px;
+        margin: 2px;
+        font: inherit;
+        cursor: pointer;
+      }
+      button:hover {
+        border-color: var(--accent);
+      }
+      fieldset {
+        border: 1px solid var(--line);
+        margin: 4px 0;
+      }
+      legend {
+        color: var(--dim);
+      }
+      label {
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+        margin: 2px 12px 2px 0;
+      }
+      input[type='range'] {
+        width: 140px;
+      }
+      #meter {
+        height: 10px;
+        background: #000;
+        border: 1px solid var(--line);
+        margin: 4px 0;
+      }
+      #meterBar {
+        height: 100%;
+        width: 0;
+        background: linear-gradient(90deg, #4a8 0 70%, #db4 70% 90%, #d44 90%);
+      }
+      pre {
+        white-space: pre-wrap;
+        color: var(--dim);
+        margin: 4px 0 0;
+        max-height: 320px;
+        overflow: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>RIOT CONTROL <span>audio lab (M11)</span></h1>
+    <section>
+      <button id="unlock" type="button">start audio</button>
+      <span id="volumes"></span>
+    </section>
+    <section>
+      <h2>Music &amp; crowd</h2>
+      <label
+        >phase
+        <select id="phase">
+          <option>menu</option>
+          <option>prep</option>
+          <option>wave</option>
+          <option>breather</option>
+          <option>victory</option>
+          <option>defeat</option>
+        </select></label
+      >
+      <label
+        >city
+        <select id="city">
+          <option value="none">ministry (none)</option>
+          <option>madrid</option>
+          <option>london</option>
+          <option>paris</option>
+        </select></label
+      >
+      <label>level <input id="level" type="range" min="0" max="10" step="1" value="0" /><b id="levelV"></b></label>
+      <label>crowd <input id="crowd" type="range" min="0" max="3000" step="10" value="0" /><b id="crowdV"></b></label>
+      <label>night <input id="night" type="checkbox" /></label>
+      <label>anger <input id="anger" type="range" min="0" max="1" step="0.05" value="0.4" /><b id="angerV"></b></label>
+      <label>auto anger <input id="autoAnger" type="checkbox" /></label>
+      <button id="musicOff" type="button">reset</button>
+      <button id="chant-clap" type="button">chant: clap</button>
+      <button id="chant-hoHey" type="button">chant: ho-hey</button>
+      <button id="chant-boo" type="button">chant: boo</button>
+    </section>
+    <section>
+      <h2>SFX</h2>
+      <label>random positions (pan/attenuation) <input id="spread" type="checkbox" /></label>
+      <div id="sfx"></div>
+    </section>
+    <section>
+      <h2>Loops</h2>
+      <div id="loops"></div>
+      <label>x <input id="loopX" type="range" min="-1200" max="1200" step="10" value="0" /></label>
+      <label>orbit (Doppler) <input id="orbit" type="checkbox" /></label>
+    </section>
+    <section>
+      <h2>Stress &amp; meter</h2>
+      <button id="stress" type="button">stress: 200 hits/s + MG + booms</button>
+      <button id="resetMeter" type="button">reset meter</button>
+      <div id="meter"><div id="meterBar"></div></div>
+      <div id="meterTxt"></div>
+      <pre id="stats"></pre>
+    </section>
+    <section>
+      <h2>Offline render check</h2>
+      <button id="offline" type="button">render every SFX + stress offline</button>
+      <pre id="offlineOut"></pre>
+    </section>
+    <script type="module" src="./src/audio/dev/main.ts"></script>
+  </body>
+</html>
