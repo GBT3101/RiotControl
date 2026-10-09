@@ -88,7 +88,8 @@ export class VariantTable {
   pick(type: number, seed: number, loadout: number): number {
     const t: ProtesterType = PROTESTER_TYPES[type] ?? 'student';
     let list: number[] | undefined;
-    if (t === 'cultist') list = this.byType.get(`cultist:${['machete', 'rifle', 'bazooka'][loadout] ?? 'machete'}`);
+    if (t === 'cultist')
+      list = this.byType.get(`cultist:${['machete', 'rifle', 'bazooka'][loadout] ?? 'machete'}`);
     if (!list || list.length === 0) list = this.byType.get(t);
     // Deferred types not built yet: borrow the closest available look.
     if (!list || list.length === 0) list = this.byType.get('mob') ?? this.byType.get('student');
@@ -130,7 +131,7 @@ interface PoolEntry {
 
 const PROPHET = PROTESTER_TYPES.indexOf('prophet');
 /** Enemy silhouettes are capped (a whole horde behind a block would just smear red). */
-const MAX_GHOSTS = 160;
+const MAX_GHOSTS = 40;
 
 export interface ProtesterViewOpts {
   /** Ghost silhouettes for occluded protesters. */
@@ -198,7 +199,7 @@ export class ProtesterView {
     const s = this.world.crowd.resolve(handle);
     if (s < 0) return;
     this.bind(s);
-    this.vHitT[s] = now;
+    if (now - this.vHitT[s]! > 0.5) this.vHitT[s] = now;
   }
 
   onSpawn(handle: number, now: number): void {
@@ -250,6 +251,23 @@ export class ProtesterView {
     setTex(g, tex.texture);
     g.position.copyFrom(tex.position);
     g.scale.x = tex.scale.x;
+  }
+
+  /** A ground unit on or next to the tile at (x, y)? (sim's per-tick unit grid) */
+  private unitNear(x: number, y: number): boolean {
+    const w = this.world;
+    const mw = w.map.w;
+    const ci = x | 0;
+    const cj = y | 0;
+    for (let j = cj - 1; j <= cj + 1; j++) {
+      if (j < 0 || j >= w.map.h) continue;
+      for (let i = ci - 1; i <= ci + 1; i++) {
+        if (i < 0 || i >= mw) continue;
+        const t = j * mw + i;
+        if (w.ugStart[t + 1]! > w.ugStart[t]!) return true;
+      }
+    }
+    return false;
   }
 
   update(now: number, alpha: number, view: ViewRect): void {
@@ -360,8 +378,10 @@ export class ProtesterView {
           default:
             anim = PA.idle;
         }
-        // Prophets sprint with their arms up.
-        if (anim === PA.walk && c.type[s] === PROPHET) anim = PA.run;
+        // Prophets sprint with their arms up — and start glowing when a unit is near.
+        if (c.type[s] === PROPHET && (anim === PA.walk || anim === PA.run || anim === PA.idle)) {
+          anim = this.unitNear(c.x[s]!, c.y[s]!) && vt.has(vi, PA.windup) ? PA.windup : PA.run;
+        }
       }
       let ref = vt.get(vi, anim, facing);
       if (!ref) {

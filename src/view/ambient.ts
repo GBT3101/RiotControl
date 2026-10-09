@@ -23,13 +23,50 @@ function hash(a: number, b: number, c = 0): number {
 }
 
 const CITY_CARS: Readonly<Record<CityId, string[]>> = {
-  madrid: ['taxi_madrid', 'taxi_madrid', 'hatch', 'hatch_white', 'sedan_beige', 'scooter', 'delivery_van', 'hatch_silver', 'sedan', 'bus_madrid'],
-  london: ['cab_london', 'cab_london', 'hatch_blue', 'sedan_black', 'delivery_van', 'hatch_silver', 'sedan', 'hatch', 'bus_london'],
-  paris: ['car_2cv', 'car_twingo', 'scooter', 'scooter_red', 'hatch_white', 'sedan_teal', 'delivery_van', 'hatch_yellow', 'bus_paris'],
+  madrid: [
+    'taxi_madrid',
+    'taxi_madrid',
+    'hatch',
+    'hatch_white',
+    'sedan_beige',
+    'scooter',
+    'delivery_van',
+    'hatch_silver',
+    'sedan',
+    'bus_madrid',
+  ],
+  london: [
+    'cab_london',
+    'cab_london',
+    'hatch_blue',
+    'sedan_black',
+    'delivery_van',
+    'hatch_silver',
+    'sedan',
+    'hatch',
+    'bus_london',
+  ],
+  paris: [
+    'car_2cv',
+    'car_twingo',
+    'scooter',
+    'scooter_red',
+    'hatch_white',
+    'sedan_teal',
+    'delivery_van',
+    'hatch_yellow',
+    'bus_paris',
+  ],
 };
 /** Base id for aftermath sprites (colour variants share them). */
 function baseId(id: string): string {
-  return id.startsWith('hatch') ? 'hatch' : id.startsWith('sedan') ? 'sedan' : id.startsWith('scooter') ? 'scooter' : id;
+  return id.startsWith('hatch')
+    ? 'hatch'
+    : id.startsWith('sedan')
+      ? 'sedan'
+      : id.startsWith('scooter')
+        ? 'scooter'
+        : id;
 }
 
 interface Car {
@@ -135,8 +172,11 @@ export class AmbientView {
           if (m.marking[jj * m.w + ii] !== 0 || taken.has(jj * m.w + ii)) near = true;
         }
         if (near) continue;
-        if (m.chokepoints.some((c) => Math.abs(c.i - i) + Math.abs(c.j - j) <= c.radius + 2)) continue;
-        const nearCap = Math.abs(i - (cap.i + cap.w / 2)) < cap.w / 2 + 7 && Math.abs(j - (cap.j + cap.d / 2)) < cap.d / 2 + 7;
+        if (m.chokepoints.some((c) => Math.abs(c.i - i) + Math.abs(c.j - j) <= c.radius + 2))
+          continue;
+        const nearCap =
+          Math.abs(i - (cap.i + cap.w / 2)) < cap.w / 2 + 7 &&
+          Math.abs(j - (cap.j + cap.d / 2)) < cap.d / 2 + 7;
         const list = CITY_CARS[m.city];
         let id = list[h % list.length]!;
         const police = nearCap && h % 3 === 0;
@@ -258,7 +298,8 @@ export class AmbientView {
   private updateCars(now: number, view: ViewRect): void {
     for (const c of this.cars) {
       const s = c.sprite;
-      const vis = c.x > view.x0 - 40 && c.x < view.x1 + 40 && c.y > view.y0 - 40 && c.y < view.y1 + 60;
+      const vis =
+        c.x > view.x0 - 40 && c.x < view.x1 + 40 && c.y > view.y0 - 40 && c.y < view.y1 + 60;
       s.renderable = vis;
       if (!vis) {
         if (c.siren) c.siren.visible = false;
@@ -274,10 +315,18 @@ export class AmbientView {
           const clip = art.anim(`veh.${b}.burning.${c.dir}`);
           setTex(s, clip.frames[clip.frameAt(now + c.tile * 0.1)]!);
           if (this.darkness > 0.05 && (Math.floor(now * 8) + c.tile) % 9 === 0) {
-            this.fx.spawn('fx.light.fire', c.x, c.y, now, { layer: 'light', life: 0.4, alpha: 0.6, priority: 0 });
+            this.fx.spawn('fx.light.fire', c.x, c.y, now, {
+              layer: 'light',
+              life: 0.4,
+              alpha: 0.6,
+              priority: 0,
+            });
           }
         }
-      } else if (c.state === 'parked' && (c.id === 'police_van' || c.id === 'ambulance' || c.id === 'fire_truck')) {
+      } else if (
+        c.state === 'parked' &&
+        (c.id === 'police_van' || c.id === 'ambulance' || c.id === 'fire_truck')
+      ) {
         const clip = art.anim(`veh.${c.id}.parked.${c.dir}`);
         setTex(s, clip.frames[clip.frameAt(now)]!);
         if (c.siren) {
@@ -322,7 +371,8 @@ export class AmbientView {
       }
       for (const b of f.birds) {
         const s = b.sprite;
-        const vis = b.hx > view.x0 - 20 && b.hx < view.x1 + 20 && b.hy > view.y0 - 200 && b.hy < view.y1 + 20;
+        const vis =
+          b.hx > view.x0 - 20 && b.hx < view.x1 + 20 && b.hy > view.y0 - 200 && b.hy < view.y1 + 20;
         if (!vis) {
           s.visible = false;
           continue;
@@ -335,7 +385,9 @@ export class AmbientView {
           }
           s.visible = age >= 0;
           const x = Math.round(b.hx + b.vx * Math.max(0, age));
-          const lift = Math.round(Math.max(0, age) * (28 + b.phase * 6) + Math.max(0, age) ** 2 * 6);
+          const lift = Math.round(
+            Math.max(0, age) * (28 + b.phase * 6) + Math.max(0, age) ** 2 * 6,
+          );
           setTex(s, fly.frames[fly.frameAt(now + b.phase)]!);
           s.position.set(x, b.hy - lift);
           s.scale.x = b.vx < 0 ? -1 : 1;

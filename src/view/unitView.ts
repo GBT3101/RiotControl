@@ -247,7 +247,8 @@ export class UnitView {
       }
       if (u.lastHurt !== e.hurtSeen) {
         e.hurtSeen = u.lastHurt;
-        e.hurtT = now;
+        // Flash at most every ~0.6 s (units under constant attack would stay white).
+        if (now - e.hurtT > 0.6) e.hurtT = now;
       }
       switch (u.type) {
         case 'blockade':
@@ -271,7 +272,13 @@ export class UnitView {
 
   // ── People ───────────────────────────────────────────────────────────────────────────
 
-  private humanAnim(u: Unit, e: UnitEnt, now: number, base: string, f: string): [AnimClip, number] | null {
+  private humanAnim(
+    u: Unit,
+    e: UnitEnt,
+    now: number,
+    base: string,
+    f: string,
+  ): [AnimClip, number] | null {
     const get = (a: string): AnimClip | null => clipOf(`${base}.${a}.${f}`);
     // Deploy-in.
     const dep = get('deploy');
@@ -474,7 +481,8 @@ export class UnitView {
     const fire = clipOf(`veh.tank.turret.fire.${t16}`);
     const dmg = u.hp / u.maxHp <= 0.33;
     const ts = this.sprite(e, 1, this.layers.entities);
-    if (fire && fireAge >= 0 && fireAge < fire.duration) setTex(ts, fire.frames[frameOnce(fire, fireAge)]!);
+    if (fire && fireAge >= 0 && fireAge < fire.duration)
+      setTex(ts, fire.frames[frameOnce(fire, fireAge)]!);
     else {
       const tc = clipOf(`veh.tank.turret${dmg ? '.dmg' : ''}.${t16}`);
       if (tc) setTex(ts, tc.frames[0]!);

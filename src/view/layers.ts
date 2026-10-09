@@ -41,17 +41,7 @@ export function createViewLayers(parent: Container): ViewLayers {
   const lights = new Container({ label: 'lights' });
   const overlays = new Container({ label: 'overlays' });
   const screen = new Container({ label: 'screen-fx' });
-  world.addChild(
-    terrain,
-    decals,
-    bodies,
-    entities,
-    ghostsEnemy,
-    ghostsAlly,
-    air,
-    lights,
-    overlays,
-  );
+  world.addChild(terrain, decals, bodies, entities, ghostsEnemy, ghostsAlly, air, lights, overlays);
   parent.addChild(world, screen);
   return {
     world,

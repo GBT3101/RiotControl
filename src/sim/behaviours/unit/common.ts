@@ -249,13 +249,39 @@ function arrive(w: World, u: Unit): void {
   settle(w, u);
 }
 
+/** Another ground unit overlaps point (x, y)? */
+function unitNear(w: World, u: Unit, x: number, y: number): boolean {
+  if (u.def.placement !== 'road') return false;
+  const list = w.units.active;
+  for (let k = 0; k < list.length; k++) {
+    const o = list[k]!;
+    if (
+      o === u ||
+      !o.alive ||
+      o.building >= 0 ||
+      o.def.placement !== 'road' ||
+      o.type === 'blockade'
+    )
+      continue;
+    const rr = u.def.radius + o.def.radius;
+    if ((o.x - x) ** 2 + (o.y - y) ** 2 < rr * rr) return true;
+  }
+  return false;
+}
+
 /** Keep moving ground units out of each other (no stacking while driving through). */
 function avoidUnits(w: World, u: Unit): void {
   if (u.def.placement !== 'road') return;
   const list = w.units.active;
   for (let k = 0; k < list.length; k++) {
     const o = list[k]!;
-    if (o === u || !o.alive || o.building >= 0 || o.def.placement !== 'road' || o.type === 'blockade')
+    if (
+      o === u ||
+      !o.alive ||
+      o.building >= 0 ||
+      o.def.placement !== 'road' ||
+      o.type === 'blockade'
+    )
       continue;
     const dx = u.x - o.x;
     const dy = u.y - o.y;
@@ -288,6 +314,12 @@ export function moverUpdate(w: World, u: Unit, dt: number): boolean {
   const dy = ty - u.y;
   const d = Math.sqrt(dx * dx + dy * dy);
   const step = u.def.speed * dt;
+  // Last leg and someone else is (nearly) on the spot: stop here / take the next free tile.
+  if (u.pathIdx === u.path.length - 1 && d < u.def.radius * 2 + 0.4 && unitNear(w, u, tx, ty)) {
+    u.pathIdx++;
+    arrive(w, u);
+    return u.pathIdx < u.path.length;
+  }
   if (d > 1e-6) {
     u.dir8 = dir8Fast(dx, dy);
     u.facing = facing4(dx, dy);

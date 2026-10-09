@@ -92,3 +92,10 @@ body {
   pointer-events: none;
   z-index: 11;
 }
+
+@media (max-width: 900px), (max-height: 500px) {
+  .debug-hud {
+    font-size: 8px;
+    padding: 3px 5px;
+  }
+}

@@ -28,7 +28,12 @@ export interface CityArtOptions {
 }
 
 /** Protester types that can appear before level 6 (built before the first frame). */
-const EARLY: ProtesterType[][] = [['student', 'breta'], ['woke'], ['mob'], ['violent', 'paparazzi']];
+const EARLY: ProtesterType[][] = [
+  ['student', 'breta'],
+  ['woke'],
+  ['mob'],
+  ['violent', 'paparazzi'],
+];
 const LATE: ProtesterType[][] = [['crazy'], ['cultist'], ['prophet']];
 /** Variants per type built before the first frame (the rest stream in afterwards). */
 const FIRST_VARIANTS = 8;
@@ -38,25 +43,36 @@ function variantsFor(q: QualityTier): number | undefined {
 }
 
 function prot(o: CityArtOptions, types: ProtesterType[], from: number, to: number): ArtJob {
-  return { kind: 'protesters', city: o.city, seed: o.seed, types, from, to, variants: variantsFor(o.quality) };
+  return {
+    kind: 'protesters',
+    city: o.city,
+    seed: o.seed,
+    types,
+    from,
+    to,
+    variants: variantsFor(o.quality),
+  };
 }
 
 export function criticalJobs(o: CityArtOptions): ArtJob[] {
   const jobs: ArtJob[] = [
     { kind: 'units' },
-    { kind: 'fxui' },
+    { kind: 'fx' },
     ...EARLY.map((t) => prot(o, t, 0, FIRST_VARIANTS)),
     { kind: 'capitol', city: o.city, states: [0] },
     { kind: 'landmarks', city: o.city, mapSeed: o.mapSeed },
   ];
-  for (let p = 0; p < 3; p++) jobs.push({ kind: 'buildings', city: o.city, mapSeed: o.mapSeed, part: p, parts: 3 });
-  for (let p = 0; p < 5; p++) jobs.push({ kind: 'terrain', city: o.city, mapSeed: o.mapSeed, part: p, parts: 5 });
+  for (let p = 0; p < 3; p++)
+    jobs.push({ kind: 'buildings', city: o.city, mapSeed: o.mapSeed, part: p, parts: 3 });
+  for (let p = 0; p < 5; p++)
+    jobs.push({ kind: 'terrain', city: o.city, mapSeed: o.mapSeed, part: p, parts: 5 });
   return jobs;
 }
 
 export function deferredJobs(o: CityArtOptions): ArtJob[] {
   return [
     { kind: 'vehicles' },
+    { kind: 'uikit' },
     { kind: 'capitol', city: o.city, states: [1, 2] },
     { kind: 'capitol', city: o.city, states: [3, 4] },
     ...EARLY.map((t) => prot(o, t, FIRST_VARIANTS, 99)),

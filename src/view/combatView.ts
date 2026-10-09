@@ -107,7 +107,12 @@ export class CombatView {
         break;
       case 'flash': {
         const p = tileToWorld(e.x, e.y);
-        this.fx.spawn('fx.camflash', p.x, p.y, now, { layer: 'entity', z: 15, emissive: true, bias: 3 });
+        this.fx.spawn('fx.camflash', p.x, p.y, now, {
+          layer: 'entity',
+          z: 15,
+          emissive: true,
+          bias: 3,
+        });
         this.fx.spawn('fx.light.halo', p.x, p.y - 15, now, { layer: 'light', life: 0.12 });
         break;
       }
@@ -172,7 +177,11 @@ export class CombatView {
       }
     }
     if (this.darkness > 0.1) {
-      this.fx.spawn('fx.light.muzzle', sx, sy, now, { layer: 'light', life: 0.07, alpha: this.darkness });
+      this.fx.spawn('fx.light.muzzle', sx, sy, now, {
+        layer: 'light',
+        life: 0.07,
+        alpha: this.darkness,
+      });
     }
     if (e.weapon === 'mg' && e.tick % 4 === 0) {
       this.fx.spawn('fx.casing', sx, sy + 4, now, {
@@ -202,16 +211,34 @@ export class CombatView {
         this.fx.spawn('fx.light.fire', x, y, now, { layer: 'light', life: 0.5, fade: 0.3 });
         break;
       case 'bazooka':
-        this.fx.spawn('fx.explosion.medium', x, y, now, { layer: 'entity', emissive: true, priority: 2 });
+        this.fx.spawn('fx.explosion.medium', x, y, now, {
+          layer: 'entity',
+          emissive: true,
+          priority: 2,
+        });
         this.fx.spawn('fx.shockwave.small', x, y, now, { layer: 'ground' });
-        this.fx.spawn('fx.light.blast', x, y, now, { layer: 'light', life: 0.15, fade: 0.1 });
+        this.fx.spawn('fx.light.blast', x, y, now, {
+          layer: 'light',
+          life: 0.15,
+          fade: 0.1,
+          alpha: 0.45,
+        });
         this.decals.bake(`decal.scorch.${(e.tick % 3) as number}`, x, y);
         if (near) this.juice.shake(2, 0.25);
         break;
       case 'shell':
-        this.fx.spawn('fx.explosion.big', x, y, now, { layer: 'entity', emissive: true, priority: 2 });
+        this.fx.spawn('fx.explosion.big', x, y, now, {
+          layer: 'entity',
+          emissive: true,
+          priority: 2,
+        });
         this.fx.spawn('fx.shockwave.big', x, y, now, { layer: 'ground' });
-        this.fx.spawn('fx.light.blast', x, y, now, { layer: 'light', life: 0.2, fade: 0.15 });
+        this.fx.spawn('fx.light.blast', x, y, now, {
+          layer: 'light',
+          life: 0.2,
+          fade: 0.15,
+          alpha: 0.5,
+        });
         this.decals.bake(`decal.scorch.${e.tick % 3}`, x, y);
         if (near) {
           this.juice.shake(3, 0.35);
@@ -219,9 +246,18 @@ export class CombatView {
         }
         break;
       case 'prophet':
-        this.fx.spawn('fx.explosion.prophet', x, y, now, { layer: 'entity', emissive: true, priority: 2 });
+        this.fx.spawn('fx.explosion.prophet', x, y, now, {
+          layer: 'entity',
+          emissive: true,
+          priority: 2,
+        });
         this.fx.spawn('fx.shockwave.big', x, y, now, { layer: 'ground' });
-        this.fx.spawn('fx.light.blast', x, y, now, { layer: 'light', life: 0.25, fade: 0.2 });
+        this.fx.spawn('fx.light.blast', x, y, now, {
+          layer: 'light',
+          life: 0.25,
+          fade: 0.2,
+          alpha: 0.5,
+        });
         this.decals.bake(`decal.scorch.${e.tick % 3}`, x, y);
         if (near) {
           this.juice.shake(4, 0.45);
@@ -305,17 +341,26 @@ export class CombatView {
 
   private updateAreas(now: number, view: ViewRect): void {
     for (const a of this.areas.values()) a.seen = false;
+    let lights = 0;
     for (const a of this.world.areas.active) {
       let ae = this.areas.get(a.id);
       if (!ae) {
         ae = { kind: a.kind, puffs: [], light: null, smokeT: 0, seen: true, born: now };
         const rx = Math.round(a.r * 22.6);
+        // Puff timing follows the area's own age (correct after a time-skip / when paused).
+        const born = now - (a.dur - a.ttl);
         if (a.kind === 'gas') {
           const n = Math.max(6, Math.min(12, Math.round(a.r * 4)));
           for (const pl of gasCloudLayout(a.id * 7 + 3, n, rx)) {
             const s = this.take();
             this.layers.entities.addChild(s);
-            ae.puffs.push({ sprite: s, dx: pl.dx, dy: pl.dy, variant: pl.variant, start: now + pl.delay });
+            ae.puffs.push({
+              sprite: s,
+              dx: pl.dx,
+              dy: pl.dy,
+              variant: pl.variant,
+              start: born + pl.delay,
+            });
           }
         } else {
           const n = a.r >= 1.4 ? 4 : a.r >= 0.9 ? 2 : 1;
@@ -329,7 +374,7 @@ export class CombatView {
               dx: Math.round(Math.cos(ang) * d),
               dy: Math.round(Math.sin(ang) * d * 0.5),
               variant: k === 0 && a.r >= 0.9 ? 'medium' : 'small',
-              start: now - k * 0.13,
+              start: born - k * 0.13,
             });
           }
           const l = this.take();
@@ -343,7 +388,8 @@ export class CombatView {
       const c = tileToWorld(a.x, a.y);
       const cx = Math.round(c.x);
       const cy = Math.round(c.y);
-      const visible = cx > view.x0 - 80 && cx < view.x1 + 80 && cy > view.y0 - 60 && cy < view.y1 + 80;
+      const visible =
+        cx > view.x0 - 80 && cx < view.x1 + 80 && cy > view.y0 - 60 && cy < view.y1 + 80;
       const left = a.ttl;
       for (const pf of ae.puffs) {
         const s = pf.sprite;
@@ -363,7 +409,10 @@ export class CombatView {
           const fade = art.anim(`fx.gas.puff.${pf.variant}.fade`);
           if (left < fade.duration + 0.05) {
             clip = fade;
-            fi = Math.min(fade.frames.length - 1, Math.floor((fade.duration + 0.05 - left) * fade.fps));
+            fi = Math.min(
+              fade.frames.length - 1,
+              Math.floor((fade.duration + 0.05 - left) * fade.fps),
+            );
           } else if (age < grow.duration) {
             clip = grow;
             fi = Math.min(grow.frames.length - 1, Math.floor(age * grow.fps));
@@ -386,8 +435,9 @@ export class CombatView {
         const lc = art.anim('fx.light.fire');
         setTex(ae.light, lc.frames[lc.frameAt(now)]!);
         ae.light.position.set(cx, cy);
-        ae.light.visible = visible;
-        ae.light.alpha = Math.min(1, 0.35 + this.darkness) * Math.min(1, left / 0.5);
+        // A dozen fire glows is plenty (overlapping additive pools wash out to white).
+        ae.light.visible = visible && lights++ < 12;
+        ae.light.alpha = (0.06 + 0.45 * this.darkness) * Math.min(1, left / 0.5);
       }
       // Big fires (wrecks) smoke.
       if (ae.kind === 'fire' && a.r >= 1.4 && visible && now - ae.smokeT > 1.4) {
@@ -410,4 +460,3 @@ export class CombatView {
     }
   }
 }
-

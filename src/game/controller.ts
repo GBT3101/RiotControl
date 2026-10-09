@@ -25,6 +25,7 @@ import { CameraController, type PointerInfo, type TapEvent } from '../render/cam
 import type { PixelStage } from '../render/stage';
 import { zoomRange } from '../render/zoom';
 import { Bot } from '../sim/headless';
+import type { SimEvent } from '../sim/events';
 import type { Unit } from '../sim/units';
 import type { World } from '../sim/world';
 import type { DirectorPhase } from '../sim/director';
@@ -112,6 +113,8 @@ export class GameController {
   private disposers: Array<() => void> = [];
   private overShown = false;
   private hitStopped = false;
+  /** Raw drained sim events each frame (audio: `audio.handleSimEvents`). */
+  onSimEvents: ((events: readonly SimEvent[]) => void) | null = null;
   /** Called after each rendered frame (debug HUD, perf probes). */
   onFrame: ((dtMs: number) => void) | null = null;
   /** Rolling per-frame cost (ms): sim steps, view update, Pixi render. */
@@ -194,10 +197,14 @@ export class GameController {
     this.camera.update(dt);
     const events = this.world.events.drain();
     this.view.onEvents(events, nowMs);
+    this.onSimEvents?.(events);
     for (const e of events) this.bus.emit(e.type, e as never);
     if (this.world.phase !== 'playing' && !this.overShown) {
       this.overShown = true;
-      this.bus.emit('gameOver', { victory: this.world.phase === 'victory', stats: this.world.stats });
+      this.bus.emit('gameOver', {
+        victory: this.world.phase === 'victory',
+        stats: this.world.stats,
+      });
     }
     const simDt = this.loop.paused ? 0 : dt * this.loop.timeScale;
     const tv = performance.now();

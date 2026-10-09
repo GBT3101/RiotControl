@@ -3,8 +3,8 @@
  * each job generates a slice of the game's art with the art modules' public generators and
  * packs it into its own atlas pages (`packSprites`), so the main thread only uploads textures.
  *
- * Core jobs (city-independent, at boot): `units`, `fxui` (FX, UI kit, cursors, props, decals),
- * `vehicles`. City jobs (map load): `protesters` (paper-doll sheets for the city, split by type),
+ * Core jobs (city-independent): `units`, `fx` (FX, world markers, cursors, props, decals),
+ * `uikit` (fonts, panels, cards … for the HUD), `vehicles`. City jobs (map load): `protesters` (paper-doll sheets for the city, split by type),
  * `buildings` (paintBuilding for the map's buildings, split into depth pieces), `landmarks`
  * (that city's Capitol states + its landmarks only), `terrain` (ground chunks baked to RGBA).
  * Gallery/preview sprites are never built here.
@@ -56,7 +56,8 @@ import { footprintAssignment, splitFrames, trimToContent } from '../../view/dept
 
 export type ArtJob =
   | { kind: 'units' }
-  | { kind: 'fxui' }
+  | { kind: 'fx' }
+  | { kind: 'uikit' }
   | { kind: 'vehicles' }
   | {
       kind: 'protesters';
@@ -79,8 +80,10 @@ export function jobCost(job: ArtJob): number {
   switch (job.kind) {
     case 'units':
       return 2;
-    case 'fxui':
-      return 4;
+    case 'fx':
+      return 3;
+    case 'uikit':
+      return 2;
     case 'vehicles':
       return 15;
     case 'protesters':
@@ -161,7 +164,8 @@ export interface JobResult {
 export function transfersOf(r: JobResult): ArrayBuffer[] {
   const out: ArrayBuffer[] = [];
   if (r.atlas) for (const p of r.atlas.pages) out.push(p.data.buffer as ArrayBuffer);
-  if (r.terrain) for (const c of r.terrain) for (const f of c.frames) out.push(f.buffer as ArrayBuffer);
+  if (r.terrain)
+    for (const c of r.terrain) for (const f of c.frames) out.push(f.buffer as ArrayBuffer);
   return out;
 }
 
@@ -177,11 +181,13 @@ export function runJob(job: ArtJob): JobResult {
     case 'units':
       registerUnits(reg);
       break;
-    case 'fxui':
+    case 'fx':
       registerFx(reg);
-      registerUiKit(reg);
       registerCursors(reg);
       registerPropsAndDecals(reg);
+      break;
+    case 'uikit':
+      registerUiKit(reg);
       break;
     case 'vehicles':
       registerVehicles(reg);
@@ -218,7 +224,11 @@ function registerPropsAndDecals(reg: SpriteRegistry): void {
       hasShadow: true,
     });
     if (p.sprite.light) {
-      reg.add(`${p.name}.light`, { group: 'props', frames: p.sprite.light, anchor: p.sprite.anchor });
+      reg.add(`${p.name}.light`, {
+        group: 'props',
+        frames: p.sprite.light,
+        anchor: p.sprite.anchor,
+      });
     }
   }
   for (const d of buildDecals()) {
@@ -312,7 +322,11 @@ function buildBuildings(
 
 // ── Landmarks ──────────────────────────────────────────────────────────────────────────
 
-function buildCapitol(reg: SpriteRegistry, city: CityId, states: readonly number[]): LandmarkInfo[] {
+function buildCapitol(
+  reg: SpriteRegistry,
+  city: CityId,
+  states: readonly number[],
+): LandmarkInfo[] {
   const out: LandmarkInfo[] = [];
   const cap = CAPITOL_ART[city];
   if (states.includes(0)) registerLandmarkFx(reg);
@@ -342,7 +356,12 @@ function buildCapitol(reg: SpriteRegistry, city: CityId, states: readonly number
     );
     let shadow: string | undefined;
     if (st === 0) {
-      const sh = b.scene.groundShadow({ w: cap.w, d: cap.d, top: 0 }, SHADOW_ALPHA, SHADOW, () => true);
+      const sh = b.scene.groundShadow(
+        { w: cap.w, d: cap.d, top: 0 },
+        SHADOW_ALPHA,
+        SHADOW,
+        () => true,
+      );
       shadow = registerShadow(reg, `lm.cap.${city}.sh`, sh.img, sh.anchor);
     }
     out.push({
@@ -427,7 +446,14 @@ export const CHUNK = 16;
 const TOP_MARGIN = 8;
 
 /** Alpha-over blit (src-over, straight alpha). Opaque pixels copy as 32-bit words. */
-function blitOver(dst: Uint8Array, dw: number, dh: number, src: PixelBuffer, dx: number, dy: number): void {
+function blitOver(
+  dst: Uint8Array,
+  dw: number,
+  dh: number,
+  src: PixelBuffer,
+  dx: number,
+  dy: number,
+): void {
   const s = src.data;
   const d32 = new Uint32Array(dst.buffer, dst.byteOffset, dw * dh);
   const s32 = new Uint32Array(s.buffer, s.byteOffset, src.w * src.h);
@@ -446,7 +472,13 @@ function blitOver(dst: Uint8Array, dw: number, dh: number, src: PixelBuffer, dx:
   }
 }
 
-function blendPixel(dst: Uint8Array, di: number, s: Uint8ClampedArray | Uint8Array, si: number, a: number): void {
+function blendPixel(
+  dst: Uint8Array,
+  di: number,
+  s: Uint8ClampedArray | Uint8Array,
+  si: number,
+  a: number,
+): void {
   const da = dst[di + 3]!;
   const k = a / 255;
   const f = da * (1 - k);
@@ -469,7 +501,8 @@ function sprinkleDecal(map: MapData, i: number, j: number): string | null {
   const h = hash3(i, j, 0xdeca1);
   const r = (h % 1000) / 1000;
   if (g === 'sidewalk' || g === 'plaza' || g === 'cobble') {
-    if (r < 0.012) return `decal.tag.${['anarchy', 'heart', 'no', 'oi', 'riot', map.city === 'madrid' ? 'mola' : 'non'][h % 6]}`;
+    if (r < 0.012)
+      return `decal.tag.${['anarchy', 'heart', 'no', 'oi', 'riot', map.city === 'madrid' ? 'mola' : 'non'][h % 6]}`;
     if (r < 0.03) return `decal.litter.${h % 3}`;
     if (r < 0.04) return `decal.leaflets.${h % 2}`;
     if (map.city === 'london' && r < 0.06) return `decal.puddle.${h % 2}`;
@@ -605,4 +638,3 @@ export function mergeManifests(list: readonly ProtesterManifest[]): ProtesterMan
   }
   return out;
 }
-

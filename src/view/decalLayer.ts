@@ -47,7 +47,12 @@ export class DecalLayer {
     this.sprite.position.set(this.ox, this.oy);
     this.sprite.label = 'decal-rt';
     // Clear once.
-    this.renderer.render({ container: this.batch, target: this.rt, clear: true, clearColor: [0, 0, 0, 0] });
+    this.renderer.render({
+      container: this.batch,
+      target: this.rt,
+      clear: true,
+      clearColor: [0, 0, 0, 0],
+    });
   }
 
   /** Queue a sprite (by name or texture) anchored at world (x, y). */

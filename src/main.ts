@@ -10,13 +10,17 @@ async function boot(): Promise<void> {
   if (!host) throw new Error('#game element missing');
   const params = readParams(location.search);
   if (params.demo) {
-    const [{ createArtRegistry }, { buildArt }, { readSceneParams, startTestMapScene }, { createPixelStage }] =
-      await Promise.all([
-        import('./art'),
-        import('./art/lib/atlas'),
-        import('./demo/testMapScene'),
-        import('./render/stage'),
-      ]);
+    const [
+      { createArtRegistry },
+      { buildArt },
+      { readSceneParams, startTestMapScene },
+      { createPixelStage },
+    ] = await Promise.all([
+      import('./art'),
+      import('./art/lib/atlas'),
+      import('./demo/testMapScene'),
+      import('./render/stage'),
+    ]);
     const stage = await createPixelStage(host);
     buildArt(createArtRegistry());
     startTestMapScene(stage, readSceneParams(location.search));

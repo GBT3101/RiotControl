@@ -24,7 +24,7 @@ type RGB = readonly [number, number, number];
 /** Key frames (tod, tint, darkness). */
 const KEYS: ReadonlyArray<readonly [number, RGB, number]> = [
   [0.0, [255, 255, 255], 0],
-  [0.27, [255, 253, 246], 0],
+  [0.27, [255, 255, 255], 0],
   [0.38, [255, 222, 176], 0.08],
   [0.47, [214, 160, 176], 0.4],
   [0.55, [130, 120, 186], 0.82],
@@ -68,7 +68,10 @@ export function targetTod(wave: number, waveFrac: number): number {
 /** Ease the displayed clock toward the target (monotonic, never backwards). */
 export function stepTod(current: number, target: number, dt: number, rate = 0.012): number {
   if (target <= current) return current;
-  return Math.min(target, current + Math.max(rate * dt, (target - current) * Math.min(1, dt * 0.5)));
+  return Math.min(
+    target,
+    current + Math.max(rate * dt, (target - current) * Math.min(1, dt * 0.5)),
+  );
 }
 
 /** Multiply two 0xRRGGBB colours. */

@@ -90,6 +90,8 @@ export class FxSystem {
   private readonly containers: Record<FxLayer, Container>;
   budget: number;
   grade = 0xffffff;
+  /** Additive light strength: faint by day, full at night. */
+  lightGain = 1;
   /** Skipped spawns (diagnostics). */
   dropped = 0;
 
@@ -141,7 +143,7 @@ export class FxSystem {
     f.emissive = o.emissive ?? false;
     f.depth = o.depth ?? null;
     f.bias = o.bias ?? 0;
-    f.alpha = o.alpha ?? 1;
+    f.alpha = (o.alpha ?? 1) * (layer === 'light' ? this.lightGain : 1);
     f.hold = o.hold ?? false;
     f.frame = o.frame ?? -1;
     f.tag = 0;

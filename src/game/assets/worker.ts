@@ -6,7 +6,9 @@ import { runJob, transfersOf, type ArtJob } from './jobs';
 
 interface Req {
   id: number;
-  job: ArtJob;
+  job?: ArtJob;
+  /** Version probe: replies with this worker bundle's URL (content-hashed in builds). */
+  hello?: boolean;
 }
 
 const ctx = self as unknown as {
@@ -15,11 +17,18 @@ const ctx = self as unknown as {
 };
 
 ctx.onmessage = (e) => {
-  const { id, job } = e.data;
+  const { id, job, hello } = e.data;
+  if (hello || !job) {
+    ctx.postMessage({ id, version: String(self.location.href) }, []);
+    return;
+  }
   try {
     const result = runJob(job);
     ctx.postMessage({ id, result }, transfersOf(result));
   } catch (err) {
-    ctx.postMessage({ id, error: err instanceof Error ? (err.stack ?? err.message) : String(err) }, []);
+    ctx.postMessage(
+      { id, error: err instanceof Error ? (err.stack ?? err.message) : String(err) },
+      [],
+    );
   }
 };

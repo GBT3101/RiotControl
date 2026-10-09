@@ -14,6 +14,8 @@
  *   ?zoom=N&u=I&v=J             camera zoom / centre (tiles);  ?focus=crowd centres on the biggest crowd
  *   ?debug                      debug overlay on;  ?hud=0 hide the debug HUD
  *   ?demo=1                     the M1 test-map demo scene
+ *   ?nocache                    ignore the IndexedDB art cache;  ?mute  no audio
+ *   ?scene=showcase             debug scenario: every unit + every protester type near the camera
  */
 import type { QualityTier } from '../data/balance';
 import { CITIES, type CityId } from '../maps/contract';
@@ -39,6 +41,9 @@ export interface GameParams {
   demo: boolean;
   /** Freeze animated time (shots). */
   freeze: boolean;
+  nocache: boolean;
+  mute: boolean;
+  scene?: string;
 }
 
 export function readParams(search: string): GameParams {
@@ -71,5 +76,8 @@ export function readParams(search: string): GameParams {
     hud: q.get('hud') !== '0',
     demo: q.get('demo') === '1',
     freeze: q.has('freeze'),
+    nocache: q.has('nocache'),
+    mute: q.has('mute'),
+    scene: q.get('scene') ?? undefined,
   };
 }

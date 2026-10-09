@@ -8,7 +8,7 @@
  * untinted with alpha = darkness, sorted right above their piece so people in front of a facade
  * still cover its windows.
  */
-import { Sprite } from 'pixi.js';
+import { Sprite, type Container } from 'pixi.js';
 import { art, type AnimClip } from '../art/lib/atlas';
 import { propSprite } from '../art/env/props';
 import { depthKey, tileToWorld } from '../core/iso';
@@ -24,6 +24,8 @@ const BUCKET = 16;
 
 interface Bucket {
   sprites: Sprite[];
+  /** Parents of the sprites while the bucket is detached (off-screen). */
+  parents: Array<Container | null>;
   x0: number;
   y0: number;
   x1: number;
@@ -111,7 +113,15 @@ export class StaticView {
     const key = Math.floor(j / BUCKET) * 1024 + Math.floor(i / BUCKET);
     let b = this.buckets.get(key);
     if (!b) {
-      b = { sprites: [], x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity, shown: true };
+      b = {
+        sprites: [],
+        parents: [],
+        x0: Infinity,
+        y0: Infinity,
+        x1: -Infinity,
+        y1: -Infinity,
+        shown: true,
+      };
       this.buckets.set(key, b);
     }
     return b;
@@ -351,7 +361,17 @@ export class StaticView {
       const vis = b.x1 > view.x0 && b.x0 < view.x1 && b.y1 > view.y0 && b.y0 < view.y1;
       if (vis !== b.shown) {
         b.shown = vis;
-        for (const s of b.sprites) s.renderable = vis;
+        // Off-screen blocks leave their containers entirely: the entity layer re-sorts every
+        // frame (people move), so fewer children = cheaper sorting and collection.
+        if (!vis) {
+          for (const s of b.sprites) {
+            b.parents.push(s.parent);
+            s.parent?.removeChild(s);
+          }
+        } else {
+          b.sprites.forEach((s, k) => b.parents[k]?.addChild(s));
+          b.parents.length = 0;
+        }
       }
     }
     for (const a of this.animated) {
@@ -373,7 +393,8 @@ export class StaticView {
       this.gradeTint = tint;
       for (const s of this.graded) s.tint = tint;
       for (const s of this.capSprites) s.tint = tint;
-      for (const o of this.capOverlays) if (!o.sprite.texture.label?.includes('.fire.')) o.sprite.tint = tint;
+      for (const o of this.capOverlays)
+        if (!o.sprite.texture.label?.includes('.fire.')) o.sprite.tint = tint;
     }
     if (Math.abs(darkness - this.darkness) > 0.01 || (darkness === 0) !== (this.darkness === 0)) {
       this.darkness = darkness;
@@ -400,4 +421,3 @@ function roofOf(i0: number, j0: number, info: BuildingInfo, frontKey: number): R
   const p = tileToWorld(i0 + (rs.u0 + rs.u1) / 2, j0 + (rs.v0 + rs.v1) / 2);
   return { x: Math.round(p.x), y: Math.round(p.y), top: info.roofTopY, frontKey };
 }
-

@@ -3,6 +3,7 @@
  * Falls back to running jobs inline (yielding a frame between jobs) when workers are not
  * available. Results are handed back in job order; the caller installs the atlases.
  */
+import type { ArtCache } from './cache';
 import { jobCost, runJob, type ArtJob, type JobResult } from './jobs';
 
 export type ProgressFn = (done: number, total: number, label: string) => void;
@@ -27,8 +28,11 @@ export class ArtLoader {
   private busy = new Map<Worker, Pending>();
   private seq = 1;
   private readonly inline: boolean;
-  /** Per-job timings (ms in the worker) for diagnostics. */
+  /** Per-job timings (ms in the worker; -1 = from the cache) for diagnostics. */
   readonly timings: Array<{ job: string; ms: number }> = [];
+  /** Optional persistent cache (IndexedDB). */
+  cache: ArtCache | null = null;
+  cacheHits = 0;
 
   constructor(workers = defaultWorkerCount()) {
     let ok = typeof Worker !== 'undefined' && workers > 0;
@@ -36,8 +40,12 @@ export class ArtLoader {
       try {
         for (let k = 0; k < workers; k++) {
           const w = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
-          w.onmessage = (e: MessageEvent<{ id: number; result?: JobResult; error?: string }>) =>
-            this.onMessage(w, e.data);
+          w.onmessage = (
+            e: MessageEvent<{ id: number; result?: JobResult; error?: string; version?: string }>,
+          ) => {
+            if (e.data.version !== undefined) this.onVersion?.(e.data.version);
+            else this.onMessage(w, e.data);
+          };
           w.onerror = (e) => this.onError(w, new Error(e.message || 'art worker error'));
           this.workers.push(w);
           this.idle.push(w);
@@ -50,6 +58,23 @@ export class ArtLoader {
     this.inline = !ok;
   }
 
+  private onVersion: ((v: string) => void) | null = null;
+
+  /** The art build version (hashed worker bundle URL), '' without workers. */
+  version(): Promise<string> {
+    const w = this.idle[0];
+    if (!w) return Promise.resolve('');
+    return new Promise((resolve) => {
+      const t = setTimeout(() => resolve(''), 2000);
+      this.onVersion = (v) => {
+        clearTimeout(t);
+        this.onVersion = null;
+        resolve(v);
+      };
+      w.postMessage({ id: 0, hello: true });
+    });
+  }
+
   get workerCount(): number {
     return this.workers.length;
   }
@@ -58,11 +83,39 @@ export class ArtLoader {
   async run(jobs: readonly ArtJob[], onProgress?: ProgressFn): Promise<JobResult[]> {
     const total = jobs.reduce((s, j) => s + jobCost(j), 0);
     let done = 0;
-    const tick = (job: ArtJob, r: JobResult): void => {
+    const tick = (job: ArtJob, r: JobResult, cached = false): void => {
       done += jobCost(job);
-      this.timings.push({ job: label(job), ms: r.ms });
+      this.timings.push({ job: label(job), ms: cached ? -1 : r.ms });
       onProgress?.(done, total, label(job));
     };
+    // Cache hits first; only the misses go to the workers.
+    const cached = this.cache
+      ? await Promise.all(jobs.map((j) => this.cache!.get(j)))
+      : jobs.map(() => undefined);
+    const misses: ArtJob[] = [];
+    jobs.forEach((j, k) => {
+      const hit = cached[k];
+      if (hit) {
+        this.cacheHits++;
+        tick(j, hit, true);
+      } else misses.push(j);
+    });
+    if (misses.length === 0) return cached as JobResult[];
+    const fresh = await this.runFresh(misses, tick);
+    let m = 0;
+    return jobs.map((j, k) => {
+      const hit = cached[k];
+      if (hit) return hit;
+      const r = fresh[m++]!;
+      this.cache?.put(j, r);
+      return r;
+    });
+  }
+
+  private async runFresh(
+    jobs: readonly ArtJob[],
+    tick: (job: ArtJob, r: JobResult) => void,
+  ): Promise<JobResult[]> {
     if (this.inline) {
       const out: JobResult[] = [];
       for (const job of jobs) {

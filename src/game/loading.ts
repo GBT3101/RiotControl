@@ -44,7 +44,7 @@ export class LoadingScreen {
     this.bar = new Sprite();
     this.label = new Sprite(
       bufferTexture(
-        textSprite(FONTS.smallBold, `PREPARING ${cityName.toUpperCase()}…`, 'stone5', {
+        textSprite(FONTS.smallBold, `PREPARING ${cityName.toUpperCase()}...`, 'stone5', {
           outline: 'ink',
         }),
       ),

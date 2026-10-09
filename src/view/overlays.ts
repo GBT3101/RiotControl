@@ -127,7 +127,11 @@ export class OverlayView {
             const ok = chk.ok || chk.reason === 'hate';
             if (!ok && !(di === 0 && dj === 0)) continue;
             const isHover = di === 0 && dj === 0;
-            const clip = ok ? (isHover && art.has('ui.tile.target') ? art.anim('ui.tile.target') : valid) : invalid;
+            const clip = ok
+              ? isHover && art.has('ui.tile.target')
+                ? art.anim('ui.tile.target')
+                : valid
+              : invalid;
             if (!clip) continue;
             let s = this.tiles[used];
             if (!s) {
@@ -162,7 +166,12 @@ export class OverlayView {
       const u = w.units.get(st.selected);
       const pos = this.unitPos(st.selected);
       if (u && pos) {
-        const size = u.type === 'tank' || u.type === 'heli' ? 'l' : u.type === 'humvee' || u.type === 'mounted' ? 'm' : 's';
+        const size =
+          u.type === 'tank' || u.type === 'heli'
+            ? 'l'
+            : u.type === 'humvee' || u.type === 'mounted'
+              ? 'm'
+              : 's';
         const rc = art.has(`ui.select.ally.${size}`) ? art.anim(`ui.select.ally.${size}`) : null;
         if (rc) {
           setTex(this.ring, rc.frames[rc.frameAt(now)]!);

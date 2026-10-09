@@ -33,13 +33,19 @@ export function covers(b: Box, x: number, y: number): boolean {
  * Per tile (row-major): 1 when a person standing on that tile is hidden by a box in front of
  * it — tested just above the feet, so people who are only cut at the head stay unghosted.
  */
-export function occlusionGrid(w: number, h: number, boxes: readonly Box[], blocked: (t: number) => boolean): Uint8Array {
+export function occlusionGrid(
+  w: number,
+  h: number,
+  boxes: readonly Box[],
+  blocked: (t: number) => boolean,
+): Uint8Array {
   const out = new Uint8Array(w * h);
   // Bucket boxes by tile for a local search.
   const at = new Int32Array(w * h).fill(-1);
   boxes.forEach((b, k) => {
     for (let j = b.j; j < b.j + b.d; j++)
-      for (let i = b.i; i < b.i + b.w; i++) if (i >= 0 && j >= 0 && i < w && j < h) at[j * w + i] = k;
+      for (let i = b.i; i < b.i + b.w; i++)
+        if (i >= 0 && j >= 0 && i < w && j < h) at[j * w + i] = k;
   });
   const seen = new Set<number>();
   for (let j = 0; j < h; j++) {

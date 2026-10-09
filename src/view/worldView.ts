@@ -140,13 +140,19 @@ export class WorldView {
     );
     this.units.onGasPuff = (u, x, y) => {
       const d = 14 + ((this.world.tick * 13) % 30);
-      this.fx.spawn('fx.gas.trail', x + u.aimX * d - u.aimY * d * 0.2, y + (u.aimX + u.aimY) * d * 0.25, this.now, {
-        layer: 'entity',
-        z: 6,
-        vx: (u.aimX - u.aimY) * 14,
-        vy: (u.aimX + u.aimY) * 7,
-        priority: 0,
-      });
+      this.fx.spawn(
+        'fx.gas.trail',
+        x + u.aimX * d - u.aimY * d * 0.2,
+        y + (u.aimX + u.aimY) * d * 0.25,
+        this.now,
+        {
+          layer: 'entity',
+          z: 6,
+          vx: (u.aimX - u.aimY) * 14,
+          vy: (u.aimX + u.aimY) * 7,
+          priority: 0,
+        },
+      );
     };
     this.ambient = new AmbientView(world, map, this.layers, this.fx, this.decals);
     this.ambient.placeCars();
@@ -157,13 +163,17 @@ export class WorldView {
       this.layers.ghostsAlly.tint = 0x4f7dff;
       this.layers.ghostsEnemy.tint = 0xff4a3a;
       this.layers.ghostsAlly.alpha = 0.6;
-      this.layers.ghostsEnemy.alpha = 0.3;
+      this.layers.ghostsEnemy.alpha = 0.22;
     } else {
       this.layers.ghostsAlly.visible = this.layers.ghostsEnemy.visible = false;
     }
     this.juice.onArrive = (amount) => opts.bus.emit('hatePickupArrived', { amount });
     this.statics.setCapitolState(world.capitol.state);
     if (opts.tod !== undefined) this.tod = opts.tod;
+    else if (world.director.wave > 0) {
+      // Joined mid-run (time skip): start at the current clock instead of racing to it.
+      this.tod = targetTod(world.director.wave, 0.5);
+    }
   }
 
   private buildOcclusion(): Uint8Array {
@@ -174,7 +184,13 @@ export class WorldView {
       boxes.push({ i: b.i, j: b.j, w: b.w, d: b.d, h: info ? info.height : b.storeys * 10 });
     }
     const cap = map.capitol;
-    boxes.push({ i: cap.i, j: cap.j, w: cap.w, d: cap.d, h: Math.round(CAPITOL_ART[map.city].top * 0.6) });
+    boxes.push({
+      i: cap.i,
+      j: cap.j,
+      w: cap.w,
+      d: cap.d,
+      h: Math.round(CAPITOL_ART[map.city].top * 0.6),
+    });
     for (const lm of map.landmarks) {
       const def = LANDMARKS[lm.id as LandmarkId];
       const art = SECONDARY[lm.id as LandmarkId];
@@ -316,8 +332,17 @@ export class WorldView {
   private onUnitDied(e: Extract<SimEvent, { type: 'unitDied' }>, now: number): void {
     const p = tileToWorld(e.x, e.y);
     if (e.unit === 'humvee' || e.unit === 'tank') {
-      this.fx.spawn('fx.explosion.big', p.x, p.y, now, { layer: 'entity', emissive: true, priority: 2 });
-      this.fx.spawn('fx.light.blast', p.x, p.y, now, { layer: 'light', life: 0.25, fade: 0.2 });
+      this.fx.spawn('fx.explosion.big', p.x, p.y, now, {
+        layer: 'entity',
+        emissive: true,
+        priority: 2,
+      });
+      this.fx.spawn('fx.light.blast', p.x, p.y, now, {
+        layer: 'light',
+        life: 0.25,
+        fade: 0.2,
+        alpha: 0.5,
+      });
       this.juice.shake(3, 0.4);
     }
   }
@@ -326,18 +351,32 @@ export class WorldView {
     const s = this.stage.size;
     const w = s.width / this.uiK;
     for (let k = 0; k < 5; k++) {
-      this.fx.spawn('fx.confetti.burst', Math.round((w * (k + 1)) / 6), 70 + (k % 2) * 20, realMs / 1000, {
-        layer: 'screen',
-        offset: -k * 0.12,
-      });
+      this.fx.spawn(
+        'fx.confetti.burst',
+        Math.round((w * (k + 1)) / 6),
+        70 + (k % 2) * 20,
+        realMs / 1000,
+        {
+          layer: 'screen',
+          offset: -k * 0.12,
+        },
+      );
     }
   }
 
   // ── Frame ────────────────────────────────────────────────────────────────────────────
 
-  frame(cam: CameraView, alpha: number, dtSim: number, realDt: number, realMs: number, ui: OverlayState): void {
+  frame(
+    cam: CameraView,
+    alpha: number,
+    dtSim: number,
+    realDt: number,
+    realMs: number,
+    ui: OverlayState,
+  ): void {
     const w = this.world;
-    this.now = w.time + alpha * w.dt;
+    // Monotonic view clock (after victory/defeat the sim stops but alpha keeps cycling).
+    this.now = Math.max(this.now, w.phase === 'playing' ? w.time + alpha * w.dt : w.time);
     const now = this.now;
     this.lastView = cam;
     // UI scale for the screen layer.
@@ -362,18 +401,47 @@ export class WorldView {
     // Time of day & grade.
     this.updateDaylight(dtSim);
     // Views.
+    const T = this.timing;
+    let t0 = performance.now();
+    const lap = (k: keyof typeof T): void => {
+      const t1 = performance.now();
+      T[k] += t1 - t0;
+      t0 = t1;
+    };
     this.terrain.update(now, r);
     this.statics.update(now, r, this.grade.hour);
+    lap('statics');
     this.protesters.lod = this.opts.quality === 'low' || (zoom <= 2 && w.crowd.count > 1600);
     this.protesters.update(now, alpha, r);
+    lap('protesters');
     this.units.update(now, alpha, r);
+    lap('units');
     this.bodies.update(now, r);
+    lap('bodies');
     this.combat.update(now, r);
+    lap('combat');
     this.ambient.update(now, dtSim, r);
+    lap('ambient');
     this.fx.update(now, dtSim);
+    lap('fx');
     this.overlays.update(ui, now);
     this.decals.flush();
+    lap('other');
+    T.frames++;
   }
+
+  /** Accumulated per-sub-view frame cost (ms) since the last reset (perf probes). */
+  readonly timing = {
+    statics: 0,
+    protesters: 0,
+    units: 0,
+    bodies: 0,
+    combat: 0,
+    ambient: 0,
+    fx: 0,
+    other: 0,
+    frames: 0,
+  };
 
   private updateDaylight(dt: number): void {
     const w = this.world;
@@ -391,17 +459,24 @@ export class WorldView {
     const g = gradeAt(this.tod);
     // Quantise so static sprites re-tint at most a few times per second of transition.
     const q =
-      ((((g.tint >> 16) & 255) >> 2) << 16) | ((((g.tint >> 8) & 255) >> 2) << 8) | ((g.tint & 255) >> 2);
+      ((((g.tint >> 16) & 255) >> 2) << 16) |
+      ((((g.tint >> 8) & 255) >> 2) << 8) |
+      ((g.tint & 255) >> 2);
     const dq = Math.round(g.darkness * 40);
     if (q !== this.gradeQ || dq !== Math.round(this.grade.darkness * 40)) {
       this.gradeQ = q;
       const tint = ((q >> 16) << 18) | (((q >> 8) & 255) << 10) | ((q & 255) << 2) | 0x030303;
-      this.grade = { tint: g.tint === 0xffffff ? 0xffffff : tint, darkness: g.darkness, hour: g.hour };
+      this.grade = {
+        tint: g.tint === 0xffffff ? 0xffffff : tint,
+        darkness: g.darkness,
+        hour: g.hour,
+      };
       const t = this.grade.tint;
       this.layers.terrain.tint = t;
       this.layers.decals.tint = t;
       this.layers.bodies.tint = t;
       this.fx.setGrade(t);
+      this.fx.lightGain = 0.2 + 0.8 * g.darkness;
       this.statics.setGrade(t, g.darkness);
       // People & vehicles stay a little brighter than the city so they read at night.
       const pt = mixColor(t, 0xffffff, 0.3);

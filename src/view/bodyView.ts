@@ -53,6 +53,8 @@ class BodyEnt {
   thrown: ThrowInfo | null = null;
   trample = 0;
   baked = false;
+  /** Settled on its rest frame at its final position (no per-frame work but culling). */
+  placed = false;
 }
 
 const THROW_GRAB = 0.45;
@@ -137,7 +139,9 @@ export class BodyView {
         if (note?.thrown) {
           e.thrown = note.thrown;
           e.death = null;
-          e.rest = clipOf(`unit.${note.thrown.art}.splat.${f === 'ne' ? 'se' : f === 'nw' ? 'sw' : f}`);
+          e.rest = clipOf(
+            `unit.${note.thrown.art}.splat.${f === 'ne' ? 'se' : f === 'nw' ? 'sw' : f}`,
+          );
           if (!e.rest) e.rest = clipOf(`unit.${art}.body.${f}`);
         } else {
           e.death = note?.fresh ? clipOf(`unit.${art}.death.${f}`) : null;
@@ -148,7 +152,9 @@ export class BodyView {
         e.restFrame = e.rest.frames.length - 1;
       }
     }
-    e.sprite = this.take(e.wreck ? this.layers.entities : e.thrown ? this.layers.air : this.layers.bodies);
+    e.sprite = this.take(
+      e.wreck ? this.layers.entities : e.thrown ? this.layers.air : this.layers.bodies,
+    );
     if (e.wreck) e.sprite.zIndex = depthKey(e.x, e.y);
     this.ents.push(e);
     if (note?.fresh && b.kind[k] === BODY_KIND.PROTESTER) {
@@ -178,7 +184,8 @@ export class BodyView {
   }
 
   private horseFlees(x: number, y: number, f: string, now: number): void {
-    const dir = f === 'se' ? [1, 0.5] : f === 'sw' ? [-1, 0.5] : f === 'ne' ? [1, -0.5] : [-1, -0.5];
+    const dir =
+      f === 'se' ? [1, 0.5] : f === 'sw' ? [-1, 0.5] : f === 'ne' ? [1, -0.5] : [-1, -0.5];
     this.fx.spawn(`unit.horse.flee.${f}`, x, y, now, {
       layer: 'entity',
       loop: true,
@@ -190,8 +197,17 @@ export class BodyView {
     });
   }
 
+  private lastView = { x0: 0, y0: 0, x1: 0, y1: 0 };
+
   update(now: number, view: ViewRect): void {
     const b = this.world.bodies;
+    const lv = this.lastView;
+    const viewMoved =
+      lv.x0 !== view.x0 || lv.y0 !== view.y0 || lv.x1 !== view.x1 || lv.y1 !== view.y1;
+    lv.x0 = view.x0;
+    lv.y0 = view.y0;
+    lv.x1 = view.x1;
+    lv.y1 = view.y1;
     const cap = b.capacity;
     for (let k = 0; k < cap; k++) {
       if (b.alive[k] && this.known[k] !== b.id[k]) {
@@ -206,7 +222,10 @@ export class BodyView {
       const e = list[n]!;
       const s = e.sprite;
       const simAlive = b.alive[e.slot] === 1 && b.id[e.slot] === e.id;
-      if (!simAlive && e.fading < 0) e.fading = now;
+      if (!simAlive && e.fading < 0) {
+        e.fading = now;
+        e.placed = false;
+      }
       if (e.fading >= 0) {
         const a = 1 - (now - e.fading) / (e.wreck ? 3 : 1.2);
         if (a <= 0) {
@@ -216,6 +235,15 @@ export class BodyView {
         s.alpha = a;
       }
       live++;
+      if (e.placed) {
+        // Settled body: only culling (when the view moved) and trampling.
+        if (viewMoved) {
+          s.visible =
+            e.x > view.x0 - 40 && e.x < view.x1 + 40 && e.y > view.y0 - 40 && e.y < view.y1 + 40;
+        }
+        this.trampleCheck(e, simAlive, now);
+        continue;
+      }
       const age = now - e.born;
       let x = e.x;
       let y = e.y;
@@ -248,7 +276,8 @@ export class BodyView {
             this.fx.spawn('fx.dust.land', e.x, e.y, now, { layer: 'entity' });
           }
           const ia = age - THROW_GRAB - THROW_FLY;
-          if (imp && ia < imp.duration) setTex(s, imp.frames[Math.min(imp.frames.length - 1, Math.floor(ia * imp.fps))]!);
+          if (imp && ia < imp.duration)
+            setTex(s, imp.frames[Math.min(imp.frames.length - 1, Math.floor(ia * imp.fps))]!);
           else if (e.rest) setTex(s, e.rest.frames[e.restFrame]!);
           e.thrown = null;
           e.born = now - 100;
@@ -258,25 +287,26 @@ export class BodyView {
         setTex(s, e.rest!.frames[e.rest!.frameAt(now)]!);
         s.tint = this.grade;
       } else if (e.death && age < e.death.duration) {
-        setTex(s, e.death.frames[Math.min(e.death.frames.length - 1, Math.floor(age * e.death.fps))]!);
+        setTex(
+          s,
+          e.death.frames[
+            Math.max(0, Math.min(e.death.frames.length - 1, Math.floor(age * e.death.fps)))
+          ]!,
+        );
       } else if (e.rest) {
         setTex(s, e.rest.frames[e.restFrame]!);
+        if (e.fading < 0) e.placed = true;
       }
       s.position.set(e.flip ? x + 1 : x, y - lift);
       s.scale.x = e.flip ? -1 : 1;
-      s.visible = x > view.x0 - 40 && x < view.x1 + 40 && y - lift > view.y0 - 40 && y < view.y1 + 40;
-      // Trampling crowds kick up dust.
-      if (b.trample[e.slot]! !== e.trample && simAlive) {
-        if (s.visible && (e.id + b.trample[e.slot]!) % 3 === 0) {
-          this.fx.spawn('fx.dust.trample', x, y, now, { layer: 'ground', priority: 0 });
-        }
-        e.trample = b.trample[e.slot]!;
-      }
+      s.visible =
+        x > view.x0 - 40 && x < view.x1 + 40 && y - lift > view.y0 - 40 && y < view.y1 + 40;
+      this.trampleCheck(e, simAlive, now);
     }
     // Over the cap: bake the oldest (non-wreck, settled) bodies into the decal texture.
     if (live > this.cap) {
       let excess = live - this.cap;
-      for (let n = 0; n < list.length && excess > 0; ) {
+      for (let n = 0; n < list.length && excess > 0;) {
         const e = list[n]!;
         if (!e.wreck && !e.thrown && e.rest && now - e.born > 2) {
           this.decals.bake(e.rest.frames[e.restFrame]!, e.x, e.y, { flip: e.flip, alpha: 0.75 });
@@ -285,6 +315,16 @@ export class BodyView {
         } else n++;
       }
     }
+  }
+
+  /** Trampling crowds kick up dust. */
+  private trampleCheck(e: BodyEnt, simAlive: boolean, now: number): void {
+    const tr = this.world.bodies.trample[e.slot]!;
+    if (tr === e.trample || !simAlive) return;
+    if (e.sprite.visible && (e.id + tr) % 3 === 0) {
+      this.fx.spawn('fx.dust.trample', e.x, e.y, now, { layer: 'ground', priority: 0 });
+    }
+    e.trample = tr;
   }
 
   private remove(n: number): void {
