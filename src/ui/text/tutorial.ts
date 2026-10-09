@@ -13,15 +13,7 @@ export interface TutorialLine {
 }
 
 export type TutorialStepId =
-  | 'welcome'
-  | 'pan'
-  | 'deploy'
-  | 'hate'
-  | 'wave'
-  | 'legit'
-  | 'sniper'
-  | 'guard'
-  | 'wrap';
+  'welcome' | 'pan' | 'deploy' | 'hate' | 'wave' | 'legit' | 'sniper' | 'guard' | 'wrap';
 
 export const TUTORIAL_TEXT: Record<TutorialStepId, readonly TutorialLine[]> = {
   welcome: [
@@ -37,19 +29,29 @@ export const TUTORIAL_TEXT: Record<TutorialStepId, readonly TutorialLine[]> = {
   ],
   deploy: [
     {
-      text: 'They come via {choke}. Click Riot Control, then a road tile.',
-      touch: 'They come via {choke}. Tap Riot Control, then a road tile, twice.',
+      text: 'First post: the Capitol steps. Click Riot Control, then click the steps.',
+      touch: 'First post: the Capitol steps. Tap Riot Control, then the steps, twice.',
       mood: 'idle',
     },
   ],
   hate: [
-    { text: 'This is Hate, our currency. Every death generates Hate. Ours are worth ten.', mood: 'smug' },
-    { text: 'Theirs are worth one. We did not set the exchange rate. We just enjoy it.', mood: 'smug' },
+    {
+      text: 'This is Hate, our currency. Every death generates Hate. Ours are worth ten.',
+      mood: 'smug',
+    },
+    {
+      text: 'Theirs are worth one. We did not set the exchange rate. We just enjoy it.',
+      mood: 'smug',
+    },
   ],
   wave: [
     {
-      text: 'Ready? Press LET THEM COME. They were coming anyway. This way we look decisive.',
+      text: 'A few more cops on {choke} would be wise. They always come that way.',
       mood: 'idle',
+    },
+    {
+      text: 'Ready? Press LET THEM COME. They were coming anyway. This way we look decisive.',
+      mood: 'smug',
     },
   ],
   legit: [
@@ -61,10 +63,14 @@ export const TUTORIAL_TEXT: Record<TutorialStepId, readonly TutorialLine[]> = {
       text: "Every fallen officer makes us MORE legitimate. Isn't democracy beautiful?",
       mood: 'smug',
     },
+    {
+      text: 'Killing protesters pays Hate. Losing officers pays Legitimacy. Budget both.',
+      mood: 'idle',
+    },
   ],
   sniper: [
     {
-      text: 'Level 1! Rubber Snipers approved. Put one on a glowing rooftop.',
+      text: 'Level 1! Rubber Snipers approved. Put one on a glowing roof by your cops.',
       mood: 'smug',
     },
   ],
@@ -74,7 +80,7 @@ export const TUTORIAL_TEXT: Record<TutorialStepId, readonly TutorialLine[]> = {
       mood: 'sweat',
     },
     {
-      text: 'Keep Riot Control near the building. Climbers will not try with him watching.',
+      text: 'A riot cop next to the building guards its roof. Nobody climbs on his watch.',
       mood: 'idle',
     },
   ],

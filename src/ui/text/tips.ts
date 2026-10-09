@@ -9,7 +9,7 @@ export const TIPS: readonly string[] = [
   'Tear gas is cheaper than listening. Slightly.',
   'The Ministry never refunds Hate. Mistakes are an investment in the future.',
   'Blockades are concrete arguments. Literally.',
-  'Calling the next wave early pays a bonus. Impatience is a civic virtue.',
+  'Calling the next wave early pays a small bonus. It buys tempo, not treasure.',
   'Snipers on rooftops are perfectly safe. Unless someone climbs. Someone always climbs.',
   'Breta is worth 100 Hate. She would be furious to know.',
   'Tanks shell your own men too. The paperwork is unbelievable.',
@@ -41,4 +41,11 @@ export const TIPS: readonly string[] = [
   'Every unit is approved by a committee. The committee is approved by another committee.',
   'Overtime for riot police is paid in Legitimacy. Legitimacy is not accepted at the bakery.',
   'The Ministry denies the existence of this tip.',
+  // M12 strategy, in Ministry voice.
+  'Legitimacy stalled? The Ministry needs martyrs. Progress is measured in fallen officers.',
+  'Riot Control can stand on the Capitol steps. The steps have never felt so protected.',
+  "A riot cop next to a sniper's building keeps the roof unclimbable. Teamwork, of a sort.",
+  'Rubber and gas barely tickle cultists and Prophets. That is what real weapons are for.',
+  'New protester types arrive as a trickle at first. Use the trickle. Fear the flood.',
+  'The helicopter cannot die and earns no Legitimacy. A perfect civil servant.',
 ];

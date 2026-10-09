@@ -33,7 +33,13 @@ export const HINT_RULES: Record<HintTextId, Rule> = {
   lethal: advisor(5, 40),
   heli: advisor(5, 40),
   almost: advisor(6, 60),
+  stalled: advisor(5, 40),
+  realWeapons: advisor(7, 30),
+  gasThrow: advisor(4, 30),
 };
+
+/** Seconds of wave time without an officer death or level-up before "Legitimacy stalled?". */
+export const STALL_SECONDS = 90;
 
 /** Capitol damage state N (1–5): the Minister's reaction. */
 export const capitolRule: Rule = advisor(9, 15);

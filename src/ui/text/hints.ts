@@ -22,7 +22,10 @@ export type HintTextId =
   | 'lethal'
   | 'friendlyFire'
   | 'heli'
-  | 'almost';
+  | 'almost'
+  | 'stalled'
+  | 'realWeapons'
+  | 'gasThrow';
 
 export const HINT_TEXT: Record<HintTextId, HintLine> = {
   sniperThrown: {
@@ -68,12 +71,25 @@ export const HINT_TEXT: Record<HintTextId, HintLine> = {
     mood: 'sweat',
   },
   heli: {
-    text: 'A helicopter! Nothing can touch it. Select it, then pick any tile. Wheee.',
+    text: 'The helicopter cannot die. Lovely for the Capitol, useless for Legitimacy.',
     mood: 'smug',
   },
   almost: {
     text: 'Almost legitimate... I can smell the medal. Hold on a little longer.',
     mood: 'smug',
+  },
+  stalled: {
+    text: 'Legitimacy stalled? The Ministry needs martyrs. Send a cop forward.',
+    mood: 'smug',
+  },
+  realWeapons: {
+    text: 'Rubber and gas barely tickle these fanatics. Approve real weapons.',
+    mood: 'sweat',
+  },
+  gasThrow: {
+    text: 'Gas men go behind the riot line, not in front. Grenades: G, or tap them.',
+    touch: 'Gas men go behind the riot line, not in front. Tap them to lob grenades.',
+    mood: 'idle',
   },
 };
 

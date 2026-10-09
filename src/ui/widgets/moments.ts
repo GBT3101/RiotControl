@@ -220,7 +220,10 @@ export class Moments {
     const t = ownTex(waveBanner(n), 'wave:banner');
     const s = new Sprite(t);
     // M10: a dry sub-line under the banner (outlined small text, no panel).
-    const sub = textSprite(FONTS.small, waveLine(n), 'stone5', { outline: 'ink', outlineThin: true });
+    const sub = textSprite(FONTS.small, waveLine(n), 'stone5', {
+      outline: 'ink',
+      outlineThin: true,
+    });
     const st = ownTex(sub, 'wave:sub');
     const subS = new Sprite(st);
     root.addChild(s, subS);
@@ -343,42 +346,24 @@ export class Moments {
   newThreat(p: ProtesterId, onTap?: () => void): void {
     const fig = protesterFigure(p);
     const icon = fig ? scaleUp(fig, fig.h <= 22 ? 1 : 1) : null;
-    this.alert(
-      'threat',
-      UI_TEXT.newThreat(protesterDef(p).name),
-      PROTESTER_COPY[p].line,
-      icon,
-      {
-        ttl: 7,
-        onTap,
-      },
-    );
+    this.alert('threat', UI_TEXT.newThreat(protesterDef(p).name), PROTESTER_COPY[p].line, icon, {
+      ttl: 7,
+      onTap,
+    });
   }
 
   breta(onTap?: () => void): void {
-    this.alert(
-      'breta',
-      UI_TEXT.bretaTitle,
-      UI_TEXT.bretaLine,
-      bretaPortrait(),
-      {
-        ttl: 8,
-        onTap,
-      },
-    );
+    this.alert('breta', UI_TEXT.bretaTitle, UI_TEXT.bretaLine, bretaPortrait(), {
+      ttl: 8,
+      onTap,
+    });
   }
 
   prophets(onTap?: () => void): void {
-    this.alert(
-      'prophets',
-      UI_TEXT.prophetsTitle,
-      UI_TEXT.prophetsLine,
-      ICONS.prophets(),
-      {
-        ttl: 7,
-        onTap,
-      },
-    );
+    this.alert('prophets', UI_TEXT.prophetsTitle, UI_TEXT.prophetsLine, ICONS.prophets(), {
+      ttl: 7,
+      onTap,
+    });
   }
 
   capitol(state: number, onTap?: () => void): void {

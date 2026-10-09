@@ -13,9 +13,12 @@ export interface Blurb {
 /** Minister's comment after the level-up dossier, L1–L10 (index = level). */
 export const LEVEL_BLURBS: Readonly<Record<number, Blurb>> = {
   1: { text: 'Snipers approved. Rubber bullets. Rubber budget, too.', mood: 'smug' },
-  2: { text: 'Blockades approved. Concrete: the only thing in this city that listens.', mood: 'idle' },
+  2: {
+    text: 'Blockades approved. Across a narrow street, concrete always wins the debate.',
+    mood: 'idle',
+  },
   3: {
-    text: 'Tear gas approved by a committee that does not exist. Very efficient committee.',
+    text: 'Tear gas: approved by a committee that does not exist. Fire from behind.',
     mood: 'smug',
   },
   4: { text: 'Horses approved. They outrank you now. Do not look them in the eye.', mood: 'idle' },
@@ -34,7 +37,7 @@ export const LEVEL_BLURBS: Readonly<Record<number, Blurb>> = {
   },
   9: { text: 'A tank. The form said "proportionate". Someone crossed it out. Me.', mood: 'smug' },
   10: {
-    text: 'A helicopter. Invulnerable, unaccountable. Like a minister, but louder.',
+    text: 'A helicopter. Cannot die, so earns no Legitimacy. Like a minister, but louder.',
     mood: 'smug',
   },
 };

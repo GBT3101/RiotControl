@@ -21,6 +21,7 @@ import type { AdvisorMood } from '../widgets/advisor';
 import type { UiApp } from '../app';
 import {
   ALMOST_AT,
+  STALL_SECONDS,
   HINT_RULES,
   capitolHintId,
   capitolRule,
@@ -46,6 +47,8 @@ export class Hints {
   private readonly typesSeen = new Set<ProtesterId>();
   private breathers = 0;
   private capitolHitOffered = false;
+  /** Wave-phase game seconds since the last officer death / level-up. */
+  private stall = 0;
   private enabled = true;
   private rnd = 1;
 
@@ -74,11 +77,13 @@ export class Hints {
     this.typesSeen.clear();
     this.breathers = 0;
     this.capitolHitOffered = false;
+    this.stall = 0;
     this.rnd = (Date.now() % 9973) + 1;
     const b = game.bus;
     this.unsubs.push(
       b.on('thrownOffRoof', () => this.offerFixed('sniperThrown')),
       b.on('unitDied', (e) => {
+        this.stall = 0;
         if (e.unit === 'blockade') this.offerFixed('blockadeBroken');
       }),
       b.on('capitolDamaged', () => {
@@ -93,15 +98,18 @@ export class Hints {
       b.on('abilityReady', () => this.offerFixed('gasCharged')),
       b.on('unitDeployed', (e) => {
         if (UNITS[e.unit].commandable && e.unit !== 'heli') this.offerFixed('commandable');
+        if (e.unit === 'gas') this.offerFixed('gasThrow');
       }),
       b.on('bretaSpawned', () => this.offerFixed('breta')),
       b.on('spawned', (e) => {
         if (this.typesSeen.has(e.ptype)) return;
         this.typesSeen.add(e.ptype);
         if (e.ptype === 'prophet') this.offerFixed('prophets');
+        if (e.ptype === 'cultist' || e.ptype === 'prophet') this.offerFixed('realWeapons');
         this.sched.offer({ id: codexHintId(e.ptype), ...codexRule });
       }),
       b.on('levelUp', (e) => {
+        this.stall = 0;
         // The NEW THREAT alert already introduces these types.
         for (const p of e.protesters) this.sched.markSeen(codexHintId(p));
       }),
@@ -149,8 +157,17 @@ export class Hints {
     const app = this.app;
     if (!g || g.destroyed || app.mode !== 'game' || app.topScreen || g.paused) return;
     this.sched.tick(dt);
-    if (g.world.legit >= WIN_LEGITIMACY * ALMOST_AT && g.world.legit < WIN_LEGITIMACY)
+    const w = g.world;
+    if (w.legit >= WIN_LEGITIMACY * ALMOST_AT && w.legit < WIN_LEGITIMACY)
       this.offerFixed('almost');
+    // M12: progress comes from losing officers — nudge players who only kill protesters.
+    if (w.director.phase === 'wave') {
+      this.stall += dt * g.speed;
+      if (this.stall > STALL_SECONDS && w.level < LEVELS.length - 1) {
+        this.offerFixed('stalled');
+        this.stall = 0;
+      }
+    }
     const hint = this.sched.next((o) => this.canShow(o));
     if (hint) this.show(hint);
   }
@@ -183,7 +200,12 @@ export class Hints {
       const p = m[1] as ProtesterId;
       const c = PROTESTER_COPY[p];
       return c
-        ? { channel: 'toast', title: SIGHTING_TITLE(protesterDef(p).name), line: c.line, protester: p }
+        ? {
+            channel: 'toast',
+            title: SIGHTING_TITLE(protesterDef(p).name),
+            line: c.line,
+            protester: p,
+          }
         : null;
     }
     if (id === 'idle') {

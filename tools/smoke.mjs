@@ -3,7 +3,8 @@
  * Interaction smoke test for the game page (Playwright Chromium, uses the existing dist/):
  * mouse drag pans, wheel zooms to an integer level, a click is a tap (not a drag), keys pan,
  * touch tap works on a phone viewport; M9 UI: taps on HUD cards never reach the world, card →
- * deploy mode, hotkeys, Space pause, title → city select. Run `npm run build` first.
+ * deploy mode, hotkeys, Space pause, title → city select; M10: the first-run briefing shows,
+ * advances on a deploy and SKIP BRIEFING ends it (persisted). Run `npm run build` first.
  * Exit 1 on failure.
  */
 import { chromium } from 'playwright-core';
@@ -13,7 +14,8 @@ import { preview } from 'vite';
 const root = resolve(import.meta.dirname, '..');
 const server = await preview({ root, logLevel: 'warn', preview: { port: 0, host: '127.0.0.1' } });
 const base = server.resolvedUrls.local[0];
-const url = new URL('index.html?city=madrid', base).href;
+// The first-run briefing is off for the interaction checks (it has its own block below).
+const url = new URL('index.html?city=madrid&tutorial=0', base).href;
 /** CSS-px centre of a UI rect (UI px × ui scale / dpr). */
 const cssCentre = (page, expr) =>
   page.evaluate((e) => {
@@ -144,6 +146,63 @@ try {
   );
   check(terr.length === 0, `no title page errors (${terr.join('; ')})`);
   await tctx.close();
+
+  // --- M10 tutorial ------------------------------------------------------------------------
+  const tuctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const tu = await tuctx.newPage();
+  const tuerr = [];
+  tu.on('pageerror', (e) => tuerr.push(e.message));
+  // Fresh profile, no params: the briefing runs on the first visit to a city.
+  await tu.goto(new URL('index.html?city=paris', base).href);
+  await tu.waitForFunction(() => document.documentElement.dataset.ready === 'true', null, {
+    timeout: 60000,
+  });
+  await tu.waitForTimeout(500);
+  check(
+    await tu.evaluate(() => window.__riot.ui.tutorial.active && window.__riot.ui.advisor.speaking),
+    'first visit: the Minister briefs the player',
+  );
+  // Jump to the deploy step and deploy: the step advances on the action.
+  const stepAfterDeploy = await tu.evaluate(async () => {
+    const ui = window.__riot.ui;
+    const m = ui.tutorial.machine;
+    m.fact('panned');
+    while (m.active && m.step.id !== 'deploy') {
+      m.linesFinished();
+      m.update(2);
+    }
+    // Deploy where the briefing points (its suggested tile), through deploy mode.
+    const t = ui.tutorial.suggested;
+    ui.game.beginDeploy('riot');
+    ui.game.deployAt(t.i, t.j);
+    // The step needs ≥ 0.5 s on screen and the deploy event (drained once per frame).
+    await new Promise((r) => setTimeout(r, 2000));
+    return m.step?.id;
+  });
+  check(stepAfterDeploy !== 'deploy', `deploying advances the briefing (now: ${stepAfterDeploy})`);
+  const skip = await cssCentre(
+    tu,
+    'ui.tutorial.skipButton.getBounds() && { x: ui.tutorial.skipButton.x, y: ui.tutorial.skipButton.y, w: ui.tutorial.skipButton.w, h: ui.tutorial.skipButton.h }',
+  );
+  await tu.mouse.click(skip.x, skip.y);
+  await tu.waitForTimeout(200);
+  check(!(await tu.evaluate(() => window.__riot.ui.tutorial.active)), 'SKIP BRIEFING ends it');
+  check(
+    await tu.evaluate(
+      () => JSON.parse(localStorage.getItem('riot.settings.v1')).tutorialDone.paris === true,
+    ),
+    'the done flag is persisted',
+  );
+  await tu.reload();
+  await tu.waitForFunction(() => document.documentElement.dataset.ready === 'true', null, {
+    timeout: 60000,
+  });
+  check(
+    !(await tu.evaluate(() => window.__riot.ui.tutorial.active)),
+    'no briefing on the next visit',
+  );
+  check(tuerr.length === 0, `no tutorial page errors (${tuerr.join('; ')})`);
+  await tuctx.close();
 
   // --- Phone touch ------------------------------------------------------------------------------
   const phone = await browser.newContext({

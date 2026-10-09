@@ -98,7 +98,10 @@ let cache: Record<string, PixelBuffer> | null = null;
 function flipY(src: PixelBuffer): PixelBuffer {
   const out = createBuffer(src.w, src.h);
   for (let y = 0; y < src.h; y++)
-    out.data.set(src.data.subarray(y * src.w * 4, (y + 1) * src.w * 4), (src.h - 1 - y) * src.w * 4);
+    out.data.set(
+      src.data.subarray(y * src.w * 4, (y + 1) * src.w * 4),
+      (src.h - 1 - y) * src.w * 4,
+    );
   return out;
 }
 

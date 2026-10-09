@@ -9,8 +9,8 @@
  * on, or with `?tutorial=1`; never with `?tutorial=0`, in the attract game or debug-jump runs.
  * `?tstep=N` starts at step N (screenshots).
  */
-import { Container, Sprite } from 'pixi.js';
-import { buf, rect } from '../../art/fx/draw';
+import { Container, Graphics, Sprite } from 'pixi.js';
+import { SWATCHES } from '../../art/palette';
 import { tileToWorld } from '../../core/iso';
 import type { GameController } from '../../game/controller';
 import type { GameParams } from '../../game/params';
@@ -23,6 +23,7 @@ import { TUTORIAL_TEXT, TUTORIAL_UI, fillTutorial } from '../text/tutorial';
 import type { UiApp } from '../app';
 import { pointerArt } from './art';
 import {
+  completeTutorial,
   dimRects,
   inflate,
   placeAdvisor,
@@ -39,12 +40,8 @@ interface Pointer {
   arrow: Sprite;
 }
 
-/** 4×4 ink swatch, stretched for the dim (palette-pure). */
-function inkPixel(): ReturnType<typeof buf> {
-  const b = buf(4, 4);
-  rect(b, 0, 0, 4, 4, 'ink');
-  return b;
-}
+/** RIOT-64 `ink` as a hex colour (dim overlay). */
+const INK = parseInt(SWATCHES.ink.slice(1), 16);
 
 /** Is this a debug-jump run (no tutorial unless forced)? */
 export function isDebugRun(p: GameParams | undefined): boolean {
@@ -64,8 +61,8 @@ export function isDebugRun(p: GameParams | undefined): boolean {
 
 export class Tutorial {
   readonly root = new Container({ label: 'tutorial' });
-  private readonly dimLayer = new Container({ label: 'tutorial-dim' });
-  private readonly dims: Sprite[] = [];
+  private readonly dim = new Graphics({ label: 'tutorial-dim' });
+  private dimKey = '';
   private readonly pointers: Pointer[] = [];
   private readonly hand = new Sprite();
   private readonly drag = new Sprite();
@@ -84,7 +81,7 @@ export class Tutorial {
 
   constructor(private readonly app: UiApp) {
     const art = pointerArt();
-    this.root.addChild(this.dimLayer);
+    this.root.addChild(this.dim);
     for (let k = 0; k < 2; k++) {
       const corners = art.corners.map((c, n) => new Sprite(uiTex(`tut:corner${n}`, () => c)));
       const arrow = new Sprite();
@@ -180,7 +177,10 @@ export class Tutorial {
     const says: Array<{ text: string; mood: (typeof lines)[number]['mood'] }> = [];
     if (step.id === 'welcome') says.push({ text: CITY_COPY[this.city].welcome, mood: 'idle' });
     for (const l of lines)
-      says.push({ text: fillTutorial(this.app.touch && l.touch ? l.touch : l.text, vars), mood: l.mood });
+      says.push({
+        text: fillTutorial(this.app.touch && l.touch ? l.touch : l.text, vars),
+        mood: l.mood,
+      });
     const adv = this.app.advisor;
     // Action steps keep their last line up until the player acts (or a timeout).
     const sticky = !!step.until && step.timeout === undefined;
@@ -205,9 +205,7 @@ export class Tutorial {
   }
 
   private finish(skipped: boolean): void {
-    const s = this.app.settings;
-    s.tutorialDone[this.city] = true;
-    s.replayTutorial = false;
+    completeTutorial(this.app.settings, this.city);
     this.app.saveSettings();
     if (skipped) {
       this.app.advisor.clear();
@@ -226,11 +224,7 @@ export class Tutorial {
     const r = this.tileRect(s.i, s.j);
     const l = this.app.layout;
     const ok =
-      r &&
-      r.x > 40 &&
-      r.x + r.w < l.W - 40 &&
-      r.y > l.topBar.h + 30 &&
-      r.y + r.h < l.deploy.y - 90;
+      r && r.x > 40 && r.x + r.w < l.W - 40 && r.y > l.topBar.h + 30 && r.y + r.h < l.deploy.y - 90;
     if (ok) return;
     const p = tileToWorld(s.i + 0.5, s.j + 0.5);
     this.camEase = { x0: g.camera.x, y0: g.camera.y, x1: p.x, y1: p.y - 10, t: 0 };
@@ -246,7 +240,12 @@ export class Tutorial {
     const sy = ((p.y - v.y) * v.zoom + Math.floor(v.height / 2)) / k;
     const w = (32 * v.zoom) / k;
     const h = (16 * v.zoom) / k;
-    return { x: Math.round(sx - w / 2), y: Math.round(sy - h / 2), w: Math.round(w), h: Math.round(h) };
+    return {
+      x: Math.round(sx - w / 2),
+      y: Math.round(sy - h / 2),
+      w: Math.round(w),
+      h: Math.round(h),
+    };
   }
 
   private rectFor(t: TutorialTarget): Rect | null {
@@ -365,21 +364,23 @@ export class Tutorial {
     // Light dim around the highlighted rects.
     const want = targets.length ? DIM_ALPHA : 0;
     this.dimA += (want - this.dimA) * Math.min(1, dt * 8);
-    const rects = this.dimA > 0.01 ? dimRects(l.W, l.H, targets.map((r) => inflate(r, 3))) : [];
-    while (this.dims.length < rects.length) {
-      const s = new Sprite(uiTex('tut:ink', () => inkPixel()));
-      this.dims.push(s);
-      this.dimLayer.addChild(s);
+    const rects =
+      this.dimA > 0.01
+        ? dimRects(
+            l.W,
+            l.H,
+            targets.map((r) => inflate(r, 3)),
+          )
+        : [];
+    // Palette ink at low alpha (GPU blend only — the art stays palette-pure).
+    const key =
+      rects.map((r) => `${r.x},${r.y},${r.w},${r.h}`).join('|') + `@${this.dimA.toFixed(2)}`;
+    if (key !== this.dimKey) {
+      this.dimKey = key;
+      const d = this.dim;
+      d.clear();
+      for (const r of rects) d.rect(r.x, r.y, r.w, r.h).fill({ color: INK, alpha: this.dimA });
     }
-    this.dims.forEach((s, k) => {
-      const r = rects[k];
-      s.visible = !!r;
-      if (!r) return;
-      s.position.set(r.x, r.y);
-      s.width = r.w;
-      s.height = r.h;
-      s.alpha = this.dimA;
-    });
     // Skip button above the advisor.
     const spot = this.advisorSpot ?? this.app.layout.advisor;
     const ext = this.app.advisor.extent();
@@ -407,42 +408,63 @@ export class Tutorial {
   }
 }
 
-/**
- * Suggested first post: the road tile closest to the chokepoint nearest the Capitol's front
- * steps (the Capitol approach). Null if nothing deployable is near.
- */
-export function suggestTile(game: GameController): { i: number; j: number; name: string } | null {
-  const w = game.world;
-  const map = w.map;
+/** The chokepoint nearest the Capitol's front steps (the busiest approach). */
+export function nearestChoke(game: GameController): { i: number; j: number; name: string } | null {
+  const map = game.world.map;
   const cap = map.capitol;
   const ci = cap.i + cap.w / 2;
   const cj = cap.j + cap.d + 1;
-  let choke = map.chokepoints[0];
+  let out: { i: number; j: number; name: string } | null = null;
   let best = Infinity;
   for (const c of map.chokepoints) {
     const d = (c.i - ci) ** 2 + (c.j - cj) ** 2;
     if (d < best) {
       best = d;
-      choke = c;
+      out = { i: c.i, j: c.j, name: c.name };
     }
   }
-  const oi = choke ? Math.round(choke.i) : Math.round(ci);
-  const oj = choke ? Math.round(choke.j) : Math.round(cj);
+  return out;
+}
+
+/**
+ * Suggested first post (M12 opening): a visible, deployable Capitol step tile near the middle
+ * of the steps; else the road tile closest to the nearest chokepoint. Null if nothing fits.
+ */
+export function suggestTile(game: GameController): { i: number; j: number; name: string } | null {
+  const w = game.world;
+  const map = w.map;
+  const cap = map.capitol;
+  const choke = nearestChoke(game);
+  const name = choke?.name ?? CITY_COPY[map.city].capitol;
+  const visible = (i: number, j: number): boolean => {
+    const p = tileToWorld(i + 0.5, j + 0.5);
+    return game.view.occlusionAt(p.x, p.y) === 0;
+  };
+  const ci = cap.i + cap.w / 2;
+  const cj = cap.j + cap.d;
   let out: { i: number; j: number } | null = null;
   let bd = Infinity;
+  for (const s of cap.steps) {
+    if (!w.canDeploy('riot', s.i, s.j).ok || !visible(s.i, s.j)) continue;
+    const d = (s.i + 0.5 - ci) ** 2 + (s.j + 0.5 - cj) ** 2;
+    if (d < bd) {
+      bd = d;
+      out = { i: s.i, j: s.j };
+    }
+  }
+  if (out) return { ...out, name };
+  const oi = choke ? Math.round(choke.i) : Math.round(ci);
+  const oj = choke ? Math.round(choke.j) : Math.round(cj + 1);
   for (let dj = -6; dj <= 6; dj++)
     for (let di = -6; di <= 6; di++) {
       const i = oi + di;
       const j = oj + dj;
-      if (!w.canDeploy('riot', i, j).ok) continue;
-      // Must be visible on screen (not behind a building).
-      const p = tileToWorld(i + 0.5, j + 0.5);
-      if (game.view.occlusionAt(p.x, p.y) !== 0) continue;
+      if (!w.canDeploy('riot', i, j).ok || !visible(i, j)) continue;
       const d = di * di + dj * dj;
       if (d < bd) {
         bd = d;
         out = { i, j };
       }
     }
-  return out ? { ...out, name: choke?.name ?? CITY_COPY[map.city].capitol } : null;
+  return out ? { ...out, name } : null;
 }

@@ -2,7 +2,9 @@
  * Pure helpers for the tutorial overlay (unit-tested): when to run it, dim rectangles around
  * highlight holes, and where the advisor may sit without covering a highlighted thing.
  */
+import type { CityId } from '../../maps/contract';
 import type { Rect } from '../core/node';
+import type { GameSettings } from '../settings';
 
 /** `?tutorial=0` → false (never), `?tutorial=1` → true (force), else null (normal rules). */
 export function tutorialParam(search: string): boolean | null {
@@ -30,6 +32,13 @@ export function shouldRunTutorial(g: TutorialGate): boolean {
   if (g.param === true) return true;
   if (g.debugRun) return false;
   return g.replay || !g.done;
+}
+
+/** The briefing for `city` is over (finished or skipped): never auto-run it again there. */
+export function completeTutorial(s: GameSettings, city: CityId): GameSettings {
+  s.tutorialDone[city] = true;
+  s.replayTutorial = false;
+  return s;
 }
 
 export function intersects(a: Rect, b: Rect): boolean {
@@ -80,10 +89,17 @@ export interface AdvisorSpot {
   maxW: number;
 }
 
+function overlap(a: Rect, b: Rect): number {
+  const w = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+  const h = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+  return w > 0 && h > 0 ? w * h : 0;
+}
+
 /**
  * Pick the advisor's bottom edge so its box (`w`×`h` from the bottom-left corner) avoids every
- * `zone` (highlighted rects + pointer arrows): the default spot, else raised just above the
- * lowest zones, else at the top under the top bar (`topY`).
+ * `zone` (highlighted rects + pointer arrows). Candidates, in order: the default spot, just
+ * above each zone (highest first), then at the top under the top bar (`topY`). The first
+ * collision-free one wins; on cramped screens the one covering the least zone area.
  */
 export function placeAdvisor(
   def: AdvisorSpot,
@@ -97,12 +113,24 @@ export function placeAdvisor(
     w: Math.min(def.maxW, size.w),
     h: size.h,
   });
-  const free = (bottom: number): boolean => !zones.some((z) => intersects(box(bottom), z));
-  if (free(def.bottom)) return def;
-  const hits = zones.filter((z) => intersects(box(def.bottom), z));
-  const raised = Math.min(...hits.map((z) => z.y)) - 2;
-  if (raised - size.h >= topY && free(raised)) return { ...def, bottom: raised };
-  const top = topY + size.h;
-  if (free(top)) return { ...def, bottom: top };
-  return def;
+  const cost = (bottom: number): number => zones.reduce((n, z) => n + overlap(box(bottom), z), 0);
+  const cands = [
+    def.bottom,
+    ...zones
+      .map((z) => z.y - 2)
+      .filter((b) => b < def.bottom && b - size.h >= topY)
+      .sort((a, b) => b - a),
+    topY + size.h,
+  ];
+  let best = def.bottom;
+  let bestCost = Infinity;
+  for (const b of cands) {
+    const c = cost(b);
+    if (c === 0) return b === def.bottom ? def : { ...def, bottom: b };
+    if (c < bestCost) {
+      bestCost = c;
+      best = b;
+    }
+  }
+  return best === def.bottom ? def : { ...def, bottom: best };
 }

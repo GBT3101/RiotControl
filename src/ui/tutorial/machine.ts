@@ -15,12 +15,7 @@
 import type { TutorialStepId } from '../text/tutorial';
 
 export type TutorialFact =
-  | 'panned'
-  | 'deployed'
-  | 'waveStarted'
-  | 'officerDied'
-  | 'level1'
-  | 'sniperDeployed';
+  'panned' | 'deployed' | 'waveStarted' | 'officerDied' | 'level1' | 'sniperDeployed';
 
 export type TutorialTarget =
   | { kind: 'none' }
@@ -68,7 +63,7 @@ export const TUTORIAL_STEPS: readonly StepDef[] = [
     minTime: 1,
   },
   { id: 'guard', target: { kind: 'none' }, minTime: 1.5 },
-  { id: 'wrap', target: { kind: 'integrity' }, minTime: 1.5 },
+  { id: 'wrap', target: { kind: 'integrity' }, also: { kind: 'seal' }, minTime: 1.5 },
 ];
 
 export type MachineState = 'idle' | 'waiting' | 'showing' | 'done' | 'skipped';
