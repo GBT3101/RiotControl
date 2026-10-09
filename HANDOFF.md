@@ -19,7 +19,7 @@ Update this file at the end of every milestone.
 | M7 Behaviours | ✅ done (M6 + M8) | rally points, rooftop defence, unit avoidance | |
 | M8 Integration & game feel | ✅ done | lazy worker art + IndexedDB cache, map rendering, depth slicing, views, FX, juice, day/night, controller API. Docs `docs/M8.md` |
 | M9 UI/UX & screens | ✅ done | title over live city, city select, HUD, deploy bar, minimap, moments, advisor API, newspapers + ledger, settings. Docs `docs/M9.md` |
-| M10 Tutorial, hints & writing | 🔄 in progress | |
+| M10 Tutorial, hints & writing | ✅ done | 9-step Minister briefing, hints, copy in `src/ui/text/`. Docs `docs/M10.md` |
 | M11 Audio | ✅ done | procedural SFX/crowd/music, wired via `boot.ts wireAudio`. Docs `docs/M11.md` |
 | M12 Balance | ✅ done | bots + `npm run playtest`; balanced wins 33–39 min, passive loses ~wave 10, peak crowd ~2300–2450. Docs `docs/M12.md` |
 | M13 Performance & polish | ⬜ | |
@@ -113,6 +113,7 @@ Naming: `<category>.<subject>.<anim>.<facing>` (`unit.*`, `prot.*`, `veh.*`, `ti
 - Paris Capitol: Assemblée nationale (Palais Bourbon) assumed; Madrid: Congreso de los Diputados; London: Palace of Westminster.
 
 ## Known issues
+- M10: advisor bubble overlaps LET THEM COME / CALL EARLY outside the briefing; codex toast clipped at the top-left screen edge; semi-transparent stretched Sprites invisible when repositioned per frame (dim uses Graphics instead).
 - M9: Legitimacy seal level number crowded; small-font "+" reads as a dot; phone-portrait camera quite zoomed in; verify ledger "Hate spent" vs "Hate earned" accounting.
 - M12: bot decisions can take ~20 ms once per sim second (`?autoplay` / title-screen bot may hitch).
 - Sample officer (M1 pipeline proof) has idle SE + walk SE/NE (+ mirrors); there is no idle NE, so the demo shows NE/NW idlers with the SE/SW idle. No blink (a blink in a 4-frame 5 fps idle flashes every 0.8 s — M4a should use a longer idle or a separate blink anim). M4a redraws all units.
