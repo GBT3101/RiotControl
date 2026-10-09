@@ -10,7 +10,6 @@ import { registerProtesters } from './protesters';
 import { registerUiKit } from './uikit';
 import { registerUnits } from './units';
 import { registerVehicles } from './vehicles';
-import { registerRiotCop } from './characters/riotCop';
 import { SpriteRegistry } from './lib/registry';
 import { registerStubTiles } from './tiles/stubTiles';
 import { registerCursors } from './ui/cursors';
@@ -20,7 +19,6 @@ export function createArtRegistry(): SpriteRegistry {
   const reg = new SpriteRegistry();
   registerStubTiles(reg);
   registerStubBoxes(reg);
-  registerRiotCop(reg);
   registerCursors(reg);
   registerEnvironment(reg);
   registerLandmarks(reg);
