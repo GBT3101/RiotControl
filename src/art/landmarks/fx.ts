@@ -40,22 +40,20 @@ const spain: Design = (x, y) => {
 
 const france: Design = (x) => (x < 7 ? 'b' : x < 15 ? 'w' : 'r');
 
+/**
+ * Union flag, pixel-authored for the 22×14 cloth (M13a): 2-px red St George cross with 1-px
+ * white fimbriation; each quadrant is 9×5, so the saltire diagonals are clean 2:1 stairs
+ * (1-px red over a 3-px white band) instead of thresholded distance fields that broke up into
+ * noise once the columns were waved.
+ */
 const union: Design = (x, y) => {
-  const W = FW - 1;
-  const H = FH - 1;
-  const cx = W / 2;
-  const cy = H / 2;
-  // Central cross.
-  if (Math.abs(x - cx) < 1.6 || Math.abs(y - cy) < 1.1) return 'R';
-  if (Math.abs(x - cx) < 2.6 || Math.abs(y - cy) < 2.1) return 'w';
-  // Diagonals (saltires): white band with a centred red stripe.
-  const k = H / W;
-  const n = Math.sqrt(1 + k * k);
-  const d1 = Math.abs(y - x * k) / n;
-  const d2 = Math.abs(y - H + x * k) / n;
-  const d = Math.min(d1, d2);
-  if (d < 0.55) return 'R';
-  if (d < 1.5) return 'w';
+  if (x === 10 || x === 11 || y === 6 || y === 7) return 'R';
+  if (x === 9 || x === 12 || y === 5 || y === 8) return 'w';
+  const u = x < 9 ? x : FW - 1 - x;
+  const v = y < 5 ? y : FH - 1 - y;
+  const line = Math.floor(u / 2);
+  if (v === line) return 'R';
+  if (Math.abs(v - line) === 1 || (u % 2 === 1 && v === line + 1)) return 'w';
   return 'b';
 };
 
@@ -84,9 +82,13 @@ export function flagFrames(
     const buf = createBuffer(w + 3, hh + 8);
     const ph = (f / n) * Math.PI * 2;
     for (let x = 0; x < w; x++) {
-      const k = x / w;
-      const off = Math.round(amp * k * Math.sin(x * 0.42 - ph) + k * 2.5);
-      const slope = Math.cos(x * 0.42 - ph);
+      // M13a: the wave is evaluated per 3-column panel (cloth folds as flat facets), so the
+      // design's diagonals and stripes stay intact inside each panel instead of being sheared
+      // column by column into noise.
+      const gx = Math.floor(x / 3) * 3 + 1;
+      const k = gx / w;
+      const off = Math.round(amp * k * Math.sin(gx * 0.42 - ph) + k * 2.5);
+      const slope = Math.cos(gx * 0.42 - ph);
       // Ragged fly end for torn flags.
       // Torn: three ragged tongues at the fly end + two holes; scorched near the tear.
       const notch = (y: number): number => {

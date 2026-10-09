@@ -22,8 +22,10 @@ rasterised by `render3d.ts`, a tiny orthographic ray caster built to produce *pi
   lower right (palette `shadow` swatch at 45 %);
 - hand-drawn 2D details from `stamps.grid.ts`: flame tongues (4f), smoke/dust puffs, Ministry
   star & chevron stencils, red cross, RATP/London roundels, a 3×5 micro font for lettering
-  (POLICE, LONDON, EMT), muzzle-flash star bursts. Face decals follow the face's iso slope;
-  flames/flashes are depth-tested billboards.
+  (POLICE, LONDON), muzzle-flash star bursts. Face decals follow the face's iso slope;
+  lettering (`text()` returns per-column glyph `cells`) is stepped glyph by glyph — each 3×5
+  letter stays upright and the next one steps down the 2:1 face (M13a; shearing column by
+  column tore the letters apart). flames/flashes are depth-tested billboards.
 
 All facings are rendered **natively** (nothing is mirrored), so lighting always comes from the
 upper left and lettering is never reversed. Output is deterministic (tested).
@@ -122,7 +124,7 @@ altitude in the hover pose.
 
 Ids (`CIVIL_IDS`): `police_van` (navy, Battenburg, POLICE lettering, blue lightbar),
 `ambulance` (green/yellow Battenburg, red crosses, lightbar), `fire_truck` (red, ladder,
-lightbar), `bus_london` (red double-decker, LONDON), `bus_madrid` (EMT white/blue + red band),
+lightbar), `bus_london` (red double-decker, gold LONDON fleet name between the decks), `bus_madrid` (EMT livery: white, blue roof/skirt, red band — no lettering),
 `bus_paris` (RATP white/jade + roundel), `cab_london` (black cab, amber TAXI lamp),
 `taxi_madrid` (white, red door band, green roof lamp), `car_2cv` (Paris 2CV-ish, mint),
 `car_twingo` (Paris one-box, yellow), `hatch` (red) + `hatch_blue|white|yellow|green|silver`,

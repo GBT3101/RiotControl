@@ -48,8 +48,9 @@ export const STENCILS = {
   roundel: grid(ROUNDEL, { R: 'crim2', B: 'navy1' }, {}, 'roundel'),
 };
 
-/** Micro-font text (3×5 glyphs, 1 px tracking) in one swatch. */
-export function text(s: string, colour = 'white'): PixelBuffer {
+/** Micro-font lettering (3×5 glyphs, 1 px tracking) in one swatch; `cells` maps each column to its glyph's first column (decals step
+ *  whole glyphs along a slanted face — see Decal.cells). */
+export function text(s: string, colour = 'white'): PixelBuffer & { cells: number[] } {
   const glyphs = [...s.toUpperCase()].map((ch) => {
     const g = MICRO_FONT[ch];
     if (!g) throw new Error(`micro font: no glyph "${ch}"`);
@@ -57,15 +58,17 @@ export function text(s: string, colour = 'white'): PixelBuffer {
   });
   const w = glyphs.reduce((a, g) => a + g.w + 1, -1);
   const out = createBuffer(Math.max(1, w), 5);
+  const cells: number[] = [];
   let x = 0;
   for (const g of glyphs) {
+    for (let i = 0; i <= g.w; i++) cells[x + i] = x;
     for (let y = 0; y < g.h; y++)
       for (let gx = 0; gx < g.w; gx++) {
         if (g.data[(y * g.w + gx) * 4 + 3] === 255) setPixel(out, x + gx, y, resolveColor(colour));
       }
     x += g.w + 1;
   }
-  return out;
+  return Object.assign(out, { cells: cells.slice(0, out.w) });
 }
 
 /** Solid w×h block in one colour (stripes, number plates). */

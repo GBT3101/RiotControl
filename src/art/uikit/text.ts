@@ -228,9 +228,27 @@ function monoFont(src: BitmapFont, cell: number, name: string): BitmapFont {
 }
 
 /** Faux-bold copy: every stroke doubled 1 px to the right. */
+/**
+ * Hand-drawn bold glyphs where the generic "smear 1 px right" bolding closes the counters
+ * (a 1-px-gap "+", "×" or '"' would melt into a blob). Rows from the cap top.
+ */
+const BOLD_OVERRIDES: Record<string, readonly string[]> = {
+  '+': ['......', '..XX..', '..XX..', 'XXXXXX', 'XXXXXX', '..XX..', '..XX..'],
+  '×': ['......', '......', 'XX..XX', '.XXXX.', '..XX..', '.XXXX.', 'XX..XX'],
+  '"': ['XX.XX', 'XX.XX', 'X..X.'],
+};
+
 function boldFont(src: BitmapFont, name: string): BitmapFont {
   const glyphs = new Map<string, Glyph>();
   for (const [ch, g] of src.glyphs) {
+    const o = BOLD_OVERRIDES[ch];
+    if (o) {
+      const bw = o[0]!.length;
+      const mask = new Uint8Array(bw * o.length);
+      o.forEach((r, y) => [...r].forEach((c, x) => (mask[y * bw + x] = c === 'X' ? 1 : 0)));
+      glyphs.set(ch, { ...g, w: bw, h: o.length, y0: 0, mask, adv: bw + (g.adv - g.w) });
+      continue;
+    }
     const w = g.w + 1;
     const mask = new Uint8Array(w * g.h);
     for (let y = 0; y < g.h; y++) {

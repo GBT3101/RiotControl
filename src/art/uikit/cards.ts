@@ -230,15 +230,69 @@ export function legitMeter(progress: number, level: number, w = 96): PixelBuffer
   // Brass end cap.
   rect(b, w - 3, 3, 3, 12, 'ink');
   vline(b, w - 2, 4, 10, 'ochre2');
-  // Seal with level number.
-  const seal = waxSeal(7, 1, false);
-  stamp(b, seal, -1, 0);
-  const t = String(level);
-  const m = measureText(FONTS.smallBold, t);
-  drawText(b, FONTS.smallBold, t, 8 - Math.floor(m.w / 2) - 1, 5, 'earth1', {
-    shadow: 'ochre4',
-    shadowOffset: { x: 0, y: 1 },
-  });
+  // Seal with the level number on a recessed wax plate (M13a: 0–10 read at 1×).
+  stamp(b, levelSeal(level), -1, 0);
+  return b;
+}
+
+/** 3×5 seal numerals (embossed on the Legitimacy seal plate). */
+const SEAL_DIGITS: Record<string, readonly string[]> = {
+  '0': ['XXX', 'X.X', 'X.X', 'X.X', 'XXX'],
+  '1': ['.X', 'XX', '.X', '.X', '.X'],
+  '2': ['XXX', '..X', 'XXX', 'X..', 'XXX'],
+  '3': ['XXX', '..X', '.XX', '..X', 'XXX'],
+  '4': ['X.X', 'X.X', 'XXX', '..X', '..X'],
+  '5': ['XXX', 'X..', 'XXX', '..X', 'XXX'],
+  '6': ['XXX', 'X..', 'XXX', 'X.X', 'XXX'],
+  '7': ['XXX', '..X', '..X', '.X.', '.X.'],
+  '8': ['XXX', 'X.X', 'XXX', 'X.X', 'XXX'],
+  '9': ['XXX', 'X.X', 'XXX', '..X', 'XXX'],
+};
+
+/**
+ * Gold seal (18×18, scalloped) with a dark recessed plate carrying the level number in
+ * 3×5 numerals: light gold on dark wax, a lit lower-right lip and a shaded upper-left lip.
+ * Two digits ("10") fit with a 1-px margin.
+ */
+export function levelSeal(level: number): PixelBuffer {
+  const b = waxSeal(7, 1, false);
+  const t = String(Math.max(0, Math.min(99, Math.round(level))));
+  const glyphs = [...t].map((c) => SEAL_DIGITS[c] ?? SEAL_DIGITS['0']!);
+  const tw = glyphs.reduce((w, g) => w + g[0]!.length, 0) + glyphs.length - 1;
+  // Plate: rounded rectangle around the numerals (+2 px each side, +1 px top/bottom).
+  const pw = Math.max(7, tw + 4);
+  const ph = 7;
+  const px0 = Math.floor((b.w - pw) / 2);
+  const py0 = Math.floor((b.h - ph) / 2);
+  const inPlate = (x: number, y: number): boolean => {
+    const lx = x - px0;
+    const ly = y - py0;
+    if (lx < 0 || ly < 0 || lx >= pw || ly >= ph) return false;
+    const corner = (lx === 0 || lx === pw - 1) && (ly === 0 || ly === ph - 1);
+    return !corner;
+  };
+  for (let y = py0 - 1; y <= py0 + ph; y++) {
+    for (let x = px0 - 1; x <= px0 + pw; x++) {
+      if (inPlate(x, y)) {
+        // Shaded upper-left inner wall, dark wax floor.
+        px(b, x, y, !inPlate(x - 1, y) || !inPlate(x, y - 1) ? 'earth0' : 'earth1');
+      } else if (inPlate(x - 1, y) || inPlate(x, y - 1) || inPlate(x - 1, y - 1)) {
+        px(b, x, y, 'ochre4'); // lit lower-right lip
+      } else if (inPlate(x + 1, y) || inPlate(x, y + 1)) {
+        px(b, x, y, 'ochre1'); // shaded upper-left lip
+      }
+    }
+  }
+  let x = px0 + Math.floor((pw - tw) / 2);
+  const y0 = py0 + 1;
+  for (const g of glyphs) {
+    g.forEach((row, j) =>
+      [...row].forEach((k, i) => {
+        if (k === 'X') px(b, x + i, y0 + j, j === 0 ? 'ochre4' : 'ochre3');
+      }),
+    );
+    x += g[0]!.length + 1;
+  }
   return b;
 }
 

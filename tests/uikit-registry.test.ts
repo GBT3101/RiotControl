@@ -9,6 +9,7 @@ import {
   CARD_W,
   CARD_H,
   legitMeter,
+  levelSeal,
   integrityMeter,
   abilityRing,
 } from '../src/art/uikit/cards';
@@ -99,5 +100,23 @@ describe('M5 UI kit registry', () => {
       expect(d.frames[0]!.w).toBe(48);
       expect(d.frames[0]!.h).toBe(48);
     }
+  });
+});
+
+describe('M13a legitimacy seal', () => {
+  it('levels 0–10 fit on the seal plate and stay palette-pure', () => {
+    const a = levelSeal(8);
+    const b = levelSeal(10);
+    expect(a.w).toBe(18);
+    expect(b.w).toBe(18);
+    for (const s of [a, b]) {
+      for (let i = 0; i < s.data.length; i += 4) {
+        if (s.data[i + 3] === 0) continue;
+        const rgb = (s.data[i]! << 16) | (s.data[i + 1]! << 8) | s.data[i + 2]!;
+        expect(PALETTE_RGB.has(rgb)).toBe(true);
+      }
+    }
+    // Different levels → different art.
+    expect(Buffer.from(a.data).equals(Buffer.from(b.data))).toBe(false);
   });
 });

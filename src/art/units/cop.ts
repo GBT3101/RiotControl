@@ -56,6 +56,9 @@ const FALL = [
   '_shadow.long lie.flat',
   '_shadow.long lie.flat',
 ];
+/** NE (back view) falls: the mid-fall frame shows the back of the head (M13a), then the
+ *  shared lying frames. */
+const FALL_NE = [FALL[0]!.replace(' fall', ' fall.ne'), ...FALL.slice(1)];
 
 export const COP: UnitDef = {
   id: 'cop',
@@ -193,7 +196,7 @@ export const COP: UnitDef = {
         ne('legs.brace', '-1,0', 'arms.ne.aim+-1,0'),
         ne('legs.brace', '-2,1', 'arm.ne.rest'),
         ne('legs.crouch', '-2,3', 'arm.ne.rest'),
-        ...FALL,
+        ...FALL_NE,
       ],
     },
     {

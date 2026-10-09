@@ -315,8 +315,9 @@ function sideDecals(
 ): void {
   // Right side reads front→back… we want front-to-back = left-to-right only when the reader
   // sees the right side; decals take their reading direction from the face normal.
-  m.decal({ at: [x0, hy + 0.02, z], n: [0, 1, 0], img });
-  m.decal({ at: [x0 + img.w, -hy - 0.02, z], n: [0, -1, 0], img });
+  const cells = img.cells;
+  m.decal({ at: [x0, hy + 0.02, z], n: [0, 1, 0], img, cells });
+  m.decal({ at: [x0 + img.w, -hy - 0.02, z], n: [0, -1, 0], img, cells });
 }
 
 /** Burnt shell: every material charred, decals gone, soot streaks above windows. */
@@ -553,12 +554,13 @@ const policeVan: Builder = (f, s) =>
       nose: [2.4, 6.4],
       paint: (_p, n, q) => {
         if (Math.abs(n[1]) > 0.6) {
-          if (q[2] > 3.2 && q[2] < 6.0)
+          // Battenburg band low on the flank, plain navy above it for the POLICE lettering.
+          if (q[2] > 2.6 && q[2] < 5.2)
             return (Math.floor((q[0] + 40) / 1.5) + Math.floor((q[2] + 40) / 1.4)) % 2
               ? 'hivisPaint'
               : 'blue';
           if (q[0] > 9.8 && q[0] < 11.4 && q[2] > 7.2 && q[2] < 11) return 'glass';
-          if (q[0] < -2 && q[2] > 8.6 && q[2] < 10.4 && Math.floor((q[0] + 40) / 3) % 2 === 0)
+          if (q[0] < -2 && q[2] > 11.0 && q[2] < 12.0 && Math.floor((q[0] + 40) / 3) % 2 === 0)
             return 'glassGrille';
         }
         if (n[0] < -0.6) {
@@ -572,7 +574,7 @@ const policeVan: Builder = (f, s) =>
       },
       extras: (m, fr, st) => {
         lightbar(m, [8.6, 0, 12.8], 7, fr, st);
-        if (st === 'ok') sideDecals(m, 5.5, text('POLICE', 'white'), -13.6, 11.6);
+        if (st === 'ok') sideDecals(m, 5.5, text('POLICE', 'white'), -12.8, 10.6);
         if (st === 'ok') m.boxc('steel', [-14.4, 0, 2.6], [0.8, 4, 0.6]);
       },
     },
@@ -670,6 +672,10 @@ interface BusSpec {
   band?: string;
   skirt?: string;
   roofMat?: string;
+  /** Window rows [z0, z1] (default per deck count). */
+  rows?: Array<[number, number]>;
+  /** Band height range (default between the decks / above the skirt). */
+  bandZ?: [number, number];
   extras?: (m: Model, frame: number, state: CivState) => void;
 }
 
@@ -678,8 +684,9 @@ const bus =
   (spec: BusSpec): Builder =>
   (f, s) => {
     const H = spec.decks === 2 ? 23 : 14.5;
-    const winRows: Array<[number, number]> =
-      spec.decks === 2
+    const winRows: Array<[number, number]> = spec.rows
+      ? spec.rows
+      : spec.decks === 2
         ? [
             [7.4, 11.4],
             [15.4, 20.0],
@@ -712,11 +719,15 @@ const bus =
                   : 'glass';
               }
             }
-            if (side && Math.abs(q[0] - 15.4) < 1.6 && q[2] < 7.4) return 'dark'; // front door
-            if (side && Math.abs(q[0] + 1.5) < 1.6 && q[2] < 6.6) return 'dark'; // middle door
+            const doorTop = spec.rows ? winRows[0]![0] : 7.4;
+            if (side && Math.abs(q[0] - 15.4) < 1.6 && q[2] < doorTop) return 'dark'; // front door
+            if (side && Math.abs(q[0] + 1.5) < 1.6 && q[2] < doorTop - 0.8) return 'dark'; // middle door
           }
-          if (spec.skirt && q[2] < 4.6 && Math.abs(n[2]) < 0.6) return spec.skirt;
-          if (spec.band && q[2] > 13.0 && q[2] < 14.6 && spec.decks === 2) return spec.band;
+          const skirtTop = spec.bandZ && spec.decks === 1 ? spec.bandZ[0] : 4.6;
+          if (spec.skirt && q[2] < skirtTop && Math.abs(n[2]) < 0.6) return spec.skirt;
+          if (spec.band && spec.bandZ) {
+            if (q[2] > spec.bandZ[0] && q[2] < spec.bandZ[1]) return spec.band;
+          } else if (spec.band && q[2] > 13.0 && q[2] < 14.6 && spec.decks === 2) return spec.band;
           if (spec.band && spec.decks === 1 && q[2] > 4.6 && q[2] < 5.8) return spec.band;
           if (spec.roofMat && n[2] > 0.6) return spec.roofMat;
           // Destination blind.
@@ -731,37 +742,48 @@ const bus =
     );
   };
 
+/** Double-decker: gold fleet name on the deep red panel between the decks (M13a: moved off
+ *  the wheel arches / doors, glyphs stepped upright along the face). */
 const busLondon = bus({
   body: 'redBus',
   decks: 2,
   band: 'cream',
   skirt: 'redDk',
   roofMat: 'redBus',
+  rows: [
+    [6.2, 10.0],
+    [16.6, 20.6],
+  ],
+  bandZ: [10.0, 10.9],
   extras: (m, _f, s) => {
     if (s === 'ok') {
-      sideDecals(m, 6, text('LONDON', 'gray7'), -10, 5.6);
+      const t = text('LONDON', 'ochre3');
+      sideDecals(m, 6, t, -Math.round(t.w / 2) - 1, 16.0);
     }
   },
 });
+/** EMT livery: white body, blue roof and skirt, red band (M13a: the 3×5 "EMT" lettering was
+ *  navy-on-blue on the skirt and unreadable; at this size the livery itself carries it). */
 const busMadrid = bus({
   body: 'white',
   decks: 1,
   band: 'red',
   skirt: 'blue',
   roofMat: 'blue',
-  extras: (m, _f, s) => {
-    if (s === 'ok') sideDecals(m, 6, text('EMT', 'navy1'), -18, 4.4);
-  },
+  rows: [[8.6, 12.6]],
+  bandZ: [2.4, 3.8],
 });
 const busParis = bus({
   body: 'white',
   decks: 1,
   band: 'teal',
   skirt: 'teal',
+  rows: [[8.8, 12.8]],
+  bandZ: [2.4, 3.4],
   extras: (m, _f, s) => {
     if (s === 'ok') {
       for (const sd of [-1, 1])
-        m.decal({ at: [sd > 0 ? -8 : -4, sd * 6.02, 4.2], n: [0, sd, 0], img: STENCILS.ratp });
+        m.decal({ at: [sd > 0 ? 3 : 7, sd * 6.02, 8.0], n: [0, sd, 0], img: STENCILS.ratp });
     }
   },
 });

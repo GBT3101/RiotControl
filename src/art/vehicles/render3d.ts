@@ -239,6 +239,12 @@ export interface Decal {
   img: PixelBuffer;
   /** Only draw on pixels whose primitive has this tag. */
   onTag?: string;
+  /**
+   * Lettering: column → first column of its glyph. Glyphs are then stepped along the face
+   * slope as upright blocks (pixel-art iso lettering) instead of sheared column by column,
+   * which tears 3-px letters apart on a 2:1 face.
+   */
+  cells?: readonly number[];
 }
 
 /** A depth-tested camera-facing 2D overlay (flames, muzzle flashes, smoke). */
@@ -976,7 +982,7 @@ function drawDecal(
       const si = (v * d.img.w + u) * 4;
       if (d.img.data[si + 3] !== 255) continue;
       const x = x0 + dir * u;
-      const y = y0 + v + Math.round(slope * u);
+      const y = y0 + v + Math.round(slope * (d.cells ? d.cells[u]! : u));
       if (x < 0 || y < 0 || x >= buf.w || y >= buf.h) continue;
       const i = y * buf.w + x;
       const pi = hit.prim[i]!;

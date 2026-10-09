@@ -82,6 +82,12 @@ export const GEAR_KEYS: Readonly<Record<string, string>> = {
   r: 'crim1',
   c: 'stone3',
   C: 'stone4',
+  // Cult regalia (M13a): gold hourglass totem / sigils, wooden poles, lantern glow.
+  O: 'ochre3',
+  q: 'ochre1',
+  E: 'earth3',
+  e: 'earth2',
+  L: 'ochre4',
 };
 
 /** Held items. */

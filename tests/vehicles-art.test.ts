@@ -8,6 +8,7 @@ import { PALETTE_RGB, SHADOW, SWATCHES } from '../src/art/palette';
 import { CIVIL_IDS } from '../src/art/vehicles/civil';
 import { DIR16, DIR4, DIR8, dirToTile, facing16, facing8 } from '../src/art/vehicles/dirs';
 import { registerVehicles } from '../src/art/vehicles';
+import { text } from '../src/art/vehicles/stamps';
 import {
   heliHubOffset,
   humveeMuzzle,
@@ -102,6 +103,8 @@ describe('vehicle pixels', () => {
   const shadowRgb = parseInt(SWATCHES[SHADOW].slice(1), 16);
 
   it('uses RIOT-64 only; partial alpha only as the shadow swatch on hasShadow sprites', () => {
+    // Collect offenders (one expect per pixel made this test slow enough to time out).
+    const bad = new Set<string>();
     for (const d of defs) {
       for (const f of d.frames) {
         for (let i = 0; i < f.data.length; i += 4) {
@@ -109,12 +112,12 @@ describe('vehicle pixels', () => {
           if (a === 0) continue;
           const rgb = (f.data[i]! << 16) | (f.data[i + 1]! << 8) | f.data[i + 2]!;
           if (a < 255) {
-            expect(d.hasShadow, d.name).toBe(true);
-            expect(rgb, d.name).toBe(shadowRgb);
-          } else expect(PALETTE_RGB.has(rgb), `${d.name} #${rgb.toString(16)}`).toBe(true);
+            if (!d.hasShadow || rgb !== shadowRgb) bad.add(`${d.name} alpha ${a}`);
+          } else if (!PALETTE_RGB.has(rgb)) bad.add(`${d.name} #${rgb.toString(16)}`);
         }
       }
     }
+    expect([...bad]).toEqual([]);
   });
 
   it('keeps anchors inside frames and frames non-empty', () => {
@@ -180,5 +183,16 @@ describe('facings & offsets', () => {
     expect(heliHubOffset('hover', 'se').y).toBeLessThan(-6);
     const m = metaTables();
     expect(Object.keys(m.tankMuzzle)).toHaveLength(16);
+  });
+});
+
+describe('M13a vehicle lettering', () => {
+  it('micro-font lettering maps every column to its glyph start (stepped decals)', () => {
+    const t = text('LONDON', 'ochre3');
+    expect(t.cells.length).toBe(t.w);
+    expect(t.cells[0]).toBe(0);
+    // Columns of one glyph share its start; starts increase monotonically.
+    for (let x = 1; x < t.w; x++) expect(t.cells[x]!).toBeGreaterThanOrEqual(t.cells[x - 1]!);
+    expect(new Set(t.cells).size).toBe(6);
   });
 });

@@ -71,7 +71,7 @@ facade) so they continue the stair visually. Protesters stand on that row and at
 
 | Overlay | Size | Frames @ fps | Anchor | Use |
 |---|---|---|---|---|
-| `lm.flag.{es,uk,fr}` | 25×22 | 6 @ 8 | (1,1) = pole tip; flies to the right | states 0–1 |
+| `lm.flag.{es,uk,fr}` | 25×22 | 6 @ 8 | (1,1) = pole tip; flies to the right; M13a: waved per 3-px panel, Union flag pixel-authored (2:1 saltire stairs) | states 0–1 |
 | `lm.flag.{es,uk,fr}.torn` | 25×22 | 6 @ 10 | (1,1) | states 2–4 (ragged fly end, holes) |
 | `lm.flag.{es,uk,fr}.small` | 16×16 | 6 @ 8 | (1,1) | secondary landmarks (Palacio de Cibeles) |
 | `lm.fx.fire.s / .m / .l` | 8×12 / 12×18 / 18×28 | 6 @ 12 | bottom centre | burning windows / roofs (states 3–4) |

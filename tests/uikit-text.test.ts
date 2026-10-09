@@ -76,3 +76,31 @@ describe('bitmap fonts', () => {
     expect(supportedChars(FONTS.small).length).toBeGreaterThan(100);
   });
 });
+
+describe('M13a glyph legibility', () => {
+  const rows = (name: 'small' | 'smallBold', ch: string): string[] => {
+    const g = FONTS[name].glyphs.get(ch)!;
+    const out: string[] = [];
+    for (let y = 0; y < g.h; y++) {
+      let r = '';
+      for (let x = 0; x < g.w; x++) r += g.mask[y * g.w + x] ? 'X' : '.';
+      out.push(r);
+    }
+    return out;
+  };
+
+  it('"+" is a 5×5 cross (no longer a 3×3 dot) and keeps its arms in bold', () => {
+    const p = rows('small', '+').filter((r) => r.includes('X'));
+    expect(p).toEqual(['..X..', '..X..', 'XXXXX', '..X..', '..X..']);
+    const b = rows('smallBold', '+').filter((r) => r.includes('X'));
+    expect(b.length).toBe(6);
+    // Bold arms stay separated from the bar by empty corners.
+    expect(b[0]![0]).toBe('.');
+    expect(b[0]![b[0]!.length - 1]).toBe('.');
+  });
+
+  it('bold × and double-quote keep their counters open', () => {
+    expect(rows('smallBold', '×').some((r) => /X\.+X/.test(r))).toBe(true);
+    expect(rows('smallBold', '"')[0]).toMatch(/X\.X/);
+  });
+});

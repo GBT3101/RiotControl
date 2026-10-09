@@ -341,18 +341,29 @@ function rollCrazy(rng: Rng, _city: City): Rolled {
 }
 
 function rollCultist(rng: Rng, _city: City, index: number): Rolled {
+  // The Order of the Final Hour (fictional): ochre-red robe family, hourglass regalia. M13a
+  // adds hood shapes (clock-hand spikes, hourglass crest, drooping tasselled peak), face-paint
+  // styles, back regalia (hourglass totem, sigil banner, scroll case), hip lanterns and hood /
+  // robe tone mixes so a cult squad no longer reads as clones. No real-world religious cues.
   const w = baseWear(rng);
   w.hair = pw(rng, [['bald', 3], ['buzz', 2], ['long', 1], ['short', 1]]);
-  w.hat = rng.chance(0.7) ? 'cowl' : undefined;
-  if (rng.chance(0.8)) w.face.push('paint');
+  w.top = rng.chance(0.78) ? 'robe' : 'plainrobe';
+  w.topTone = pw(rng, [['cult', 4], ['maroon', 2.5], ['ochre', 2], ['sack', 1.5], ['red', 1.5], ['orange', 1], ['brown', 1]] as const);
+  w.hat = pw(rng, [['cowl', 3.5], ['cowlpeak', 2], ['cowlclock', 1.5], ['cowlcrest', 1.5], [undefined, 1.5]]);
+  // Hood: robe-matched, or a contrasting rank colour from the same family.
+  w.hatTone = rng.chance(0.55) ? w.topTone : pw(rng, [['maroon', 2], ['cult', 2], ['ochre', 1.5], ['brown', 1], ['sack', 1]] as const);
+  const paint = pw(rng, [['paint', 3], ['paintlines', 2], ['paintband', 2], ['paintchin', 1.5], [undefined, 1.5]]);
+  if (paint) w.face.push(paint);
   if (rng.chance(0.25)) w.beard = rng.pick(['full', 'stubble']);
-  w.top = 'robe';
-  w.topTone = pw(rng, [['cult', 5], ['maroon', 2], ['ochre', 2], ['sack', 2], ['red', 1]] as const);
-  w.accTone = rng.pick(['mustard', 'yellow', 'cream', 'mustard'] as const);
+  w.accTone = pw(rng, [['mustard', 3], ['yellow', 2], ['cream', 1.5], ['charcoal', 1], ['white', 0.7]] as const);
   w.sleeves = 'long';
-  w.botTone = 'sack';
-  w.shoe = ['brown', 'brown'];
-  w.expr = 'neutral';
+  w.botTone = rng.pick(['sack', 'brown', 'khaki'] as const);
+  w.shoe = rng.pick([['brown', 'brown'], ['tan', 'brown'], ['black', 'charcoal']] as Array<[ClothTone, ClothTone]>);
+  w.back = pw(rng, [[undefined, 4.5], ['totem', 2], ['banner', 2], ['scroll', 1.5]]);
+  w.gearTone = pw(rng, [['cult', 2], ['maroon', 2], ['ochre', 1.5], ['cream', 1]] as const);
+  if (rng.chance(0.28)) w.front.push('lantern');
+  w.expr = rng.pick(['neutral', 'neutral', 'wide', 'shout']);
+  w.build = { width: pw(rng, [[0, 3], [1, 4], [2, 3]] as const), tall: rng.chance(0.45) };
   // Loadouts cycle so every variant set has all three (machete / rifle / bazooka).
   const loadout = (['machete', 'rifle', 'machete', 'bazooka', 'rifle'] as const)[index % 5]!;
   const kit: Kit = {
@@ -364,7 +375,7 @@ function rollCultist(rng: Rng, _city: City, index: number): Rolled {
     gait: 'march',
     climbs: false,
     molotov: false,
-    mood: 'neutral',
+    mood: w.expr,
   };
   w.itemTone = rng.pick(['cult', 'sack', 'khaki', 'maroon'] as const);
   return { wear: w, kit, loadout };

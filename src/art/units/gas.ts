@@ -56,6 +56,9 @@ const FALL = [
   '_shadow.long lie.flat',
   '_shadow.long lie.flat',
 ];
+/** NE (back view) falls: the mid-fall frame shows the back of the head (M13a), then the
+ *  shared lying frames. */
+const FALL_NE = [FALL[0]!.replace(' fall', ' fall.ne'), ...FALL.slice(1)];
 
 /** Spray puffs leaving the muzzle (SE muzzle ≈ (20,13)), 4-frame loop. */
 const PUFFS_SE = [
@@ -218,7 +221,7 @@ export const GAS: UnitDef = {
         ne('legs.brace', '-1,0', 'arms.ne.hold+-1,-1'),
         ne('legs.brace', '-2,1', 'arms.ne.hold+-1,1'),
         ne('legs.crouch', '-2,3', 'arms.ne.hold'),
-        ...FALL,
+        ...FALL_NE,
       ],
     },
     {

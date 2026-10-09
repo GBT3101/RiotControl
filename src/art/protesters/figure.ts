@@ -72,6 +72,9 @@ export const HAT_CLIP: Readonly<Record<string, number>> = {
   headband: 0,
   headphones: 0,
   cowl: 99,
+  cowlpeak: 99,
+  cowlclock: 99,
+  cowlcrest: 99,
   raincoathood: 4,
 };
 

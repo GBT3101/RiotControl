@@ -115,6 +115,13 @@ mobile tiers (cost scales linearly; ~44 k px per variant). Build time ≈ 1.5 s 
 - **Doomsday Cultists — "The Order of the Final Hour"** (fictional): rounded ochre-red /
   sackcloth hooded robes with a gold hourglass emblem and hood clasp, ritual face paint;
   machete / rifle / bazooka. Deliberately no real-world religious or ethnic dress cues.
+  M13a variety: robe tones cult / maroon / ochre / sack / red / orange / brown (some plain robes
+  without the emblem), hood shapes `cowl`, `cowlpeak` (drooping tasselled peak), `cowlclock`
+  (gold clock-hand spikes), `cowlcrest` (hourglass crest) or bare-headed acolytes, hoods in the
+  robe tone or a contrasting rank tone, face paint `paint` / `paintlines` (sand-trickle streaks)
+  / `paintband` (gold band) / `paintchin`, back regalia `totem` (gold hourglass on a pole),
+  `banner` (hourglass sigil flag), `scroll` (scroll case), hip `lantern`, varied builds and
+  expressions. No pointed hoods (avoids real-world associations).
 - **Prophets** — white robes, wild hair & long beards, sandwich boards (“END”, “END!”,
   “NIGH”, “SOON”, “BYE”) bristling with comic red dynamite; arms-raised sprint; glowing wind-up.
 - **Breta** — tiny furious climate teen parody: yellow raincoat, braids, leaf pin, scowl, a

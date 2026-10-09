@@ -66,6 +66,9 @@ const FALL = [
   '_shadow.long lie.flat shield.ground',
   '_shadow.long lie.flat shield.ground',
 ];
+/** NE (back view) falls: the mid-fall frame shows the back of the head (M13a), then the
+ *  shared lying frames. */
+const FALL_NE = [FALL[0]!.replace(' fall', ' fall.ne'), ...FALL.slice(1)];
 
 export const RIOT: UnitDef = {
   id: 'riot',
@@ -227,7 +230,7 @@ export const RIOT: UnitDef = {
         '_shadow legs.brace shield.ne+-1,0 >-1,0 torso.ne head.ne arm.ne.up',
         '_shadow legs.brace shield.ne+-2,3 >-2,1 torso.ne head.ne arm.ne.rest',
         '_shadow legs.crouch shield.ground >-2,3 torso.ne head.ne arm.ne.rest',
-        ...FALL,
+        ...FALL_NE,
       ],
     },
     {

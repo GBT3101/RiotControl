@@ -27,6 +27,8 @@ Vehicles (humvee / tank / heli) and their icons are M4c.
   `deploy` once at the placement tile. Rooftop units use `deploy` (climb-up) at the roof edge
   directly; the blockade drops in (`unit.blockade.deploy.<axis>`).
 - **Death → body**: `death` ends on the body pose; then show `body` (1 frame) for 20–40 s.
+  M13a: riot / gas / cop / soldier NE deaths use a back-view mid-fall part (`fall.ne`) instead
+  of the SE fall frame (no more face pop on the way down); the lying frames stay shared.
   Riot also has `ko` (sitting, head lolling, 4 f loop) for non-lethal downs.
 - **Impact frames** (damage tick / projectile spawn / dust) and **muzzle pixels** (flash already
   drawn into the frame; spawn tracers / pellets / grenade there) are in the tables below and
