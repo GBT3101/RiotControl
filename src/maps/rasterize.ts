@@ -262,7 +262,9 @@ function paintRoad(wk: Work, road: Road): void {
       const g = wk.ground[k]!;
       if (g === G.water || g === G.quay) return;
       const core = Math.abs(hit.perp) < coreHw - 1e-6;
-      const rank = core ? 100 + CLS_RANK[road.cls] * 10 + (road.surface === G.asphalt ? 1 : 0) : CLS_RANK[road.cls];
+      const rank = core
+        ? 100 + CLS_RANK[road.cls] * 10 + (road.surface === G.asphalt ? 1 : 0)
+        : CLS_RANK[road.cls];
       if (core && wk.coreLast[k] !== road.id) {
         wk.coreLast[k] = road.id;
         wk.coreCount[k] = wk.coreCount[k]! + 1;
@@ -282,7 +284,11 @@ function paintRoad(wk: Work, road: Road): void {
 
 function paintBridges(wk: Work): void {
   for (const b of wk.bp.bridges) {
-    const road = makeRoad(wk.roads.length, { name: b.name, path: b.path, width: b.width, sidewalk: b.sidewalk ?? 1, trees: null }, true);
+    const road = makeRoad(
+      wk.roads.length,
+      { name: b.name, path: b.path, width: b.width, sidewalk: b.sidewalk ?? 1, trees: null },
+      true,
+    );
     wk.roads.push(road);
     paintRoad(wk, road); // land approaches
     const hw = b.width / 2;
@@ -371,8 +377,7 @@ function cutLanes(wk: Work): void {
   const comp = new Int32Array(w * h);
   const noCut = new Uint8Array(w * h);
   const stack: number[] = [];
-  const blocked = (i: number, j: number): boolean =>
-    wk.bp.noLanes.some((s) => inShape(s, i, j));
+  const blocked = (i: number, j: number): boolean => wk.bp.noLanes.some((s) => inShape(s, i, j));
   for (let iter = 0; iter < 60; iter++) {
     comp.fill(-1);
     let changed = false;
@@ -435,7 +440,13 @@ function cutComponent(
   const mid = Math.floor((lo + hi) / 2);
   // Try offsets around the middle until a cut produces a lane that touches the street grid.
   const offsets = [0, 1, -1, 2, -2, 3, -3, 4, -4];
-  const lane: RoadDef = { path: [], width: 2, surface: wk.bp.style.laneSurface, cls: 'lane', markings: false };
+  const lane: RoadDef = {
+    path: [],
+    width: 2,
+    surface: wk.bp.style.laneSurface,
+    cls: 'lane',
+    markings: false,
+  };
   for (const off of offsets) {
     const c = mid + off;
     if (c - lo < 3 || hi - (c + 1) < 3) continue;
@@ -569,7 +580,9 @@ function zoneFor(wk: Work, i: number, j: number): ZoneDef | undefined {
 }
 
 function inDistrict(wk: Work, i: number, j: number): boolean {
-  return wk.bp.districts.some((d) => i >= d.area[0] && i <= d.area[2] && j >= d.area[1] && j <= d.area[3]);
+  return wk.bp.districts.some(
+    (d) => i >= d.area[0] && i <= d.area[2] && j >= d.area[1] && j <= d.area[3],
+  );
 }
 
 function fillBuildings(wk: Work): void {
@@ -640,10 +653,14 @@ function fillBuildings(wk: Work): void {
           const sRange = zone?.storeys ?? style.storeys;
           let storeys = rng.int(sRange[0], sRange[1]) + (road?.storeyBonus ?? 0);
           if (f.rank >= 3.4 && !road) storeys += 1; // plaza frontage
-          const resP = Math.max(zone?.residential ?? style.residential, inDistrict(wk, i, j) ? 0.92 : 0);
+          const resP = Math.max(
+            zone?.residential ?? style.residential,
+            inDistrict(wk, i, j) ? 0.92 : 0,
+          );
           const avenueFront = road?.cls === 'avenue';
           const kind: BuildingKind =
-            zone?.kind ?? (rng.chance(avenueFront ? resP - 0.25 : resP) ? 'residential' : 'commercial');
+            zone?.kind ??
+            (rng.chance(avenueFront ? resP - 0.25 : resP) ? 'residential' : 'commercial');
           const roofs = zone?.roofs ?? style.roofs;
           const roofTopP = road?.rooftops ? 0.88 : f.rank >= 3.4 ? 0.7 : 0.06;
           bi = Math.max(0, bi);
@@ -695,7 +712,9 @@ function fillBuildings(wk: Work): void {
           storeys: rng.int(sRange[0], sRange[1]) - 1,
           kind:
             zone?.kind ??
-            (rng.chance(Math.max(zone?.residential ?? style.residential, inDistrict(wk, i, j) ? 0.92 : 0))
+            (rng.chance(
+              Math.max(zone?.residential ?? style.residential, inDistrict(wk, i, j) ? 0.92 : 0),
+            )
               ? 'residential'
               : 'commercial'),
           roof: pickRoof(wk, zone?.roofs ?? style.roofs),
@@ -740,7 +759,8 @@ function assignDoors(wk: Work): void {
       if (!inb(wk, i, j)) return;
       const g = wk.ground[idx(wk, i, j)]!;
       if (!WALK[g] || g === G.steps) return;
-      const surf = g === G.sidewalk || g === G.plaza || g === G.cobble ? 2 : g === G.asphalt ? 0 : 1;
+      const surf =
+        g === G.sidewalk || g === G.plaza || g === G.cobble ? 2 : g === G.asphalt ? 0 : 1;
       cands.push({ t: { i, j }, score: surf * 10 + face * 3 - mid });
     };
     // +j face (visible, lit) and +i face (visible, shaded) are preferred.
@@ -773,7 +793,8 @@ function paintMarkings(wk: Work): void {
   const junction = new Uint8Array(w * h);
   for (let k = 0; k < w * h; k++) {
     const g = wk.ground[k];
-    if ((g === G.asphalt || g === G.cobble) && (wk.coreCount[k]! >= 2 || wk.areaAsphalt[k] === 1)) junction[k] = 1;
+    if ((g === G.asphalt || g === G.cobble) && (wk.coreCount[k]! >= 2 || wk.areaAsphalt[k] === 1))
+      junction[k] = 1;
   }
   const roadAt = (i: number, j: number): Road | undefined => {
     if (!inb(wk, i, j)) return undefined;
@@ -789,7 +810,8 @@ function paintMarkings(wk: Work): void {
       const g = wk.ground[k]!;
       if (g === G.bridge) {
         if (Math.abs(wk.roadPerp[k]!) < 0.5 + 1e-6 && wk.roadPerp[k]! > -0.5 + 1e-6)
-          wk.marking[k] = wk.roadAxis[k] === AXIS_I ? M.dashI : wk.roadAxis[k] === AXIS_J ? M.dashJ : 0;
+          wk.marking[k] =
+            wk.roadAxis[k] === AXIS_I ? M.dashI : wk.roadAxis[k] === AXIS_J ? M.dashJ : 0;
         continue;
       }
       if (!road.markings || g !== G.asphalt) continue;
@@ -804,7 +826,8 @@ function paintMarkings(wk: Work): void {
       else {
         const p = wk.roadPerp[k]!;
         const core = road.width - 2 * road.sidewalk;
-        if (core >= 3 && p > -0.5 + 1e-6 && p <= 0.5 + 1e-6) wk.marking[k] = axis === AXIS_I ? M.dashI : M.dashJ;
+        if (core >= 3 && p > -0.5 + 1e-6 && p <= 0.5 + 1e-6)
+          wk.marking[k] = axis === AXIS_I ? M.dashI : M.dashJ;
       }
     }
   }
@@ -818,7 +841,8 @@ function canDecor(wk: Work, i: number, j: number, spacing = 1): boolean {
   if (!inb(wk, i, j)) return false;
   const k = idx(wk, i, j);
   const g = wk.ground[k]!;
-  if (!WALK[g] || g === G.asphalt || g === G.steps || g === G.bridge && wk.roadCore[k] === 1) return false;
+  if (!WALK[g] || g === G.asphalt || g === G.steps || (g === G.bridge && wk.roadCore[k] === 1))
+    return false;
   for (let y = j - spacing; y <= j + spacing; y++) {
     for (let x = i - spacing; x <= i + spacing; x++) {
       if (inb(wk, x, y) && wk.decorAt[idx(wk, x, y)]) return false;
@@ -847,7 +871,12 @@ function placeDecor(wk: Work, doorTiles: Set<number>): void {
       for (let dj = -r; dj <= r && !done; dj++) {
         for (let di = -r; di <= r && !done; di++) {
           if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;
-          if (!canDecor(wk, ci + di, cj + dj, 0)) continue;
+          const onWater =
+            d.kind === 'boat' &&
+            inb(wk, ci + di, cj + dj) &&
+            wk.ground[idx(wk, ci + di, cj + dj)] === G.water &&
+            !wk.decorAt[idx(wk, ci + di, cj + dj)];
+          if (!onWater && (d.kind === 'boat' || !canDecor(wk, ci + di, cj + dj, 0))) continue;
           putDecor(wk, d.kind, ci + di, cj + dj, d.axis);
           done = true;
         }
@@ -859,7 +888,12 @@ function placeDecor(wk: Work, doorTiles: Set<number>): void {
       for (let x = i - 1; x <= i + 1; x++) {
         if (!inb(wk, x, y)) continue;
         const k = idx(wk, x, y);
-        if (wk.marking[k] === M.zebraI || wk.marking[k] === M.zebraJ || (wk.coreCount[k]! >= 2 && wk.ground[k] === G.asphalt)) return true;
+        if (
+          wk.marking[k] === M.zebraI ||
+          wk.marking[k] === M.zebraJ ||
+          (wk.coreCount[k]! >= 2 && wk.ground[k] === G.asphalt)
+        )
+          return true;
       }
     }
     return false;
@@ -950,7 +984,79 @@ function placeDecor(wk: Work, doorTiles: Set<number>): void {
     for (let i = 0; i < w; i++) {
       const k = idx(wk, i, j);
       if (wk.ground[k] !== G.parkPath) continue;
-      if (rng.chance(0.06) && canDecor(wk, i, j, 2)) putDecor(wk, rng.chance(0.5) ? 'bench' : 'lamp', i, j);
+      if (rng.chance(0.06) && canDecor(wk, i, j, 2))
+        putDecor(wk, rng.chance(0.5) ? 'bench' : 'lamp', i, j);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Gameplay guarantees (deterministic fix-ups, independent of the seed's luck)
+// ---------------------------------------------------------------------------------------------
+
+const MIN_DISTRICT_HOMES = 6;
+const MIN_APPROACH_ROOFS = 3;
+
+const centreIn = (b: BuildingData, a: readonly [number, number, number, number]): boolean => {
+  const ci = b.i + b.w / 2;
+  const cj = b.j + b.d / 2;
+  return ci >= a[0] && ci <= a[2] + 1 && cj >= a[1] && cj <= a[3] + 1;
+};
+
+/** Every spawn district gets at least MIN_DISTRICT_HOMES residential buildings with doors. */
+function ensureDistrictHomes(wk: Work): void {
+  const civicIds = new Set(wk.bp.civic.map((_, k) => k)); // civic buildings are added first
+  for (const d of wk.bp.districts) {
+    const inside = wk.buildings.filter(
+      (b) => !civicIds.has(b.id) && b.doors.length > 0 && centreIn(b, d.area),
+    );
+    let homes = inside.filter((b) => b.kind === 'residential').length;
+    // Convert the commercial buildings farthest from the Capitol first (keep shops near the centre).
+    const conv = inside
+      .filter((b) => b.kind !== 'residential')
+      .sort((a, b) => b.i + b.j - (a.i + a.j) || a.id - b.id);
+    for (const b of conv) {
+      if (homes >= MIN_DISTRICT_HOMES) break;
+      b.kind = 'residential';
+      homes++;
+    }
+  }
+}
+
+/** Distance from a footprint to a polyline (tile centres). */
+function rectToPath(b: BuildingData, path: readonly P[]): number {
+  let best = Infinity;
+  for (let y = b.j; y < b.j + b.d; y++) {
+    for (let x = b.i; x < b.i + b.w; x++) {
+      const cx = x + 0.5;
+      const cy = y + 0.5;
+      for (let s = 0; s + 1 < path.length; s++) {
+        const [ax, ay] = path[s]!;
+        const [bx, by] = path[s + 1]!;
+        const dx = bx - ax;
+        const dy = by - ay;
+        const l2 = dx * dx + dy * dy || 1;
+        const t = Math.max(0, Math.min(1, ((cx - ax) * dx + (cy - ay) * dy) / l2));
+        best = Math.min(best, Math.hypot(ax + t * dx - cx, ay + t * dy - cy));
+      }
+    }
+  }
+  return best;
+}
+
+/** Every approach is lined by at least MIN_APPROACH_ROOFS sniper-capable roofs (within 5 tiles). */
+function ensureApproachRoofs(wk: Work): void {
+  for (const a of wk.bp.approaches) {
+    const near = wk.buildings
+      .map((b) => ({ b, d: rectToPath(b, a.path) }))
+      .filter((x) => x.d <= 5)
+      .sort((x, y) => x.d - y.d || y.b.storeys - x.b.storeys || x.b.id - y.b.id);
+    let roofs = near.filter((x) => x.b.rooftop).length;
+    for (const x of near) {
+      if (roofs >= MIN_APPROACH_ROOFS) break;
+      if (x.b.rooftop) continue;
+      x.b.rooftop = true;
+      roofs++;
     }
   }
 }
@@ -968,7 +1074,11 @@ function snapWalkable(wk: Work, p: P): TilePos {
         if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;
         const i = ci + di;
         const j = cj + dj;
-        if (inb(wk, i, j) && WALK[wk.ground[idx(wk, i, j)]!] && wk.ground[idx(wk, i, j)] !== G.steps)
+        if (
+          inb(wk, i, j) &&
+          WALK[wk.ground[idx(wk, i, j)]!] &&
+          wk.ground[idx(wk, i, j)] !== G.steps
+        )
           return { i, j };
       }
     }
@@ -1022,6 +1132,9 @@ export function rasterize(bp: Blueprint, seed = 0): MapData {
   for (const b of wk.buildings) for (const d of b.doors) doorTiles.add(idx(wk, d.i, d.j));
   placeDecor(wk, doorTiles);
 
+  ensureDistrictHomes(wk);
+  ensureApproachRoofs(wk);
+
   const fp = CAPITOL_FOOTPRINT[bp.city];
   const spawns: SpawnDistrict[] = bp.districts.map((d) => {
     const [i0, j0, i1, j1] = d.area;
@@ -1029,17 +1142,34 @@ export function rasterize(bp: Blueprint, seed = 0): MapData {
       .filter((b) => {
         const ci = b.i + b.w / 2;
         const cj = b.j + b.d / 2;
-        return b.kind === 'residential' && b.doors.length > 0 && ci >= i0 && ci <= i1 + 1 && cj >= j0 && cj <= j1 + 1;
+        return (
+          b.kind === 'residential' &&
+          b.doors.length > 0 &&
+          ci >= i0 &&
+          ci <= i1 + 1 &&
+          cj >= j0 &&
+          cj <= j1 + 1
+        );
       })
       .map((b) => b.id);
-    return { id: d.id, name: d.name, unlockWave: d.unlockWave, buildingIds: ids, rally: snapWalkable(wk, d.rally) };
+    return {
+      id: d.id,
+      name: d.name,
+      unlockWave: d.unlockWave,
+      buildingIds: ids,
+      rally: snapWalkable(wk, d.rally),
+    };
   });
 
   const toPos = (p: P): TilePos => ({ i: p[0], j: p[1] });
   const streets: StreetLabel[] = [];
   for (const r of wk.roads) {
     if (!r.name) continue;
-    streets.push({ name: r.name, path: (r.def.labelPath ?? r.def.path).map(toPos), width: r.width });
+    streets.push({
+      name: r.name,
+      path: (r.def.labelPath ?? r.def.path).map(toPos),
+      width: r.width,
+    });
   }
   const chokepoints: Chokepoint[] = bp.chokepoints.map((c) => ({
     name: c.name,
@@ -1048,7 +1178,10 @@ export function rasterize(bp: Blueprint, seed = 0): MapData {
     radius: c.radius,
   }));
 
-  const stepsMid = steps[Math.floor(steps.length / 2)] ?? { i: bp.capitol.i, j: bp.capitol.j + fp.d };
+  const stepsMid = steps[Math.floor(steps.length / 2)] ?? {
+    i: bp.capitol.i,
+    j: bp.capitol.j + fp.d,
+  };
   return {
     city: bp.city,
     name: bp.name,

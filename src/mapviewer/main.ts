@@ -11,7 +11,16 @@
  * yellow), the Capitol + steps, landmarks, spawn districts (+ doors, rally flags, unlock wave),
  * chokepoints, street names, decor, and a flow-field preview (distance to the steps).
  */
-import { BLUEPRINTS, CITIES, GROUNDS, LANDMARKS, MARKINGS, loadMap, type CityId, type MapData } from '../maps';
+import {
+  BLUEPRINTS,
+  CITIES,
+  GROUNDS,
+  LANDMARKS,
+  MARKINGS,
+  loadMap,
+  type CityId,
+  type MapData,
+} from '../maps';
 import { descend, distanceField } from '../maps/flow';
 import { rasterize } from '../maps/rasterize';
 import { validateMap, type Issue } from '../maps/validate';
@@ -41,7 +50,15 @@ const CITY_TINT: Record<CityId, [number, number, number]> = {
   london: [176, 92, 74],
   paris: [232, 214, 168],
 };
-const DISTRICT_COLORS = ['#ff5d73', '#4fd1ff', '#ffd23f', '#9b5de5', '#3ddc84', '#ff9f1c', '#f15bb5'];
+const DISTRICT_COLORS = [
+  '#ff5d73',
+  '#4fd1ff',
+  '#ffd23f',
+  '#9b5de5',
+  '#3ddc84',
+  '#ff9f1c',
+  '#f15bb5',
+];
 
 const DECOR_STYLE: Record<string, { c: string; r: number; glyph?: string }> = {
   tree: { c: '#2f7a33', r: 0.42 },
@@ -149,8 +166,10 @@ function drawTop(): HTMLCanvasElement {
       const u = Math.max(1, Math.round(S / 10));
       if (m === 'dashI') g.fillRect(x + S * 0.2, y + S / 2 - u / 2, S * 0.6, u);
       else if (m === 'dashJ') g.fillRect(x + S / 2 - u / 2, y + S * 0.2, u, S * 0.6);
-      else if (m === 'zebraI') for (let t = 1; t < 5; t += 2) g.fillRect(x + S * 0.15, y + (t * S) / 5, S * 0.7, S / 5);
-      else if (m === 'zebraJ') for (let t = 1; t < 5; t += 2) g.fillRect(x + (t * S) / 5, y + S * 0.15, S / 5, S * 0.7);
+      else if (m === 'zebraI')
+        for (let t = 1; t < 5; t += 2) g.fillRect(x + S * 0.15, y + (t * S) / 5, S * 0.7, S / 5);
+      else if (m === 'zebraJ')
+        for (let t = 1; t < 5; t += 2) g.fillRect(x + (t * S) / 5, y + S * 0.15, S / 5, S * 0.7);
       else if (m === 'stopI') g.fillRect(x + S / 2 - u, y, u * 2, S);
       else if (m === 'stopJ') g.fillRect(x, y + S / 2 - u, S, u * 2);
     }
@@ -162,7 +181,11 @@ function drawTop(): HTMLCanvasElement {
   for (const b of map.buildings) {
     const f = 0.45 + b.storeys * 0.1;
     const base: [number, number, number] =
-      b.kind === 'civic' ? [150, 140, 190] : b.kind === 'commercial' ? [tint[0] * 0.8, tint[1] * 0.85, tint[2] * 1.05] : tint;
+      b.kind === 'civic'
+        ? [150, 140, 190]
+        : b.kind === 'commercial'
+          ? [tint[0] * 0.8, tint[1] * 0.85, tint[2] * 1.05]
+          : tint;
     g.fillStyle = shade(base, f);
     g.fillRect(b.i * S + 1, b.j * S + 1, b.w * S - 2, b.d * S - 2);
     // Roof hint: mansard/pitched ridge lines.
@@ -208,7 +231,8 @@ function drawTop(): HTMLCanvasElement {
   for (const b of map.buildings) {
     const dk = districtOf.get(b.id);
     for (const d of b.doors) {
-      g.fillStyle = dk !== undefined ? DISTRICT_COLORS[dk % DISTRICT_COLORS.length]! : 'rgba(30,20,40,.6)';
+      g.fillStyle =
+        dk !== undefined ? DISTRICT_COLORS[dk % DISTRICT_COLORS.length]! : 'rgba(30,20,40,.6)';
       const r = dk !== undefined ? S * 0.22 : S * 0.12;
       g.beginPath();
       g.arc((d.i + 0.5) * S, (d.j + 0.5) * S, r, 0, Math.PI * 2);
@@ -248,10 +272,19 @@ function drawTop(): HTMLCanvasElement {
     g.strokeStyle = '#3d2c00';
     g.lineWidth = 2;
     g.strokeRect(l.i * S + 1, l.j * S + 1, def.w * S - 2, def.d * S - 2);
-    label(g, def.label, (l.i + def.w / 2) * S, (l.j + def.d / 2) * S - (def.d < 3 ? S : 0), '#fff8dc', 11, '#3d2c00');
+    label(
+      g,
+      def.label,
+      (l.i + def.w / 2) * S,
+      (l.j + def.d / 2) * S - (def.d < 3 ? S : 0),
+      '#fff8dc',
+      11,
+      '#3d2c00',
+    );
   }
   // Civic names.
-  for (const cv2 of bp.civic) label(g, cv2.name, (cv2.i + cv2.w / 2) * S, (cv2.j + cv2.d / 2) * S, '#e8e2ff', 9, '#2a2340');
+  for (const cv2 of bp.civic)
+    label(g, cv2.name, (cv2.i + cv2.w / 2) * S, (cv2.j + cv2.d / 2) * S, '#e8e2ff', 9, '#2a2340');
   // Approaches.
   if (showApproaches) {
     for (const a of bp.approaches) {
@@ -268,8 +301,14 @@ function drawTop(): HTMLCanvasElement {
     g.setLineDash([]);
   }
   // Street names.
-  for (const s of map.streets) streetLabel(g, s.path.map((p) => [p.i * S, p.j * S] as const), s.name);
-  for (const l of bp.labels ?? []) label(g, l.text, l.at[0] * S, l.at[1] * S, '#e0f4ff', 14, '#0b2740');
+  for (const s of map.streets)
+    streetLabel(
+      g,
+      s.path.map((p) => [p.i * S, p.j * S] as const),
+      s.name,
+    );
+  for (const l of bp.labels ?? [])
+    label(g, l.text, l.at[0] * S, l.at[1] * S, '#e0f4ff', 14, '#0b2740');
   for (const r of bp.rivers) {
     const mid = r.path[Math.floor(r.path.length / 2)]!;
     label(g, r.name, mid[0] * S, mid[1] * S, '#e0f4ff', 14, '#0b2740');
@@ -283,7 +322,15 @@ function drawTop(): HTMLCanvasElement {
     g.arc((ch.i + 0.5) * S, (ch.j + 0.5) * S, (ch.radius + 0.5) * S, 0, Math.PI * 2);
     g.stroke();
     g.setLineDash([]);
-    label(g, `⚠ ${ch.name}`, (ch.i + 0.5) * S, (ch.j - ch.radius - 0.4) * S, '#ffd0f5', 11, '#5a0050');
+    label(
+      g,
+      `⚠ ${ch.name}`,
+      (ch.i + 0.5) * S,
+      (ch.j - ch.radius - 0.4) * S,
+      '#ffd0f5',
+      11,
+      '#5a0050',
+    );
   }
   // Spawn districts.
   map.spawns.forEach((s, k) => {
@@ -304,7 +351,15 @@ function drawTop(): HTMLCanvasElement {
     g.lineTo(rx + S, ry - S * 1.1);
     g.lineTo(rx + 1, ry - S * 0.8);
     g.fill();
-    label(g, `${s.name} · W${s.unlockWave} · ${s.buildingIds.length}🏠`, rx, ry + S * 0.9, '#fff', 12, col);
+    label(
+      g,
+      `${s.name} · W${s.unlockWave} · ${s.buildingIds.length}🏠`,
+      rx,
+      ry + S * 0.9,
+      '#fff',
+      12,
+      col,
+    );
   });
   // Camera start.
   g.strokeStyle = '#fff';
@@ -313,7 +368,15 @@ function drawTop(): HTMLCanvasElement {
   return cv;
 }
 
-function label(g: CanvasRenderingContext2D, text: string, x: number, y: number, fg: string, size: number, bg: string): void {
+function label(
+  g: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  fg: string,
+  size: number,
+  bg: string,
+): void {
   g.font = `bold ${size}px system-ui, sans-serif`;
   g.textAlign = 'center';
   g.textBaseline = 'middle';
@@ -328,7 +391,11 @@ function label(g: CanvasRenderingContext2D, text: string, x: number, y: number, 
   g.textBaseline = 'alphabetic';
 }
 
-function streetLabel(g: CanvasRenderingContext2D, pts: readonly (readonly [number, number])[], text: string): void {
+function streetLabel(
+  g: CanvasRenderingContext2D,
+  pts: readonly (readonly [number, number])[],
+  text: string,
+): void {
   // Longest segment.
   let best = 0;
   let bl = -1;
@@ -403,7 +470,11 @@ function drawFlow(scale: number): HTMLCanvasElement {
     g.strokeStyle = DISTRICT_COLORS[k % DISTRICT_COLORS.length]!;
     g.lineWidth = 2;
     g.beginPath();
-    route.forEach((p, n) => (n ? g.lineTo((p.i + 0.5) * scale, (p.j + 0.5) * scale) : g.moveTo((p.i + 0.5) * scale, (p.j + 0.5) * scale)));
+    route.forEach((p, n) =>
+      n
+        ? g.lineTo((p.i + 0.5) * scale, (p.j + 0.5) * scale)
+        : g.moveTo((p.i + 0.5) * scale, (p.j + 0.5) * scale),
+    );
     g.stroke();
   });
   const c = map.capitol;
@@ -434,7 +505,10 @@ function drawIso(): HTMLCanvasElement {
   const g = cv.getContext('2d')!;
   const ox = h * (TW / 2) + 2;
   const oy = 6 * SH + 20;
-  const px = (i: number, j: number): [number, number] => [ox + (i - j) * (TW / 2), oy + (i + j) * (TH / 2)];
+  const px = (i: number, j: number): [number, number] => [
+    ox + (i - j) * (TW / 2),
+    oy + (i + j) * (TH / 2),
+  ];
   const tint = CITY_TINT[city];
   const diamond = (i: number, j: number, z: number): void => {
     const [x, y] = px(i, j);
@@ -452,7 +526,8 @@ function drawIso(): HTMLCanvasElement {
     if (i >= c.i && j >= c.j && i < c.i + c.w && j < c.j + c.d) return 7 * SH;
     for (const l of map.landmarks) {
       const d = LANDMARKS[l.id];
-      if (i >= l.i && j >= l.j && i < l.i + d.w && j < l.j + d.d) return (l.id === 'eiffel' ? 14 : 4) * SH;
+      if (i >= l.i && j >= l.j && i < l.i + d.w && j < l.j + d.d)
+        return (l.id === 'eiffel' ? 14 : 4) * SH;
     }
     return 0;
   };
@@ -460,7 +535,11 @@ function drawIso(): HTMLCanvasElement {
     const b = map.building[j * w + i]!;
     if (b >= 0) {
       const bd = map.buildings[b]!;
-      return bd.kind === 'civic' ? [170, 160, 205] : bd.rooftop ? [tint[0], tint[1] * 1.05, tint[2] * 0.8] : tint;
+      return bd.kind === 'civic'
+        ? [170, 160, 205]
+        : bd.rooftop
+          ? [tint[0], tint[1] * 1.05, tint[2] * 0.8]
+          : tint;
     }
     const c = map.capitol;
     if (i >= c.i && j >= c.j && i < c.i + c.w && j < c.j + c.d) return [235, 225, 205];
@@ -528,7 +607,8 @@ function panel(): HTMLElement {
   const decorCounts = new Map<string, number>();
   for (const d of map.decor) decorCounts.set(d.kind, (decorCounts.get(d.kind) ?? 0) + 1);
   const groundCounts = new Map<string, number>();
-  for (const v of map.ground) groundCounts.set(GROUNDS[v]!, (groundCounts.get(GROUNDS[v]!) ?? 0) + 1);
+  for (const v of map.ground)
+    groundCounts.set(GROUNDS[v]!, (groundCounts.get(GROUNDS[v]!) ?? 0) + 1);
   el.innerHTML = `
     <div><h2>${map.name}</h2>
       <table>
@@ -542,10 +622,18 @@ function panel(): HTMLElement {
     <div><h2>Validation</h2>${
       errs.length + warns.length === 0
         ? '<span class="ok">all checks pass</span>'
-        : [...errs, ...warns].map((x) => `<div class="${x.level === 'error' ? 'err' : 'warn'}">${x.level}: ${x.msg}</div>`).join('')
+        : [...errs, ...warns]
+            .map(
+              (x) =>
+                `<div class="${x.level === 'error' ? 'err' : 'warn'}">${x.level}: ${x.msg}</div>`,
+            )
+            .join('')
     }</div>
     <div><h2>Legend</h2><div class="legend">${Object.entries(GROUND_COLOR)
-      .map(([k, c]) => `<div><span class="sw" style="background:${c}"></span>${k} (${groundCounts.get(k) ?? 0})</div>`)
+      .map(
+        ([k, c]) =>
+          `<div><span class="sw" style="background:${c}"></span>${k} (${groundCounts.get(k) ?? 0})</div>`,
+      )
       .join('')}
       <div><span class="sw" style="border:2px solid #ffe14d"></span>rooftop bldg</div>
       <div><span class="sw" style="background:#c1121f"></span>Capitol</div>

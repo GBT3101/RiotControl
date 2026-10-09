@@ -56,7 +56,11 @@ export const london: Blueprint = {
       name: "St James's Park",
       trees: { kinds: ['tree.plane', 'tree.round', 'tree.willow'], density: 0.3 },
     },
-    { ground: 'water', shape: poly([15, 45], [21, 44], [24, 47], [23, 51], [17, 53], [15, 50]), name: "St James's Park Lake" },
+    {
+      ground: 'water',
+      shape: poly([15, 45], [21, 44], [24, 47], [23, 51], [17, 53], [15, 50]),
+      name: "St James's Park Lake",
+    },
     { ground: 'parkPath', shape: rect(13, 41, 26, 41) },
     { ground: 'parkPath', shape: rect(13, 55, 26, 55) },
     { ground: 'parkPath', shape: rect(19, 53, 19, 58) },
@@ -83,11 +87,21 @@ export const london: Blueprint = {
       layer: 'top',
     },
     // South Bank: Jubilee Gardens by the Eye.
-    { ground: 'grass', shape: rect(28, 2, 30, 8), layer: 'top', trees: { kinds: ['tree.round'], density: 0.3 } },
+    {
+      ground: 'grass',
+      shape: rect(28, 2, 30, 8),
+      layer: 'top',
+      trees: { kinds: ['tree.round'], density: 0.3 },
+    },
     // --- Top layer: squares.
     // Parliament Square: traffic ring + lawn island.
     { ground: 'asphalt', shape: rect(27, 25, 41, 37), layer: 'top', name: 'Parliament Square' },
-    { ground: 'grass', shape: rect(30, 28, 37, 34), layer: 'top', trees: { kinds: ['tree.round'], density: 0.08 } },
+    {
+      ground: 'grass',
+      shape: rect(30, 28, 37, 34),
+      layer: 'top',
+      trees: { kinds: ['tree.round'], density: 0.08 },
+    },
     // Old Palace Yard — the palace forecourt (steps painted on top).
     { ground: 'plaza', shape: rect(41, 28, 58, 37), layer: 'top', name: 'Old Palace Yard' },
     // Trafalgar Square.
@@ -97,7 +111,12 @@ export const london: Blueprint = {
     // Horse Guards Parade (gravel).
     { ground: 'parkPath', shape: rect(12, 32, 20, 35), layer: 'top', name: 'Horse Guards Parade' },
     // Victoria Memorial roundabout in front of Buckingham Palace.
-    { ground: 'asphalt', shape: circle(10.5, 60, 4.6), layer: 'top', name: 'Queen Victoria Memorial' },
+    {
+      ground: 'asphalt',
+      shape: circle(10.5, 60, 4.6),
+      layer: 'top',
+      name: 'Queen Victoria Memorial',
+    },
     { ground: 'plaza', shape: circle(10.5, 60, 2.2), layer: 'top' },
     // Lambeth Bridge roundabout.
     { ground: 'asphalt', shape: circle(LB_I, 33.5, 3.6), layer: 'top' },
@@ -479,7 +498,16 @@ export const london: Blueprint = {
   civic: [
     { name: 'County Hall', i: 33, j: 1, w: 4, d: 4, storeys: 5, roof: 'pitched', rooftop: true },
     { name: 'Lambeth Palace', i: 69, j: 6, w: 6, d: 3, storeys: 3, roof: 'pitched' },
-    { name: 'Ministry of Defence', i: 21, j: 22, w: 6, d: 3, storeys: 5, roof: 'flat', rooftop: true },
+    {
+      name: 'Ministry of Defence',
+      i: 21,
+      j: 22,
+      w: 6,
+      d: 3,
+      storeys: 5,
+      roof: 'flat',
+      rooftop: true,
+    },
     { name: 'Banqueting House', i: 13, j: 22, w: 4, d: 3, storeys: 4, roof: 'flat', rooftop: true },
     { name: 'Horse Guards', i: 12, j: 30, w: 6, d: 1 + 1, storeys: 3, roof: 'pitched' },
     { name: 'HM Treasury', i: 21, j: 30, w: 6, d: 4, storeys: 5, roof: 'flat', rooftop: true },
@@ -492,9 +520,21 @@ export const london: Blueprint = {
 
   zones: [
     // Whitehall & Westminster: government stone, never spawn buildings.
-    { shape: rect(11, 20, 64, 46), storeys: [4, 5], residential: 0.1, kind: 'commercial', roofs: { flat: 4, pitched: 3 } },
+    {
+      shape: rect(11, 20, 64, 46),
+      storeys: [4, 5],
+      residential: 0.1,
+      kind: 'commercial',
+      roofs: { flat: 4, pitched: 3 },
+    },
     // Pimlico stucco terraces: long, shallow, residential.
-    { shape: rect(60, 48, 80, 72), storeys: [3, 5], residential: 0.95, maxDepth: 3, roofs: { pitched: 3, flat: 3, terrace: 2 } },
+    {
+      shape: rect(60, 48, 80, 72),
+      storeys: [3, 5],
+      residential: 0.95,
+      maxDepth: 3,
+      roofs: { pitched: 3, flat: 3, terrace: 2 },
+    },
     // Lambeth: lower brick terraces.
     { shape: rect(22, 0, 80, 14), storeys: [2, 4], residential: 0.9, maxDepth: 3 },
     // Covent Garden / Soho: dense mixed.
@@ -518,15 +558,75 @@ export const london: Blueprint = {
   ],
 
   approaches: [
-    { name: 'Parliament Square → St Margaret Street', path: [[28, WH_J], [WB_I, WH_J], [WB_I, 31], [43, 31]], final: true },
-    { name: 'Abingdon Street (from Millbank)', path: [[LB_I, 33.5], [58, 33.5]], final: true },
-    { name: 'Great College Street', path: [[55.5, 41], [55.5, 36]], final: true },
-    { name: 'Westminster Bridge', path: [[WB_I, 4], [WB_I, 23]] },
-    { name: 'Lambeth Bridge', path: [[LB_I, 4], [LB_I, 33]] },
-    { name: 'Whitehall', path: [[11, WH_J], [28, WH_J]] },
-    { name: 'Victoria Street', path: [[58, 60], [39.5, 41], [39.5, 37]] },
-    { name: 'Millbank', path: [[79, 33.5], [LB_I, 33.5]] },
-    { name: 'Birdcage Walk', path: [[28.5, 60], [28.5, 37]] },
+    {
+      name: 'Parliament Square → St Margaret Street',
+      path: [
+        [28, WH_J],
+        [WB_I, WH_J],
+        [WB_I, 31],
+        [43, 31],
+      ],
+      final: true,
+    },
+    {
+      name: 'Abingdon Street (from Millbank)',
+      path: [
+        [LB_I, 33.5],
+        [58, 33.5],
+      ],
+      final: true,
+    },
+    {
+      name: 'Great College Street',
+      path: [
+        [55.5, 41],
+        [55.5, 36],
+      ],
+      final: true,
+    },
+    {
+      name: 'Westminster Bridge',
+      path: [
+        [WB_I, 4],
+        [WB_I, 23],
+      ],
+    },
+    {
+      name: 'Lambeth Bridge',
+      path: [
+        [LB_I, 4],
+        [LB_I, 33],
+      ],
+    },
+    {
+      name: 'Whitehall',
+      path: [
+        [11, WH_J],
+        [28, WH_J],
+      ],
+    },
+    {
+      name: 'Victoria Street',
+      path: [
+        [58, 60],
+        [39.5, 41],
+        [39.5, 37],
+      ],
+    },
+    {
+      name: 'Millbank',
+      path: [
+        [79, 33.5],
+        [LB_I, 33.5],
+      ],
+    },
+    {
+      name: 'Birdcage Walk',
+      path: [
+        [28.5, 60],
+        [28.5, 37],
+      ],
+    },
   ],
 
   decor: [

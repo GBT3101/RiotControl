@@ -46,13 +46,13 @@ export const madrid: Blueprint = {
     // --- Retiro (base layer): lawns, the Estanque, paths. Fenced by railings (lot ring).
     {
       ground: 'grass',
-      shape: rect(19, 0, 59, 7),
+      shape: rect(19, 0, 56, 7),
       name: 'Parque del Retiro',
       trees: { kinds: ['tree.pine', 'tree.round', 'tree.round'], density: 0.42 },
     },
     { ground: 'water', shape: rect(36, 1, 46, 4), name: 'Estanque del Retiro' },
     { ground: 'parkPath', shape: rect(35, 5, 47, 5) }, // lake promenade
-    { ground: 'parkPath', shape: rect(20, 6, 58, 6) }, // Paseo de Coches (inner ring)
+    { ground: 'parkPath', shape: rect(20, 6, 55, 6) }, // Paseo de Coches (inner ring)
     { ground: 'parkPath', shape: rect(27, 0, 27, 6) }, // Paseo de la Argentina
     { ground: 'parkPath', shape: rect(52, 0, 52, 6) },
     // Jardín Botánico (walkable lawn, fenced on the street sides by its own railings below).
@@ -64,16 +64,36 @@ export const madrid: Blueprint = {
     },
     // --- Top layer: plazas, roundabouts, the Prado promenade.
     // Salón del Prado: tree-lined central promenade of the boulevard.
-    { ground: 'parkPath', shape: rect(23, 18, 59, 20), layer: 'top', trees: { kinds: ['tree.plane'], density: 0.5 } },
-    { ground: 'parkPath', shape: rect(0, 18, 10, 20), layer: 'top', trees: { kinds: ['tree.plane'], density: 0.5 } },
+    {
+      ground: 'parkPath',
+      shape: rect(23, 18, 59, 20),
+      layer: 'top',
+      trees: { kinds: ['tree.plane'], density: 0.5 },
+    },
+    {
+      ground: 'parkPath',
+      shape: rect(0, 18, 10, 20),
+      layer: 'top',
+      trees: { kinds: ['tree.plane'], density: 0.5 },
+    },
     // Cibeles roundabout + island.
     { ground: 'asphalt', shape: circle(17, 20, 5.6), layer: 'top', name: 'Plaza de Cibeles' },
     { ground: 'plaza', shape: circle(17, 20, 2.3), layer: 'top' },
     // Neptuno roundabout + island.
-    { ground: 'asphalt', shape: circle(31.5, 20, 4.6), layer: 'top', name: 'Plaza de Cánovas del Castillo' },
+    {
+      ground: 'asphalt',
+      shape: circle(31.5, 20, 4.6),
+      layer: 'top',
+      name: 'Plaza de Cánovas del Castillo',
+    },
     { ground: 'plaza', shape: circle(31.5, 20, 2.3), layer: 'top' },
     // Plaza de la Independencia (Puerta de Alcalá).
-    { ground: 'asphalt', shape: circle(17, 6, 4.6), layer: 'top', name: 'Plaza de la Independencia' },
+    {
+      ground: 'asphalt',
+      shape: circle(17, 6, 4.6),
+      layer: 'top',
+      name: 'Plaza de la Independencia',
+    },
     { ground: 'grass', shape: { rect: [14, 5, 19, 7] }, layer: 'top' },
     // Glorieta de Atocha (Emperador Carlos V).
     { ground: 'asphalt', shape: circle(64.5, 20, 4.6), layer: 'top', name: 'Glorieta de Atocha' },
@@ -101,16 +121,21 @@ export const madrid: Blueprint = {
       layer: 'top',
       name: 'Plaza de España',
     },
-    { ground: 'grass', shape: rect(1, 65, 5, 69), layer: 'top', trees: { kinds: ['tree.round'], density: 0.5 } },
+    {
+      ground: 'grass',
+      shape: rect(1, 65, 5, 69),
+      layer: 'top',
+      trees: { kinds: ['tree.round'], density: 0.5 },
+    },
     { ground: 'plaza', shape: rect(5, 30, 9, 33), layer: 'top', name: 'Plaza de Chueca' },
     { ground: 'plaza', shape: rect(57, 47, 61, 51), layer: 'top', name: 'Plaza de Lavapiés' },
     { ground: 'plaza', shape: rect(3, 50, 7, 53), layer: 'top', name: 'Plaza del Dos de Mayo' },
     // Retiro railings: blocked strip along the park's street sides, with gates (parkPath).
-    { ground: 'lot', shape: rect(19, 7, 59, 7), layer: 'top', reserve: true },
+    { ground: 'lot', shape: rect(19, 7, 56, 7), layer: 'top', reserve: true },
     { ground: 'lot', shape: rect(19, 0, 19, 7), layer: 'top', reserve: true },
-    { ground: 'lot', shape: rect(59, 0, 59, 7), layer: 'top', reserve: true },
+    { ground: 'lot', shape: rect(56, 0, 56, 7), layer: 'top', reserve: true },
     { ground: 'parkPath', shape: rect(40, 7, 41, 7), layer: 'top' }, // Puerta de Felipe IV
-    { ground: 'parkPath', shape: rect(56, 7, 57, 7), layer: 'top' }, // Puerta del Ángel Caído
+    { ground: 'parkPath', shape: rect(53, 7, 54, 7), layer: 'top' }, // Puerta del Ángel Caído
     { ground: 'parkPath', shape: rect(19, 2, 19, 3), layer: 'top' }, // Puerta de la Independencia
   ],
 
@@ -485,7 +510,7 @@ export const madrid: Blueprint = {
   civic: [
     { name: 'Banco de España', i: 19, j: 25, w: 5, d: 4, storeys: 4, roof: 'flat' },
     { name: 'Museo del Prado', i: 34, j: 11, w: 6, d: 4, storeys: 3, roof: 'pitched' },
-    { name: 'Museo del Prado (Jerónimos)', i: 40, j: 11, w: 6, d: 4, storeys: 3, roof: 'pitched' },
+    { name: 'Los Jerónimos', i: 40, j: 11, w: 6, d: 4, storeys: 3, roof: 'pitched' },
     { name: 'Estación de Atocha', i: 59, j: 11, w: 6, d: 4, storeys: 3, roof: 'flat' },
     { name: 'Museo Thyssen', i: 25, j: 25, w: 4, d: 3, storeys: 4, roof: 'terrace', rooftop: true },
     { name: 'Real Casa de Correos', i: 24, j: 66, w: 4, d: 3, storeys: 3, roof: 'pitched' },
@@ -494,11 +519,20 @@ export const madrid: Blueprint = {
 
   zones: [
     // Gran Vía: tall commercial palaces.
-    { shape: poly([9, 30], [20, 30], [20, 36], [15, 36], [15, 58], [8, 58], [8, 36]), storeys: [5, 6], residential: 0.25 },
+    {
+      shape: poly([9, 30], [20, 30], [20, 36], [15, 36], [15, 58], [8, 58], [8, 36]),
+      storeys: [5, 6],
+      residential: 0.25,
+    },
     // Salamanca: elegant tall blocks.
     { shape: rect(0, 0, 14, 14), storeys: [4, 6], residential: 0.85 },
     // Lavapiés / La Latina: older, lower corralas.
-    { shape: rect(48, 30, 72, 72), storeys: [3, 4], residential: 0.9, roofs: { pitched: 7, terrace: 2 } },
+    {
+      shape: rect(48, 30, 72, 72),
+      storeys: [3, 4],
+      residential: 0.9,
+      roofs: { pitched: 7, terrace: 2 },
+    },
     // Near the Congreso: grand civic-ish blocks, never spawn buildings.
     { shape: rect(30, 21, 49, 41), storeys: [4, 5], residential: 0, kind: 'commercial' },
   ],
@@ -510,7 +544,7 @@ export const madrid: Blueprint = {
     { id: 'latina', name: 'La Latina', unlockWave: 3, area: [36, 62, 71, 71], rally: [44, 66] },
     { id: 'salamanca', name: 'Salamanca', unlockWave: 4, area: [0, 0, 13, 14], rally: [7, 6] },
     { id: 'arguelles', name: 'Argüelles', unlockWave: 6, area: [0, 59, 18, 71], rally: [5, 63] },
-    { id: 'vallecas', name: 'Vallecas', unlockWave: 8, area: [60, 0, 71, 15], rally: [66, 6] },
+    { id: 'vallecas', name: 'Vallecas', unlockWave: 8, area: [57, 0, 71, 15], rally: [66, 6] },
   ],
 
   chokepoints: [
@@ -520,14 +554,71 @@ export const madrid: Blueprint = {
   ],
 
   approaches: [
-    { name: 'Carrera de San Jerónimo (from Sol)', path: [[CARRERA_I, 56], [CARRERA_I, 41]], final: true },
-    { name: 'Carrera de San Jerónimo (from Neptuno)', path: [[CARRERA_I, 24], [CARRERA_I, 34]], final: true },
-    { name: 'Calle del Prado (from Santa Ana)', path: [[45.5, 51], [45.5, 41]], final: true },
-    { name: 'Paseo del Prado', path: [[64, PRADO_J], [33, PRADO_J]] },
-    { name: 'Paseo de Recoletos', path: [[0, PRADO_J], [30, PRADO_J]] },
-    { name: 'Calle de Alcalá', path: [[ALCALA_I, 0], [ALCALA_I, 31], [22.5, 37], [22.5, 46], [31, 46]] },
-    { name: 'Gran Vía', path: [[4.5, 63], [11.5, 56], [11.5, 36], [ALCALA_I, 31]] },
-    { name: 'Calle de Atocha', path: [[62, 31], [47.5, 61.5], [34, 61.5]] },
+    {
+      name: 'Carrera de San Jerónimo (from Sol)',
+      path: [
+        [CARRERA_I, 56],
+        [CARRERA_I, 41],
+      ],
+      final: true,
+    },
+    {
+      name: 'Carrera de San Jerónimo (from Neptuno)',
+      path: [
+        [CARRERA_I, 24],
+        [CARRERA_I, 34],
+      ],
+      final: true,
+    },
+    {
+      name: 'Calle del Prado (from Santa Ana)',
+      path: [
+        [45.5, 51],
+        [45.5, 41],
+      ],
+      final: true,
+    },
+    {
+      name: 'Paseo del Prado',
+      path: [
+        [64, PRADO_J],
+        [33, PRADO_J],
+      ],
+    },
+    {
+      name: 'Paseo de Recoletos',
+      path: [
+        [0, PRADO_J],
+        [30, PRADO_J],
+      ],
+    },
+    {
+      name: 'Calle de Alcalá',
+      path: [
+        [ALCALA_I, 0],
+        [ALCALA_I, 31],
+        [22.5, 37],
+        [22.5, 46],
+        [31, 46],
+      ],
+    },
+    {
+      name: 'Gran Vía',
+      path: [
+        [4.5, 63],
+        [11.5, 56],
+        [11.5, 36],
+        [ALCALA_I, 31],
+      ],
+    },
+    {
+      name: 'Calle de Atocha',
+      path: [
+        [62, 31],
+        [47.5, 61.5],
+        [34, 61.5],
+      ],
+    },
   ],
 
   decor: [
@@ -554,7 +645,7 @@ export const madrid: Blueprint = {
     { kind: 'flag', at: [33, 39] },
     { kind: 'flag', at: [41, 39] },
     // Retiro: Ángel Caído + Alfonso XII monument by the Estanque.
-    { kind: 'statue', at: [55, 3] },
+    { kind: 'statue', at: [50, 3] },
     { kind: 'statue.equestrian', at: [41, 0] },
     { kind: 'boat', at: [39, 2] },
     { kind: 'boat', at: [44, 3] },

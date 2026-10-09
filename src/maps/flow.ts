@@ -125,7 +125,12 @@ export function distanceField(
 }
 
 /** Follow the steepest descent of a distance field from `from` to a target (4-connected). */
-export function descend(map: MapData, field: Float32Array, from: TilePos, maxSteps = 4000): TilePos[] {
+export function descend(
+  map: MapData,
+  field: Float32Array,
+  from: TilePos,
+  maxSteps = 4000,
+): TilePos[] {
   const { w, h } = map;
   const path: TilePos[] = [{ ...from }];
   let i = from.i;

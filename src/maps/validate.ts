@@ -20,12 +20,19 @@ export interface Issue {
   msg: string;
 }
 
-const G = Object.fromEntries(GROUNDS.map((g, k) => [g, k])) as Record<(typeof GROUNDS)[number], number>;
+const G = Object.fromEntries(GROUNDS.map((g, k) => [g, k])) as Record<
+  (typeof GROUNDS)[number],
+  number
+>;
 const WALK = GROUNDS.map((g) => WALKABLE.has(g));
 const ROAD = GROUNDS.map((g) => PLACEABLE_ROAD.has(g));
 
 /** Tiles within `r` (Euclidean, tile centres) of a polyline. */
-export function tilesNearPath(map: MapData, path: readonly P[] | readonly TilePos[], r: number): number[] {
+export function tilesNearPath(
+  map: MapData,
+  path: readonly P[] | readonly TilePos[],
+  r: number,
+): number[] {
   const pts: P[] = path.map((p) => ('i' in p ? ([p.i, p.j] as const) : p));
   const out = new Set<number>();
   for (let s = 0; s < Math.max(1, pts.length - 1); s++) {
@@ -42,7 +49,8 @@ export function tilesNearPath(map: MapData, path: readonly P[] | readonly TilePo
       for (let i = i0; i <= i1; i++) {
         const cx = i + 0.5;
         const cy = j + 0.5;
-        const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((cx - a[0]) * dx + (cy - a[1]) * dy) / len2));
+        const t =
+          len2 === 0 ? 0 : Math.max(0, Math.min(1, ((cx - a[0]) * dx + (cy - a[1]) * dy) / len2));
         const px = a[0] + t * dx - cx;
         const py = a[1] + t * dy - cy;
         if (px * px + py * py <= r * r) out.add(j * map.w + i);
@@ -96,8 +104,10 @@ export function validateMap(map: MapData, bp?: Blueprint): Issue[] {
         const k = j * w + i;
         if (fixed[k]) err('fixed.overlap', `${label} overlaps another landmark at ${i},${j}`);
         fixed[k] = 1;
-        if (ground[k] !== G.lot) err('fixed.ground', `${label} tile ${i},${j} is ${GROUNDS[ground[k]!]}, not lot`);
-        if (building[k] !== -1) err('fixed.building', `${label} tile ${i},${j} carries building ${building[k]}`);
+        if (ground[k] !== G.lot)
+          err('fixed.ground', `${label} tile ${i},${j} is ${GROUNDS[ground[k]!]}, not lot`);
+        if (building[k] !== -1)
+          err('fixed.building', `${label} tile ${i},${j} carries building ${building[k]}`);
       }
     }
   };
@@ -112,7 +122,8 @@ export function validateMap(map: MapData, bp?: Blueprint): Issue[] {
   // --- Buildings.
   const seenTiles = new Uint8Array(n);
   for (const b of map.buildings) {
-    if (b.storeys < 2 || b.storeys > 6) err('bld.storeys', `building ${b.id} has ${b.storeys} storeys`);
+    if (b.storeys < 2 || b.storeys > 6)
+      err('bld.storeys', `building ${b.id} has ${b.storeys} storeys`);
     if (b.w < 2 || b.d < 2 || b.w > 6 || b.d > 6 || Math.min(b.w, b.d) > 4)
       err('bld.size', `building ${b.id} footprint ${b.w}×${b.d} outside 2×2..6×4`);
     for (let j = b.j; j < b.j + b.d; j++) {
@@ -122,7 +133,8 @@ export function validateMap(map: MapData, bp?: Blueprint): Issue[] {
           continue;
         }
         const k = j * w + i;
-        if (ground[k] !== G.lot) err('bld.ground', `building ${b.id} sits on ${GROUNDS[ground[k]!]} at ${i},${j}`);
+        if (ground[k] !== G.lot)
+          err('bld.ground', `building ${b.id} sits on ${GROUNDS[ground[k]!]} at ${i},${j}`);
         if (fixed[k]) err('bld.fixed', `building ${b.id} overlaps a landmark/Capitol at ${i},${j}`);
         if (building[k] !== b.id) err('bld.index', `building index mismatch at ${i},${j}`);
         seenTiles[k] = 1;
@@ -143,8 +155,10 @@ export function validateMap(map: MapData, bp?: Blueprint): Issue[] {
   // --- Steps.
   if (c.steps.length === 0) err('steps.none', 'Capitol has no steps');
   for (const s of c.steps) {
-    if (!inb(s.i, s.j) || ground[s.j * w + s.i] !== G.steps) err('steps.ground', `steps tile ${s.i},${s.j} is not 'steps'`);
-    if (s.j < c.j + c.d || s.i < c.i || s.i >= c.i + c.w) err('steps.side', `steps tile ${s.i},${s.j} not on the +j front`);
+    if (!inb(s.i, s.j) || ground[s.j * w + s.i] !== G.steps)
+      err('steps.ground', `steps tile ${s.i},${s.j} is not 'steps'`);
+    if (s.j < c.j + c.d || s.i < c.i || s.i >= c.i + c.w)
+      err('steps.side', `steps tile ${s.i},${s.j} not on the +j front`);
   }
 
   // --- Connectivity from the steps.
@@ -157,15 +171,21 @@ export function validateMap(map: MapData, bp?: Blueprint): Issue[] {
       if (ROAD[ground[k]!]) unreachableRoad++;
     }
   }
-  if (unreachableRoad > 0) err('reach.road', `${unreachableRoad} road tiles cannot reach the Capitol`);
-  else if (unreachableWalk > 0) warn('reach.walk', `${unreachableWalk} walkable tiles cannot reach the Capitol`);
+  if (unreachableRoad > 0)
+    err('reach.road', `${unreachableRoad} road tiles cannot reach the Capitol`);
+  else if (unreachableWalk > 0)
+    warn('reach.walk', `${unreachableWalk} walkable tiles cannot reach the Capitol`);
 
   // --- Spawns.
-  if (map.spawns.length < 5 || map.spawns.length > 7) warn('spawn.count', `${map.spawns.length} spawn districts (want 5–7)`);
-  if (map.spawns.filter((s) => s.unlockWave === 1).length < 1) err('spawn.wave1', 'no district unlocks on wave 1');
-  if (Math.max(...map.spawns.map((s) => s.unlockWave)) > 8) warn('spawn.late', 'a district unlocks after wave 8');
+  if (map.spawns.length < 5 || map.spawns.length > 7)
+    warn('spawn.count', `${map.spawns.length} spawn districts (want 5–7)`);
+  if (map.spawns.filter((s) => s.unlockWave === 1).length < 1)
+    err('spawn.wave1', 'no district unlocks on wave 1');
+  if (Math.max(...map.spawns.map((s) => s.unlockWave)) > 8)
+    warn('spawn.late', 'a district unlocks after wave 8');
   for (const s of map.spawns) {
-    if (s.buildingIds.length < 5) err('spawn.buildings', `${s.name} has only ${s.buildingIds.length} spawn buildings`);
+    if (s.buildingIds.length < 5)
+      err('spawn.buildings', `${s.name} has only ${s.buildingIds.length} spawn buildings`);
     let doors = 0;
     for (const id of s.buildingIds) {
       const b = map.buildings[id];
@@ -173,10 +193,12 @@ export function validateMap(map: MapData, bp?: Blueprint): Issue[] {
         err('spawn.id', `${s.name} references missing building ${id}`);
         continue;
       }
-      if (b.kind !== 'residential') err('spawn.kind', `${s.name} building ${id} is not residential`);
+      if (b.kind !== 'residential')
+        err('spawn.kind', `${s.name} building ${id} is not residential`);
       for (const d of b.doors) {
         doors++;
-        if (!Number.isFinite(field[d.j * w + d.i]!)) err('spawn.reach', `${s.name} door ${d.i},${d.j} cannot reach the steps`);
+        if (!Number.isFinite(field[d.j * w + d.i]!))
+          err('spawn.reach', `${s.name} door ${d.i},${d.j} cannot reach the steps`);
       }
     }
     if (doors === 0) err('spawn.doors', `${s.name} has no doors`);
@@ -197,7 +219,8 @@ export function validateMap(map: MapData, bp?: Blueprint): Issue[] {
   // --- Decor.
   for (const d of map.decor) {
     if (!inb(d.i, d.j)) err('decor.bounds', `decor ${d.kind} out of bounds`);
-    else if (building[d.j * w + d.i] !== -1 || fixed[d.j * w + d.i]) err('decor.blocked', `decor ${d.kind} on a building at ${d.i},${d.j}`);
+    else if (building[d.j * w + d.i] !== -1 || fixed[d.j * w + d.i])
+      err('decor.blocked', `decor ${d.kind} on a building at ${d.i},${d.j}`);
   }
 
   if (bp) designChecks(map, bp, field, issues);
@@ -208,14 +231,16 @@ function designChecks(map: MapData, bp: Blueprint, field: Float32Array, issues: 
   const err = (code: string, msg: string): void => void issues.push({ level: 'error', code, msg });
   const { w } = map;
   const finals = bp.approaches.filter((a) => a.final);
-  if (finals.length < 3) err('approach.finals', `only ${finals.length} final approaches (need ≥ 3 directions)`);
+  if (finals.length < 3)
+    err('approach.finals', `only ${finals.length} final approaches (need ≥ 3 directions)`);
   if (bp.approaches.length < 4) err('approach.count', `only ${bp.approaches.length} approaches`);
 
   // Rooftop buildings line every approach.
   const roofTiles = new Map<number, number>();
   for (const b of map.buildings) {
     if (!b.rooftop) continue;
-    for (let j = b.j; j < b.j + b.d; j++) for (let i = b.i; i < b.i + b.w; i++) roofTiles.set(j * w + i, b.id);
+    for (let j = b.j; j < b.j + b.d; j++)
+      for (let i = b.i; i < b.i + b.w; i++) roofTiles.set(j * w + i, b.id);
   }
   for (const a of bp.approaches) {
     const near = new Set<number>();
@@ -223,11 +248,15 @@ function designChecks(map: MapData, bp: Blueprint, field: Float32Array, issues: 
       const id = roofTiles.get(k);
       if (id !== undefined) near.add(id);
     }
-    if (near.size < 2) err('approach.roofs', `${a.name}: only ${near.size} rooftop buildings along it`);
+    if (near.size < 2)
+      err('approach.roofs', `${a.name}: only ${near.size} rooftop buildings along it`);
     for (const k of tilesNearPath(map, a.path, 0.5)) {
       if (!WALK[map.ground[k]!] && map.building[k] === -1 && map.ground[k] !== G.lot) {
         // Water/quay on an approach line means the path is mis-authored.
-        err('approach.path', `${a.name} crosses ${GROUNDS[map.ground[k]!]} at ${k % w},${Math.floor(k / w)}`);
+        err(
+          'approach.path',
+          `${a.name} crosses ${GROUNDS[map.ground[k]!]} at ${k % w},${Math.floor(k / w)}`,
+        );
         break;
       }
     }
@@ -241,19 +270,23 @@ function designChecks(map: MapData, bp: Blueprint, field: Float32Array, issues: 
     for (const k of tilesNearPath(map, a.path, 2.5)) blocked[k] = 1;
     const f = distanceField(map, map.capitol.steps, { costs: false, blocked });
     for (const r of rallies) {
-      if (!Number.isFinite(f[r.j * w + r.i]!)) err('approach.redundant', `blocking ${a.name} cuts off a district at ${r.i},${r.j}`);
+      if (!Number.isFinite(f[r.j * w + r.i]!))
+        err('approach.redundant', `blocking ${a.name} cuts off a district at ${r.i},${r.j}`);
     }
     // And the final approach must actually lead to the steps.
     const mid = a.path[a.path.length - 1]!;
     const mk = Math.floor(mid[1]) * w + Math.floor(mid[0]);
-    if (!Number.isFinite(field[mk]!)) err('approach.reach', `${a.name} end is not connected to the steps`);
+    if (!Number.isFinite(field[mk]!))
+      err('approach.reach', `${a.name} end is not connected to the steps`);
   }
 
   // Chokepoints lie on at least one district's shortest route (costed flow).
   const costField = distanceField(map, map.capitol.steps, { costs: true });
   const routes = rallies.map((r) => descend(map, costField, r));
   for (const ch of map.chokepoints) {
-    const hit = routes.some((route) => route.some((p) => Math.hypot(p.i - ch.i, p.j - ch.j) <= ch.radius + 1.5));
+    const hit = routes.some((route) =>
+      route.some((p) => Math.hypot(p.i - ch.i, p.j - ch.j) <= ch.radius + 1.5),
+    );
     if (!hit) err('choke.flow', `chokepoint ${ch.name} is not on any district's shortest route`);
   }
 }

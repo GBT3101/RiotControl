@@ -461,7 +461,16 @@ export const paris: Blueprint = {
   capitol: { i: 30, j: 30, stepRows: 2, stepInset: 1 },
 
   civic: [
-    { name: 'Hôtel de Lassay', i: 41, j: 30, w: 2, d: 6, storeys: 3, roof: 'mansard', rooftop: true },
+    {
+      name: 'Hôtel de Lassay',
+      i: 41,
+      j: 30,
+      w: 2,
+      d: 6,
+      storeys: 3,
+      roof: 'mansard',
+      rooftop: true,
+    },
     { name: 'Grand Palais', i: 9, j: 11, w: 6, d: 4, storeys: 4, roof: 'flat' },
     { name: 'Petit Palais', i: 19, j: 11, w: 6, d: 4, storeys: 3, roof: 'flat' },
     { name: 'Orangerie', i: 46, j: 13, w: 4, d: 2, storeys: 2, roof: 'flat' },
@@ -469,7 +478,16 @@ export const paris: Blueprint = {
     { name: 'Hôtel Matignon', i: 38, j: 65, w: 5, d: 3, storeys: 3, roof: 'mansard' },
     { name: 'Musée Rodin', i: 28, j: 58, w: 5, d: 4, storeys: 3, roof: 'mansard' },
     { name: 'École Militaire', i: 1, j: 68, w: 6, d: 4, storeys: 3, roof: 'mansard' },
-    { name: 'Ministère des Affaires étrangères', i: 23, j: 29, w: 4, d: 6, storeys: 4, roof: 'mansard', rooftop: true },
+    {
+      name: 'Ministère des Affaires étrangères',
+      i: 23,
+      j: 29,
+      w: 4,
+      d: 6,
+      storeys: 4,
+      roof: 'mansard',
+      rooftop: true,
+    },
   ],
 
   zones: [
@@ -481,9 +499,21 @@ export const paris: Blueprint = {
 
   districts: [
     { id: 'latin', name: 'Quartier Latin', unlockWave: 1, area: [57, 40, 71, 66], rally: [64, 47] },
-    { id: 'montparnasse', name: 'Montparnasse', unlockWave: 1, area: [27, 64, 56, 71], rally: [45, 66] },
+    {
+      id: 'montparnasse',
+      name: 'Montparnasse',
+      unlockWave: 1,
+      area: [27, 64, 56, 71],
+      rally: [45, 66],
+    },
     { id: 'grenelle', name: 'Grenelle', unlockWave: 2, area: [0, 59, 24, 71], rally: [14, 65] },
-    { id: 'bastille', name: 'République & Bastille', unlockWave: 3, area: [58, 0, 71, 15], rally: [66, 4] },
+    {
+      id: 'bastille',
+      name: 'République & Bastille',
+      unlockWave: 3,
+      area: [58, 0, 71, 15],
+      rally: [66, 4],
+    },
     { id: 'batignolles', name: 'Batignolles', unlockWave: 4, area: [0, 0, 27, 6], rally: [14, 2] },
     { id: 'trocadero', name: 'Trocadéro', unlockWave: 6, area: [0, 11, 12, 31], rally: [4, 15] },
   ],
@@ -495,13 +525,66 @@ export const paris: Blueprint = {
   ],
 
   approaches: [
-    { name: "Rue de l'Université (west)", path: [[13, UNIV_J], [29, UNIV_J]], final: true },
-    { name: "Rue de l'Université (east)", path: [[60, UNIV_J], [42, UNIV_J]], final: true },
-    { name: 'Rue de Bourgogne', path: [[CONC_I, 62], [CONC_I, 42]], final: true },
-    { name: 'Pont de la Concorde', path: [[CONC_I, 8], [CONC_I, 28], [SG_I, 28], [SG_I, 37]] },
-    { name: 'Pont Alexandre III', path: [[ALEX_I, 10], [ALEX_I, 28], [28.5, 28], [28.5, 37]] },
-    { name: 'Boulevard Saint-Germain', path: [[73, 56], [60.5, 56], [SG_I, 47.5], [SG_I, 40]] },
-    { name: 'Boulevard des Invalides', path: [[25.5, 71], [25.5, 48.5], [21.5, 48.5], [21.5, 40]] },
+    {
+      name: "Rue de l'Université (west)",
+      path: [
+        [13, UNIV_J],
+        [29, UNIV_J],
+      ],
+      final: true,
+    },
+    {
+      name: "Rue de l'Université (east)",
+      path: [
+        [60, UNIV_J],
+        [42, UNIV_J],
+      ],
+      final: true,
+    },
+    {
+      name: 'Rue de Bourgogne',
+      path: [
+        [CONC_I, 62],
+        [CONC_I, 42],
+      ],
+      final: true,
+    },
+    {
+      name: 'Pont de la Concorde',
+      path: [
+        [CONC_I, 8],
+        [CONC_I, 28],
+        [SG_I, 28],
+        [SG_I, 37],
+      ],
+    },
+    {
+      name: 'Pont Alexandre III',
+      path: [
+        [ALEX_I, 10],
+        [ALEX_I, 28],
+        [28.5, 28],
+        [28.5, 37],
+      ],
+    },
+    {
+      name: 'Boulevard Saint-Germain',
+      path: [
+        [73, 56],
+        [60.5, 56],
+        [SG_I, 47.5],
+        [SG_I, 40],
+      ],
+    },
+    {
+      name: 'Boulevard des Invalides',
+      path: [
+        [25.5, 71],
+        [25.5, 48.5],
+        [21.5, 48.5],
+        [21.5, 40],
+      ],
+    },
   ],
 
   decor: [

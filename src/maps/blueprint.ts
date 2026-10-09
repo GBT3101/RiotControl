@@ -14,14 +14,7 @@
  * (river / park) lies at low j "behind" it. In the debug viewer (top-down, i → right,
  * j → down) the barrier is at the top and the approaches come up from the bottom and sides.
  */
-import type {
-  BuildingKind,
-  CityId,
-  Ground,
-  LandmarkId,
-  RoofType,
-  TilePos,
-} from './contract';
+import type { BuildingKind, CityId, Ground, LandmarkId, RoofType, TilePos } from './contract';
 
 /** A point [i, j] in tile coordinates (fractional allowed). */
 export type P = readonly [number, number];
