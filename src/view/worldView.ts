@@ -215,6 +215,14 @@ export class WorldView {
     return occlusionGrid(map.w, map.h, boxes, (t) => !this.world.nav.walk[t]);
   }
 
+  /** Remove this view from the stage (M9: restart / quit / city switch). Art stays installed. */
+  destroy(): void {
+    this.terrain.destroy();
+    this.decals.destroy();
+    this.layers.world.destroy({ children: true });
+    this.layers.screen.destroy({ children: true });
+  }
+
   /** Deferred art arrived (far ground, more protester looks, vehicles, Capitol states). */
   onArtUpdated(): void {
     resetClipCache();

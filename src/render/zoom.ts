@@ -27,8 +27,16 @@ export function zoomRange(deviceW: number, deviceH: number): ZoomRange {
   return { min, max, def: Math.min(max, Math.max(min, ideal)) };
 }
 
-/** UI pixel scale in device px: ~2 CSS px per UI pixel on phones, ~3 on large screens. */
+/**
+ * UI pixel scale in device px (device px per UI pixel, always an integer).
+ *
+ * The largest scale that keeps ≥ ~300 UI px on the short side, but never smaller than ~2 CSS px
+ * per UI pixel (1.5 on phone-sized screens, where every UI pixel counts):
+ * 1440×900@1 → 3 (480×300 UI px), 1920×1080@1 → 3, 2560×1440@1 → 4, 768×1024@1 → 2,
+ * iPhone 844×390@3 → 5 (506×234 UI px; 390×844 → 234×506).
+ */
 export function uiScale(cssShortSide: number, dpr: number): number {
-  const cssPerPixel = cssShortSide >= 720 ? 3 : 2;
-  return Math.max(1, Math.round(cssPerPixel * dpr));
+  const minCss = cssShortSide < 500 ? 1.5 : 2;
+  const minK = Math.max(1, Math.ceil(minCss * dpr - 1e-6));
+  return Math.max(minK, Math.floor((cssShortSide * dpr) / 300));
 }

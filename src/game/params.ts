@@ -16,6 +16,13 @@
  *   ?demo=1                     the M1 test-map demo scene
  *   ?nocache                    ignore the IndexedDB art cache;  ?mute  no audio
  *   ?scene=showcase             debug scenario: every unit + every protester type near the camera
+ *
+ * M9 (UI): without ?city the game opens on the title screen.
+ *   ?skipTitle=1                straight into a run (default city madrid)
+ *   ?screen=title|select        force the title / city-select screen
+ *   ?moment=NAME                UI moment once ready: levelup advisor threat breta prophets capitol
+ *                               wave select deploy pause settings victory defeat
+ *   ?legit=N                    Legitimacy (with ?level) — e.g. near the next threshold
  */
 import type { QualityTier } from '../data/balance';
 import { CITIES, type CityId } from '../maps/contract';
@@ -28,6 +35,8 @@ export interface GameParams {
   skip: number;
   stress: number;
   level?: number;
+  /** Legitimacy within the level (with ?level). */
+  legit?: number;
   wave?: number;
   hate?: number;
   tod?: number;
@@ -44,6 +53,14 @@ export interface GameParams {
   nocache: boolean;
   mute: boolean;
   scene?: string;
+  /** A city was given in the URL (boots straight into a run). */
+  cityGiven: boolean;
+  /** Skip the title / city select (straight into `city`). */
+  skipTitle: boolean;
+  /** Force a menu screen: 'title' | 'select'. */
+  screen?: string;
+  /** Trigger a UI moment once ready (screenshots): levelup advisor victory defeat … */
+  moment?: string;
 }
 
 export function readParams(search: string): GameParams {
@@ -64,6 +81,7 @@ export function readParams(search: string): GameParams {
     skip: Math.max(0, Math.min(1800, num('t') ?? 0)),
     stress: Math.max(0, Math.min(4000, num('stress') ?? 0)),
     level: num('level'),
+    legit: num('legit'),
     wave: num('wave'),
     hate: num('hate'),
     tod: num('tod'),
@@ -79,5 +97,9 @@ export function readParams(search: string): GameParams {
     nocache: q.has('nocache'),
     mute: q.has('mute'),
     scene: q.get('scene') ?? undefined,
+    cityGiven: !!(city && CITIES.includes(city)),
+    skipTitle: q.get('skipTitle') === '1' || q.get('skipTitle') === 'true',
+    screen: q.get('screen') ?? undefined,
+    moment: q.get('moment') ?? undefined,
   };
 }

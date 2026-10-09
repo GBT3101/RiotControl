@@ -1,8 +1,8 @@
 /**
- * Game entry. `?city=madrid|london|paris` (default Madrid) boots straight into a run; the M1
+ * Game entry. Without `?city` the game opens on the title screen (M9: title → city select →
+ * run); `?city=madrid|london|paris` (or `?skipTitle=1`) boots straight into a run. The M1
  * test-map demo stays reachable with `?demo=1`. All debug params: src/game/params.ts.
  */
-import { bootGame } from './game/boot';
 import { readParams } from './game/params';
 
 async function boot(): Promise<void> {
@@ -26,7 +26,12 @@ async function boot(): Promise<void> {
     startTestMapScene(stage, readSceneParams(location.search));
     return;
   }
-  await bootGame(host, params);
+  const [{ createPixelStage }, { startApp }] = await Promise.all([
+    import('./render/stage'),
+    import('./ui/app'),
+  ]);
+  const stage = await createPixelStage(host);
+  await startApp(stage, host, params);
 }
 
 boot().catch((err: unknown) => {

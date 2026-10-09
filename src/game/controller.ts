@@ -74,7 +74,7 @@ export interface HudSnapshot {
 export interface DeployOption {
   unit: UnitId;
   cost: number;
-  /** Keyboard hotkey label ('1'…'0', 'H'). */
+  /** Keyboard hotkey label ('1'…'0', '-'). */
   hotkey: string;
   unlocked: boolean;
   affordable: boolean;
@@ -93,7 +93,7 @@ export const HOTKEYS: Readonly<Record<UnitId, string>> = {
   humvee: '8',
   brigade: '9',
   tank: '0',
-  heli: 'H',
+  heli: '-',
 };
 
 export class GameController {
@@ -115,8 +115,17 @@ export class GameController {
   private hitStopped = false;
   /** Raw drained sim events each frame (audio: `audio.handleSimEvents`). */
   onSimEvents: ((events: readonly SimEvent[]) => void) | null = null;
-  /** Called after each rendered frame (debug HUD, perf probes). */
+  /** Called after each rendered frame (debug overlay, audio listener, perf probes). */
   onFrame: ((dtMs: number) => void) | null = null;
+  /**
+   * Called every frame just before the stage is rendered (UI/HUD update — M9). Runs after the
+   * world view updated, so screen positions of units are current.
+   */
+  onPreRender: ((dtMs: number) => void) | null = null;
+  /** Title-screen backdrop (a bot plays; the UI hides the HUD). */
+  attract = false;
+  /** destroy() was called. */
+  destroyed = false;
   /** Rolling per-frame cost (ms): sim steps, view update, Pixi render. */
   readonly perf = { sim: 0, view: 0, render: 0, frames: 0 };
 
@@ -173,11 +182,17 @@ export class GameController {
     this.loop.start();
   }
 
+  /** Stop the loop and remove this game's world view from the stage (art stays installed). */
   destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
     this.loop.stop();
     this.input.destroy();
     for (const d of this.disposers) d();
     this.bus.clear();
+    this.onFrame = this.onPreRender = null;
+    this.onSimEvents = null;
+    this.view.destroy();
   }
 
   private render(alpha: number, frameDtMs: number): void {
@@ -215,6 +230,7 @@ export class GameController {
       hoverJ: (this.touchPreview ?? this.hoverTile)?.j ?? 0,
       selected: this.selected,
     });
+    this.onPreRender?.(frameDtMs);
     const tr = performance.now();
     this.stage.app.render();
     const te = performance.now();
@@ -255,6 +271,19 @@ export class GameController {
     const u = this.world.deploy(unit, i, j);
     if (u && !this.keepPlacing) this.beginDeploy(null);
     return u;
+  }
+
+  /** Touch placement preview tile (first tap), or null. */
+  get preview(): { i: number; j: number } | null {
+    return this.touchPreview;
+  }
+
+  /** Deploy at the touch preview (the UI's ✔ button). */
+  confirmPreview(): boolean {
+    const p = this.touchPreview;
+    if (!p || !this.deploying) return false;
+    this.touchPreview = null;
+    return this.deployAt(p.i, p.j) !== null;
   }
 
   /** Options for the deploy bar. */

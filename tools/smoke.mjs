@@ -2,7 +2,9 @@
 /**
  * Interaction smoke test for the game page (Playwright Chromium, uses the existing dist/):
  * mouse drag pans, wheel zooms to an integer level, a click is a tap (not a drag), keys pan,
- * touch tap works on a phone viewport. Run `npm run build` first.  Exit 1 on failure.
+ * touch tap works on a phone viewport; M9 UI: taps on HUD cards never reach the world, card →
+ * deploy mode, hotkeys, Space pause, title → city select. Run `npm run build` first.
+ * Exit 1 on failure.
  */
 import { chromium } from 'playwright-core';
 import { resolve } from 'node:path';
@@ -10,7 +12,16 @@ import { preview } from 'vite';
 
 const root = resolve(import.meta.dirname, '..');
 const server = await preview({ root, logLevel: 'warn', preview: { port: 0, host: '127.0.0.1' } });
-const url = new URL('index.html?cops=10', server.resolvedUrls.local[0]).href;
+const base = server.resolvedUrls.local[0];
+const url = new URL('index.html?city=madrid', base).href;
+/** CSS-px centre of a UI rect (UI px × ui scale / dpr). */
+const cssCentre = (page, expr) =>
+  page.evaluate((e) => {
+    const ui = window.__riot.ui;
+    const r = new Function('ui', `return ${e}`)(ui);
+    const k = ui.k / window.devicePixelRatio;
+    return r ? { x: (r.x + r.w / 2) * k, y: (r.y + r.h / 2) * k } : null;
+  }, expr);
 const browser = await chromium.launch({
   args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
 });
@@ -71,8 +82,68 @@ try {
   await page.keyboard.up('KeyD');
   const s3 = await state(page);
   check(s3.x > s2.x, 'D key pans right');
+
+  // --- M9 HUD -------------------------------------------------------------------------------
+  const nTaps = taps.length;
+  const card = await cssCentre(page, "ui.hud.deploy.cardRect('riot')");
+  await page.mouse.click(card.x, card.y);
+  await page.waitForTimeout(150);
+  check(
+    (await page.evaluate(() => window.__riot.game.deployUnit)) === 'riot',
+    'clicking the Riot Control card enters deploy mode',
+  );
+  check(taps.length === nTaps, 'a HUD click does not fall through to the world');
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(100);
+  check(
+    (await page.evaluate(() => window.__riot.game.deployUnit)) === null,
+    'Esc leaves deploy mode',
+  );
+  await page.keyboard.press('Digit1');
+  await page.waitForTimeout(100);
+  check(
+    (await page.evaluate(() => window.__riot.game.deployUnit)) === 'riot',
+    'hotkey 1 selects Riot Control',
+  );
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Space');
+  await page.waitForTimeout(100);
+  check(await page.evaluate(() => window.__riot.game.paused), 'Space pauses');
+  await page.keyboard.press('Space');
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(150);
+  check(
+    await page.evaluate(
+      () =>
+        window.__riot.ui.topScreen?.constructor?.name !== undefined && window.__riot.game.paused,
+    ),
+    'Esc opens the pause menu',
+  );
+  await page.keyboard.press('Escape');
   check(errors.length === 0, `no page errors (${errors.join('; ')})`);
   await ctx.close();
+
+  // --- Title → city select -----------------------------------------------------------------
+  const tctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const tp = await tctx.newPage();
+  const terr = [];
+  tp.on('pageerror', (e) => terr.push(e.message));
+  await tp.goto(new URL('index.html', base).href);
+  await tp.waitForFunction(() => document.documentElement.dataset.ready === 'true', null, {
+    timeout: 60000,
+  });
+  check(
+    (await tp.evaluate(() => window.__riot.ui.mode)) === 'title',
+    'no ?city opens the title screen',
+  );
+  await tp.keyboard.press('Enter');
+  await tp.waitForTimeout(200);
+  check(
+    (await tp.evaluate(() => window.__riot.ui.mode)) === 'select',
+    'Enter on the title opens city select',
+  );
+  check(terr.length === 0, `no title page errors (${terr.join('; ')})`);
+  await tctx.close();
 
   // --- Phone touch ------------------------------------------------------------------------------
   const phone = await browser.newContext({
@@ -90,6 +161,14 @@ try {
   await pp.touchscreen.tap(200, 400);
   await pp.waitForTimeout(100);
   check(ptaps.length === 1 && ptaps[0].pointerType === 'touch', 'touch tap emits a tap');
+  const pcard = await cssCentre(pp, "ui.hud.deploy.cardRect('riot')");
+  await pp.touchscreen.tap(pcard.x, pcard.y);
+  await pp.waitForTimeout(150);
+  check(
+    ptaps.length === 1 && (await pp.evaluate(() => window.__riot.game.deployUnit)) === 'riot',
+    'touch on a card enters deploy mode without a world tap',
+  );
+  await pp.evaluate(() => window.__riot.game.beginDeploy(null));
   // Two-finger pinch-out via CDP touch events → zoom in, settling on an integer level.
   const z0 = (await state(pp)).zoom;
   const cdp = await phone.newCDPSession(pp);

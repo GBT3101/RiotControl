@@ -22,8 +22,11 @@ describe('zoom policy', () => {
 
   it('ui scale is an integer ≥ 1', () => {
     expect(uiScale(900, 1)).toBe(3);
-    expect(uiScale(390, 3)).toBe(6);
-    expect(uiScale(400, 1.25)).toBe(3);
+    expect(uiScale(1080, 1)).toBe(3);
+    expect(uiScale(1440, 1)).toBe(4);
+    expect(uiScale(390, 3)).toBe(5); // phone: ≥ 1.5 CSS px per UI px (M9)
+    expect(uiScale(768, 1)).toBe(2);
+    expect(uiScale(400, 1.25)).toBe(2);
   });
 });
 
