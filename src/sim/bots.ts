@@ -90,7 +90,8 @@ export class MapIntel {
             for (let di = -1; di <= 1; di++) {
               if (!nav.inBounds(ti + di, tj + dj)) continue;
               const k = t + dj * mw + di;
-              if (nav.walk[k]) traffic[k] = traffic[k]! + (di === 0 && dj === 0 ? weight : weight * 0.5);
+              if (nav.walk[k])
+                traffic[k] = traffic[k]! + (di === 0 && dj === 0 ? weight : weight * 0.5);
             }
           }
           if (this.dist[t] === 0) break;
@@ -196,7 +197,7 @@ export class Bot {
     if (this.kind === 'none' || w.phase !== 'playing' || w.time < this.nextAct) return;
     this.nextAct = w.time + this.thinkEvery;
     this.tokens = Math.min(this.deployBurst, this.tokens + this.deployRate * this.thinkEvery);
-    // Progress mark: Legitimacy grew by a meaningful step (≥ 10 % of the next level gap).
+    // Progress mark: Legitimacy grew by a meaningful step (≥ 10, or ≥ 10 % of what we have).
     if (w.legit - this.lastLegit >= Math.max(10, w.legit * 0.1)) {
       this.lastLegit = w.legit;
       this.lastLegitT = w.time;
@@ -656,5 +657,4 @@ export class Bot {
     // A lighter balanced defence with what is left.
     this.defend(0.5);
   }
-
 }

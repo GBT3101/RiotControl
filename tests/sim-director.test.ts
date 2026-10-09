@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { BALANCE, waveSize } from '../src/data/balance';
+import { BALANCE, spawnSeconds, waveSize } from '../src/data/balance';
 import { PT } from '../src/data/protesters';
 import type { SimEvent } from '../src/sim/events';
 import { buildTestCity } from '../src/sim/testCity';
@@ -55,9 +55,13 @@ describe('wave director', () => {
     });
     const w = new World(map, { seed: 3 });
     w.startWaves();
-    const ev = run(w, 20);
+    // Wave 1 streams in over its spawn window (M12), not as a burst.
+    expect(spawnSeconds(30)).toBeGreaterThan(8);
+    const ev = run(w, spawnSeconds(30) + 8);
     const spawned = eventsOf(ev, 'spawned');
     expect(spawned).toHaveLength(30);
+    const t = spawned.map((e) => e.tick / 30);
+    expect(Math.max(...t) - Math.min(...t)).toBeGreaterThan(spawnSeconds(30) * 0.4);
     for (const s of spawned) {
       expect(s.building).toBe(0); // only district A in wave 1
       expect(map.buildings[0]!.doors).toContainEqual({ i: s.doorI, j: s.doorJ });
@@ -70,8 +74,8 @@ describe('wave director', () => {
     const ev2 = run(w, 1);
     expect(eventsOf(ev2, 'waveEnd')).toHaveLength(1);
     expect(w.director.phase).toBe('breather');
-    expect(w.director.breather).toBeGreaterThanOrEqual(12);
-    expect(w.director.breather).toBeLessThanOrEqual(20);
+    expect(w.director.breather).toBeGreaterThanOrEqual(BALANCE.waves.breather[0]);
+    expect(w.director.breather).toBeLessThanOrEqual(BALANCE.waves.breather[1]);
     // Call early: bonus = remaining / 2.
     const remaining = w.director.breather;
     const hate = w.hate;
@@ -91,7 +95,7 @@ describe('wave director', () => {
     w.economy.level = 10;
     w.startWaves();
     // Jump to a big wave.
-    for (let k = 0; k < 12; k++) {
+    for (let k = 0; k < 20; k++) {
       w.director.toSpawn = 0;
       (w.director as unknown as { beginWave(w: World): void }).beginWave(w);
     }
@@ -125,7 +129,7 @@ describe('wave director', () => {
     breta.chance = 1;
     const w = new World(buildTestCity(), { seed: 6 });
     w.startWaves();
-    const ev = run(w, 25);
+    const ev = run(w, spawnSeconds(30) + 10);
     const b = eventsOf(ev, 'bretaSpawned');
     expect(b).toHaveLength(1);
     expect(b[0]!.paparazzi).toBeGreaterThanOrEqual(6);

@@ -13,7 +13,9 @@ import { PROTESTERS, PROTESTER_IDS, PT, protesterDef } from '../src/data/protest
 import { UNITS, UNIT_IDS } from '../src/data/units';
 
 describe('data tables', () => {
-  it('has all 11 player units with PLAN §1.3 numbers', () => {
+  // Costs / Legitimacy are owner-fixed (PLAN §1.3); HP, timings and ranges are the M12-tuned
+  // values (docs/M12.md) — update both together.
+  it('has all 11 player units with PLAN §1.3 numbers (M12-tuned stats)', () => {
     expect(UNIT_IDS).toHaveLength(11);
     const t = (id: keyof typeof UNITS) => UNITS[id];
     expect([t('riot').cost, t('riot').legit, t('riot').hp, t('riot').meleeSlots]).toEqual([
@@ -21,20 +23,26 @@ describe('data tables', () => {
     ]);
     expect(t('riot').attack).toMatchObject({ damage: 10, cooldown: 1, lethal: false });
     expect(t('riot').armour.melee).toBe(0.3);
-    expect(t('sniper')).toMatchObject({ cost: 7, legit: 10, placement: 'rooftop', hp: 60 });
+    expect(t('sniper')).toMatchObject({ cost: 7, legit: 10, placement: 'rooftop', hp: 70 });
     expect(t('sniper').attack).toMatchObject({
       damage: 20,
-      cooldown: 1.5,
+      cooldown: 1.8,
       range: 9,
       lethal: false,
     });
-    expect(t('blockade')).toMatchObject({ cost: 7, legit: 10, hp: 400, maxTiles: 3, attack: null });
-    expect(t('gas')).toMatchObject({ cost: 10, legit: 15, hp: 80 });
-    expect(t('gas').attack).toMatchObject({ range: 3, damage: 10, stun: 1 });
-    expect(t('gas').ability).toMatchObject({ charge: 10, radius: 2.5, duration: 6 });
+    expect(t('blockade')).toMatchObject({
+      cost: 7,
+      legit: 10,
+      hp: 1000,
+      maxTiles: 3,
+      attack: null,
+    });
+    expect(t('gas')).toMatchObject({ cost: 10, legit: 15, hp: 120 });
+    expect(t('gas').attack).toMatchObject({ range: 3, damage: 10, stun: 0.4 });
+    expect(t('gas').ability).toMatchObject({ charge: 14, radius: 2.5, duration: 6 });
     expect(t('mounted')).toMatchObject({ cost: 10, hp: 200, commandable: true });
     expect(t('mounted').attack?.damage).toBe(20);
-    expect(t('armed')).toMatchObject({ cost: 50, legit: 20, hp: 120 });
+    expect(t('armed')).toMatchObject({ cost: 50, legit: 20, hp: 160 });
     expect(t('armed').attack).toMatchObject({
       damage: 60,
       cooldown: 1.2,
@@ -42,7 +50,7 @@ describe('data tables', () => {
       pierce: 4,
       lethal: true,
     });
-    expect(t('soldier')).toMatchObject({ cost: 100, legit: 40, hp: 180 });
+    expect(t('soldier')).toMatchObject({ cost: 100, legit: 40, hp: 240 });
     expect(t('soldier').attack).toMatchObject({
       damage: 25,
       cooldown: 1.4,
@@ -94,30 +102,30 @@ describe('data tables', () => {
     for (const l of LEVELS) expect(UNITS[l.unit].level).toBe(l.level);
   });
 
-  it('has protester types incl. Breta & paparazzi with §1.4 numbers', () => {
+  it('has protester types incl. Breta & paparazzi with §1.4 numbers (M12-tuned weapons)', () => {
     expect(PROTESTER_IDS).toHaveLength(9);
     PROTESTERS.forEach((p, i) => expect(p.index).toBe(i));
     expect(protesterDef('student')).toMatchObject({ hp: 30, speed: 1, capitolDps: 1 });
     expect(protesterDef('student').loadouts[0]!.melee).toBeNull();
     expect(protesterDef('woke')).toMatchObject({ hp: 40, speed: 1.05, climbs: true });
-    expect(protesterDef('woke').loadouts[0]!.melee!.dps).toBe(3);
+    expect(protesterDef('woke').loadouts[0]!.melee!.dps).toBe(4);
     expect(protesterDef('mob').loadouts[0]!.melee!.dps).toBe(6);
     const vv = protesterDef('veryViolent').loadouts[0]!;
     expect(vv.melee!.dps).toBe(8);
-    expect(vv.ranged).toMatchObject({ weapon: 'molotov', range: 4, damage: 25, cooldown: 6 });
+    expect(vv.ranged).toMatchObject({ weapon: 'molotov', range: 4, damage: 18, cooldown: 8 });
     expect(vv.ranged!.fire!.duration).toBe(4);
     expect(protesterDef('crazy').loadouts[0]!.ranged).toMatchObject({
-      damage: 12,
-      cooldown: 1.5,
+      damage: 10,
+      cooldown: 1.8,
       range: 6,
     });
     const cult = protesterDef('cultist');
     expect(cult.hp).toBe(90);
     expect(cult.loadouts.map((l) => l.id)).toEqual(['machete', 'rifle', 'bazooka']);
     expect(cult.loadouts[2]!.ranged).toMatchObject({
-      damage: 80,
+      damage: 60,
       range: 7,
-      cooldown: 8,
+      cooldown: 10,
       targetsRooftops: true,
     });
     expect(protesterDef('prophet').explode).toMatchObject({
@@ -158,10 +166,10 @@ describe('data tables', () => {
     expect(BALANCE.hatePerUnitDeath).toBe(10);
     expect(waveSize(1, 0, 0)).toBe(30);
     expect(waveSize(2, 0, 0)).toBeGreaterThan(30);
-    expect(waveSize(20, 10, 40 * 60)).toBeGreaterThanOrEqual(1500);
+    expect(waveSize(30, 10, 36 * 60)).toBeGreaterThanOrEqual(1500);
     for (let k = 1; k < 30; k++)
       expect(waveSize(k + 1, 3, 0)).toBeGreaterThanOrEqual(waveSize(k, 3, 0));
-    expect(breatherSeconds(1)).toBeLessThanOrEqual(20);
+    expect(breatherSeconds(1)).toBeLessThanOrEqual(24);
     expect(breatherSeconds(50)).toBeGreaterThanOrEqual(12);
     expect(BALANCE.concurrency.desktop).toBeGreaterThanOrEqual(3000);
     expect(BALANCE.concurrency.mobile).toBe(1500);

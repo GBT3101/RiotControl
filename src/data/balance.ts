@@ -101,9 +101,9 @@ export const BALANCE = {
     maxSize: 3500,
     groupSize: [6, 24] as [number, number],
     /** Seconds between emissions from one door group. */
-    emitInterval: 0.15,
+    emitInterval: 0.12,
     /** Concurrent door groups emitting. */
-    maxEmitters: 12,
+    maxEmitters: 16,
     maxSpawnsPerTick: 8,
     /** Jitter on the nominal gap between door groups (gap = group size × spawn window / wave size). */
     groupInterval: [0.6, 1.4] as [number, number],
@@ -124,10 +124,6 @@ export const BALANCE = {
     /** A type joining mid-run enters at this weight fraction, +`introStep` per wave (≤ 1). */
     introStart: 0.3,
     introStep: 0.25,
-    /** Older types fade from the mix: weight ÷ (1 + ageFade × levels beyond `ageGrace` since
-     *  the type unlocked) — late crowds lean toward the newest, toughest types. */
-    ageFade: 0,
-    ageGrace: 3,
     breta: { chance: 0.01, paparazzi: [6, 10] as [number, number] },
   },
 

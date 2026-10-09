@@ -60,7 +60,8 @@ if (!isMainThread) {
 
   const jobs = [];
   for (const city of cities)
-    for (const bot of bots) for (const seed of seeds) jobs.push({ city, bot, seed, minutes, quality });
+    for (const bot of bots)
+      for (const seed of seeds) jobs.push({ city, bot, seed, minutes, quality });
   const t0 = performance.now();
   const results = [];
   let next = 0;
@@ -121,7 +122,9 @@ if (!isMainThread) {
   });
 
   // Summary per city × bot.
-  console.info('\nsummary (per city × bot): wins/runs, time to win (min, median [min–max]), losses at wave, peak crowd');
+  console.info(
+    '\nsummary (per city × bot): wins/runs, time to win (min, median [min–max]), losses at wave, peak crowd',
+  );
   const med = (a) => {
     const s = [...a].sort((x, y) => x - y);
     return s.length ? s[Math.floor((s.length - 1) / 2)] : NaN;
@@ -142,7 +145,9 @@ if (!isMainThread) {
       );
     }
   }
-  console.info(`\n${results.length} runs in ${((performance.now() - t0) / 1000).toFixed(0)} s wall`);
+  console.info(
+    `\n${results.length} runs in ${((performance.now() - t0) / 1000).toFixed(0)} s wall`,
+  );
   if (jsonOut) {
     mkdirSync(dirname(resolve(jsonOut)), { recursive: true });
     writeFileSync(jsonOut, JSON.stringify(results, null, 1));

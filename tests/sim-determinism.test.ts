@@ -22,9 +22,9 @@ function simulate(
 }
 
 describe('determinism', () => {
-  it('same seed → identical state hash after 60 s (bot, combat, waves)', () => {
-    const a = simulate(11, 60);
-    const b = simulate(11, 60);
+  it('same seed → identical state hash after 90 s (bot, combat, waves)', () => {
+    const a = simulate(11, 90);
+    const b = simulate(11, 90);
     expect(a.spawned).toBeGreaterThan(30);
     expect(a.events).toBeGreaterThan(200);
     expect(b).toEqual(a);

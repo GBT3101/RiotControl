@@ -50,13 +50,16 @@ describe('combat', () => {
     expect(hits[0]).toMatchObject({ damage: 10, dmgType: 'melee', targetKind: 'protester' });
   });
 
-  it('armour: the riot shield removes 30% of melee damage', () => {
+  it('armour: the riot shield removes 30% of melee damage (and some bullets/fire, M12)', () => {
     const w = avenueWorld();
     const u = w.deploy('riot', 7, 9)!;
     hurtUnit(w, u, 10, DMG.melee, true, 'protester', -1);
     expect(u.hp).toBeCloseTo(93);
     hurtUnit(w, u, 10, DMG.bullet, true, 'protester', -1);
-    expect(u.hp).toBeCloseTo(83);
+    expect(u.hp).toBeCloseTo(93 - 10 * (1 - UNITS.riot.armour.bullet!));
+    const before = u.hp;
+    hurtUnit(w, u, 10, DMG.crush, true, 'protester', -1);
+    expect(u.hp).toBeCloseTo(before - 10); // no armour entry → full damage
   });
 
   it('Armed Cops pierce up to 4 protesters in a line (lethal)', () => {
@@ -136,12 +139,13 @@ describe('combat', () => {
     expect(eventsOf(ev, 'died')[0]).toMatchObject({ ptype: 'prophet', cause: 'explosion' });
   });
 
-  it('Tear gas: cone stuns, grenade charges in 10 s and gasses the densest crowd', () => {
+  it('Tear gas: cone stuns, grenade charges and gasses the densest crowd', () => {
     const w = avenueWorld();
     w.economy.level = 3;
     w.economy.hate = 100;
     const u = w.deploy('gas', 7, 13)!;
-    let ev = run(w, 9.9);
+    const charge = UNITS.gas.ability!.charge;
+    let ev = run(w, charge - 0.1);
     expect(eventsOf(ev, 'abilityReady')).toHaveLength(0);
     expect(w.useAbility(u.id)).toBe(false);
     ev = run(w, 0.2);

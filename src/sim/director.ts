@@ -3,12 +3,13 @@
  *
  * - Wave size from (wave index, level, elapsed time) — `data/balance.waveSize`.
  * - Composition: unlocked protester types weighted toward the newest ones; a type that joins
- *   mid-run ramps in over a few waves (`introStart`/`introStep`); old types fade (`ageFade`).
+ *   mid-run ramps in over a few waves (`introStart`/`introStep`).
  * - Spawn districts unlock by `SpawnDistrict.unlockWave`; protesters exit building doors in
  *   groups (one door per group), throttled per door, per tick and by the quality tier's
  *   concurrency cap (the queue waits while the crowd is at the cap).
  * - Breta: 1% roll per spawn group (max one alive) — she leads the group with 6–10 paparazzi.
- * - Breathers (12–20 s) end automatically; `callNextWaveEarly()` pays Hate = remaining / 2.
+ * - Breathers (`BALANCE.waves.breather`, 16–24 s) end automatically; `callNextWaveEarly()` pays
+ *   Hate = remaining / 2.
  */
 import { BALANCE, breatherSeconds, spawnSeconds, waveSize } from '../data/balance';
 import { protesterUnlockLevel, unlockedProtesters } from '../data/levels';
@@ -130,12 +131,10 @@ export class Director {
       if (!this.joined.has(t)) this.joined.set(t, this.wave);
       const since = this.wave - this.joined.get(t)!;
       // Types joining mid-run start as a trickle and ramp up (time to answer the threat).
-      const ramp =
-        this.joined.get(t) === 1 ? 1 : Math.min(1, wv.introStart + wv.introStep * since);
+      const ramp = this.joined.get(t) === 1 ? 1 : Math.min(1, wv.introStart + wv.introStep * since);
       const ul = protesterUnlockLevel(id);
       const boost = ul >= 0 && ul >= lvl - wv.newestWindow && ul > 0;
-      const fade = 1 / (1 + wv.ageFade * Math.max(0, lvl - Math.max(0, ul) - wv.ageGrace));
-      return protesterDef(id).weight * ramp * fade * (boost ? wv.newestBoost : 1);
+      return protesterDef(id).weight * ramp * (boost ? wv.newestBoost : 1);
     });
     w.stats.wave = this.wave;
     w.events.push('waveStart', { wave: this.wave, size: this.waveSize });

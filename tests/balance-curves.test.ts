@@ -33,7 +33,9 @@ describe('owner-fixed numbers (PLAN §1.2, §1.3, §1.6) are untouched by tuning
     expect(BALANCE.startLegit).toBe(0);
     expect(BALANCE.hatePerUnitDeath).toBe(10);
     expect(WIN_LEGITIMACY).toBe(5000);
-    expect(LEVELS.map((l) => l.legit)).toEqual([0, 10, 30, 50, 100, 200, 300, 500, 800, 1200, 2000]);
+    expect(LEVELS.map((l) => l.legit)).toEqual([
+      0, 10, 30, 50, 100, 200, 300, 500, 800, 1200, 2000,
+    ]);
     for (const p of PROTESTERS) expect(p.hate, p.id).toBe(p.id === 'breta' ? 100 : 1);
     expect(LEVELS.map((l) => l.protesters.join('+'))).toEqual([
       'student+woke',
@@ -71,7 +73,7 @@ describe('wave curve (PLAN §1.5)', () => {
     expect(BALANCE.waves.maxSize).toBeLessThanOrEqual(BALANCE.concurrency.desktop + 500);
   });
 
-  it('waves stream in over a size-dependent window; breathers stay 12–20 s', () => {
+  it('waves stream in over a size-dependent window; breathers 16–24 s', () => {
     expect(spawnSeconds(30)).toBeGreaterThan(10);
     expect(spawnSeconds(30)).toBeLessThan(25);
     expect(spawnSeconds(3000)).toBeLessThanOrEqual(BALANCE.waves.spawnWindow.max);
@@ -80,8 +82,8 @@ describe('wave curve (PLAN §1.5)', () => {
     const rate = (BALANCE.waves.maxEmitters / BALANCE.waves.emitInterval) * 0.8;
     expect(BALANCE.waves.maxSize / spawnSeconds(BALANCE.waves.maxSize)).toBeLessThan(rate);
     for (let k = 1; k < 60; k++) {
-      expect(breatherSeconds(k)).toBeGreaterThanOrEqual(12);
-      expect(breatherSeconds(k)).toBeLessThanOrEqual(20);
+      expect(breatherSeconds(k)).toBeGreaterThanOrEqual(16);
+      expect(breatherSeconds(k)).toBeLessThanOrEqual(24);
     }
   });
 
