@@ -22,7 +22,7 @@ Update this file at the end of every milestone.
 | M10 Tutorial, hints & writing | ✅ done | 9-step Minister briefing, hints, copy in `src/ui/text/`. Docs `docs/M10.md` |
 | M11 Audio | ✅ done | procedural SFX/crowd/music, wired via `boot.ts wireAudio`. Docs `docs/M11.md` |
 | M12 Balance | ✅ done | bots + `npm run playtest`; balanced wins 33–39 min, passive loses ~wave 10, peak crowd ~2300–2450. Docs `docs/M12.md` |
-| M13 Performance & polish | ⬜ | |
+| M13 Performance & polish | ✅ done | M13a art polish (`docs/art/*`), M13b UX/perf/mobile/soak (`docs/M13b.md`) |
 | M14 Release | ⬜ | |
 
 ## How to run
@@ -113,13 +113,11 @@ Naming: `<category>.<subject>.<anim>.<facing>` (`unit.*`, `prot.*`, `veh.*`, `ti
 - Paris Capitol: Assemblée nationale (Palais Bourbon) assumed; Madrid: Congreso de los Diputados; London: Palace of Westminster.
 
 ## Known issues
-- M10: advisor bubble overlaps LET THEM COME / CALL EARLY outside the briefing; codex toast clipped at the top-left screen edge; semi-transparent stretched Sprites invisible when repositioned per frame (dim uses Graphics instead).
-- M9: Legitimacy seal level number crowded; small-font "+" reads as a dot; phone-portrait camera quite zoomed in; verify ledger "Hate spent" vs "Hate earned" accounting.
-- M12: bot decisions can take ~20 ms once per sim second (`?autoplay` / title-screen bot may hitch).
-- Sample officer (M1 pipeline proof) has idle SE + walk SE/NE (+ mirrors); there is no idle NE, so the demo shows NE/NW idlers with the SE/SW idle. No blink (a blink in a 4-frame 5 fps idle flashes every 0.8 s — M4a should use a longer idle or a separate blink anim). M4a redraws all units.
-- Stub tiles/buildings are placeholders (no kerbs/transitions, square footprints only).
-- Two-finger trackpad *pan* on desktop arrives as wheel events and zooms; drag with the mouse to pan.
-- The demo scene keeps its own `keydown` handler for Space/F; M9 should move hotkeys into an input/commands module.
+- `flushSilhouettes` (src/view/silhouette.ts) re-uploads a whole 1024² page per new silhouette (~3–4 ms/frame on the title screen).
+- New gas puffs read as pale solid blobs in `?freeze` screenshots (live look unverified).
+- Phone portrait near map edges still shows a sliver of void.
+- Art debt: Cibeles/Neptune statues small; heli rotor doesn't tilt with bank; flat-roof single-pixel specks.
+- GPU cost unmeasured (SwiftShader sandbox); verify 60 fps on real hardware.
 
 ## Later / out of scope
 _(ideas that are not in the brief go here)_
