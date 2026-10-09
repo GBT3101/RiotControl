@@ -400,7 +400,7 @@ function paintGroundFloor(
               ? M.PAR_CAFE
               : M.PAR_SHOP;
       // Each shop gets its own sign / awning colours.
-      const sl = { ...look, ...shopColours(look, d) };
+      const sl = { ...look, ...shopColours(d) };
       const r2 = resolver(sl, f, v);
       stampModule(f, mod, x0 + 1, y0, signText(r2, sl, x0 + 1, y0, d), lit ? GLOW : 0, lit ? GLOW_HI : 0);
       b += 2;
@@ -423,7 +423,7 @@ function paintGroundFloor(
   }
 }
 
-function shopColours(look: Look, d: Dice): Partial<Look> {
+function shopColours(d: Dice): Partial<Look> {
   const SIGNS: ReadonlyArray<readonly [string, string]> = [
     ['green1', 'ochre3'],
     ['rust0', 'ochre3'],

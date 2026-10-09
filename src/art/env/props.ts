@@ -10,12 +10,19 @@
  */
 import type { CityId } from '../../maps/contract';
 import { SHADOW, SHADOW_ALPHA, resolveColor, type RGBA } from '../palette';
-import { createBuffer, getPixel, mirrorX, setPixel, type PixelBuffer, type Point } from '../lib/pixels';
+import {
+  createBuffer,
+  getPixel,
+  mirrorX,
+  setPixel,
+  type PixelBuffer,
+  type Point,
+} from '../lib/pixels';
 import { C, darker, lighter } from './color';
 import { parseGrid } from './bld/face';
 import { IsoCanvas, type Tex } from './raster';
 import * as P from './props.grid';
-import { Dice, hash } from './util';
+import { Dice, hash, outlineDarker } from './util';
 
 export interface PropSprite {
   frames: PixelBuffer[];
@@ -121,38 +128,24 @@ interface FinishOpts {
  * Pad, outline (coloured: 3 steps darker than the touching pixel), add the blob shadow under the
  * anchor and crop. Applies the same geometry to every frame so animations stay aligned.
  */
-function finish(frames: PixelBuffer[], anchor: Point, o: FinishOpts = {}, light?: PixelBuffer): PropSprite {
+function finish(
+  frames: PixelBuffer[],
+  anchor: Point,
+  o: FinishOpts = {},
+  light?: PixelBuffer,
+): PropSprite {
   const rx = o.shadow ?? 0;
   const ry = Math.max(1, Math.round(rx / 2));
   const pad = 2 + rx;
   const sc = resolveColor(SHADOW, SHADOW_ALPHA);
   const out = frames.map((f) => {
     const b = createBuffer(f.w + pad * 2, f.h + pad * 2);
-    for (let y = 0; y < f.h; y++) for (let x = 0; x < f.w; x++) {
-      const c = getPixel(f, x, y);
-      if (c & 255) setPixel(b, x + pad, y + pad, c);
-    }
-    if (o.outline !== false) {
-      const marks: Array<[number, number, RGBA]> = [];
-      for (let y = 0; y < b.h; y++) {
-        for (let x = 0; x < b.w; x++) {
-          if (getPixel(b, x, y) & 255) continue;
-          for (const [dx, dy] of [
-            [0, 1],
-            [0, -1],
-            [1, 0],
-            [-1, 0],
-          ] as const) {
-            const c = getPixel(b, x + dx, y + dy);
-            if ((c & 255) === 255) {
-              marks.push([x, y, darker(c, 3)]);
-              break;
-            }
-          }
-        }
+    for (let y = 0; y < f.h; y++)
+      for (let x = 0; x < f.w; x++) {
+        const c = getPixel(f, x, y);
+        if (c & 255) setPixel(b, x + pad, y + pad, c);
       }
-      for (const [x, y, c] of marks) setPixel(b, x, y, c);
-    }
+    if (o.outline !== false) outlineDarker(b, 3);
     if (rx > 0) {
       const cx = anchor.x + pad + (o.shadowDx ?? 1);
       const cy = anchor.y + pad;
@@ -173,13 +166,14 @@ function finish(frames: PixelBuffer[], anchor: Point, o: FinishOpts = {}, light?
   let maxX = -1;
   let maxY = -1;
   for (const b of out) {
-    for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) {
-      if ((getPixel(b, x, y) & 255) === 0) continue;
-      if (x < minX) minX = x;
-      if (y < minY) minY = y;
-      if (x > maxX) maxX = x;
-      if (y > maxY) maxY = y;
-    }
+    for (let y = 0; y < b.h; y++)
+      for (let x = 0; x < b.w; x++) {
+        if ((getPixel(b, x, y) & 255) === 0) continue;
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+      }
   }
   const ax = anchor.x + pad;
   const ay = anchor.y + pad;
@@ -189,19 +183,21 @@ function finish(frames: PixelBuffer[], anchor: Point, o: FinishOpts = {}, light?
   maxY = Math.max(maxY, ay);
   const crop = (b: PixelBuffer): PixelBuffer => {
     const c = createBuffer(maxX - minX + 1, maxY - minY + 1);
-    for (let y = 0; y < c.h; y++) for (let x = 0; x < c.w; x++) {
-      const p = getPixel(b, x + minX, y + minY);
-      if (p & 255) setPixel(c, x, y, p);
-    }
+    for (let y = 0; y < c.h; y++)
+      for (let x = 0; x < c.w; x++) {
+        const p = getPixel(b, x + minX, y + minY);
+        if (p & 255) setPixel(c, x, y, p);
+      }
     return c;
   };
   let lightOut: PixelBuffer | undefined;
   if (light) {
     const lb = createBuffer(light.w + pad * 2, light.h + pad * 2);
-    for (let y = 0; y < light.h; y++) for (let x = 0; x < light.w; x++) {
-      const c = getPixel(light, x, y);
-      if (c & 255) setPixel(lb, x + pad, y + pad, c);
-    }
+    for (let y = 0; y < light.h; y++)
+      for (let x = 0; x < light.w; x++) {
+        const c = getPixel(light, x, y);
+        if (c & 255) setPixel(lb, x + pad, y + pad, c);
+      }
     lightOut = crop(lb);
   }
   return { frames: out.map(crop), anchor: { x: ax - minX, y: ay - minY }, light: lightOut };
@@ -215,10 +211,12 @@ function gridProp(src: string, k: Keys, o: FinishOpts = {}, lightKeys?: string[]
   if (lightKeys) {
     const g = parseGrid(src);
     light = createBuffer(b.w, b.h);
-    for (let y = 0; y < g.h; y++) for (let x = 0; x < g.rows[y]!.length; x++) {
-      const ch = g.rows[y]![x]!;
-      if (lightKeys.includes(ch)) setPixel(light, x, y, ch === lightKeys[0] ? C('ochre3') : C('ochre4'));
-    }
+    for (let y = 0; y < g.h; y++)
+      for (let x = 0; x < g.rows[y]!.length; x++) {
+        const ch = g.rows[y]![x]!;
+        if (lightKeys.includes(ch))
+          setPixel(light, x, y, ch === lightKeys[0] ? C('ochre3') : C('ochre4'));
+      }
   }
   return finish([b], anchor, o, light);
 }
@@ -252,7 +250,7 @@ interface Clump {
 }
 
 const FOLIAGE: Record<TreeSpecies, string[]> = {
-  plane: ['green0', 'green1', 'green2', 'green3', 'green4', 'lime'],
+  plane: ['green0', 'green1', 'green2', 'green3', 'green3', 'green4'],
   pine: ['ink', 'green0', 'green1', 'green2', 'green3', 'green4'],
   chestnut: ['green0', 'green0', 'green1', 'green2', 'green3', 'green4'],
   oak: ['green0', 'green1', 'olive1', 'green2', 'green3', 'olive2'],
@@ -304,7 +302,17 @@ function canopy(b: PixelBuffer, clumps: Clump[], ramp: RGBA[], seed: number, flo
   }
 }
 
-function trunk(b: PixelBuffer, x0: number, yBase: number, yTop: number, w: number, bark: RGBA[], bend: number, seed: number, mottled: boolean): void {
+function trunk(
+  b: PixelBuffer,
+  x0: number,
+  yBase: number,
+  yTop: number,
+  w: number,
+  bark: RGBA[],
+  bend: number,
+  seed: number,
+  mottled: boolean,
+): void {
   for (let y = yTop; y <= yBase; y++) {
     const t = (yBase - y) / Math.max(1, yBase - yTop);
     const off = Math.round(Math.sin(t * Math.PI * 0.9) * bend);
@@ -332,7 +340,8 @@ export function treeSprite(species: TreeSpecies, seed: number): PropSprite {
     const bark = [C('stone1'), C('stone3'), C('stone4'), C('gray6')];
     trunk(b, cx - 1, base, base - 22, 3, bark, j(2), seed, true);
     // Branch forks visible under the canopy.
-    for (const s of [-1, 1]) for (let k = 0; k < 6; k++) setPixel(b, cx + s * (1 + k), base - 18 - k, bark[1]!);
+    for (const s of [-1, 1])
+      for (let k = 0; k < 6; k++) setPixel(b, cx + s * (1 + k), base - 18 - k, bark[1]!);
     const top = base - 42;
     clumps = [
       { x: cx + j(2), y: top + 8, rx: 9, ry: 7, tone: 0.5 },
@@ -370,7 +379,8 @@ export function treeSprite(species: TreeSpecies, seed: number): PropSprite {
   } else if (species === 'oak') {
     const bark = [C('earth0'), C('gray2'), C('gray3'), C('earth1')];
     trunk(b, cx - 2, base, base - 16, 4, bark, j(1), seed, true);
-    for (const s of [-1, 1]) for (let k = 0; k < 7; k++) setPixel(b, cx + s * (2 + k), base - 13 - (k >> 1), bark[1]!);
+    for (const s of [-1, 1])
+      for (let k = 0; k < 7; k++) setPixel(b, cx + s * (2 + k), base - 13 - (k >> 1), bark[1]!);
     const top = base - 40;
     clumps = [
       { x: cx - 2 + j(3), y: top + 9, rx: 8, ry: 7, tone: 0.5 },
@@ -396,155 +406,244 @@ export function treeSprite(species: TreeSpecies, seed: number): PropSprite {
 // ------------------------------------------------------------------------- iso-built props ---
 
 function hedge(): PropSprite {
-  return isoProp(10, (cv) => {
-    const leaf = (base: RGBA): Tex => (u, v, z) => {
-      const x = Math.floor((u - v) * 16);
-      const y = Math.floor((u + v) * 8 - z);
-      const row = Math.floor(y / 2);
-      const lx = (x + (row & 1) * 2) & 3;
-      if (lx === 0 && (y & 1) === 0) return lighter(base);
-      if (lx === 2 && (y & 1) === 1) return darker(base);
-      return base;
-    };
-    cv.box(0.06, 0.3, 0, 0.94, 0.7, 8, { top: leaf(C('green3')), left: leaf(C('green2')), right: leaf(C('green1')) });
-  }, { shadow: 0 });
+  return isoProp(
+    10,
+    (cv) => {
+      const leaf =
+        (base: RGBA): Tex =>
+        (u, v, z) => {
+          const x = Math.floor((u - v) * 16);
+          const y = Math.floor((u + v) * 8 - z);
+          const row = Math.floor(y / 2);
+          const lx = (x + (row & 1) * 2) & 3;
+          if (lx === 0 && (y & 1) === 0) return lighter(base);
+          if (lx === 2 && (y & 1) === 1) return darker(base);
+          return base;
+        };
+      cv.box(0.06, 0.3, 0, 0.94, 0.7, 8, {
+        top: leaf(C('green3')),
+        left: leaf(C('green2')),
+        right: leaf(C('green1')),
+      });
+    },
+    { shadow: 0 },
+  );
 }
 
 function bench(city: CityId): PropSprite {
   const frame = city === 'paris' ? C('green1') : city === 'london' ? C('gray1') : C('gray2');
   const wood = city === 'paris' ? C('green2') : C('earth4');
-  return isoProp(10, (cv) => {
-    const slats = (base: RGBA): Tex => (u, v, z) => {
-      const k = Math.floor(z) % 2;
-      return k === 0 ? base : darker(base);
-    };
-    // Legs / end frames.
-    for (const u of [0.2, 0.78]) {
-      cv.box(u, 0.38, 0, u + 0.04, 0.62, 4, { top: () => frame, left: () => frame, right: () => darker(frame) });
-      cv.box(u, 0.38, 0, u + 0.04, 0.44, 9, { top: () => frame, left: () => frame, right: () => darker(frame) });
-    }
-    // Seat and backrest slats.
-    cv.box(0.16, 0.42, 3, 0.84, 0.62, 4, {
-      top: (u, v) => (Math.floor(v * 32) % 2 === 0 ? lighter(wood) : wood),
-      left: () => darker(wood),
-      right: () => darker(wood, 2),
-    });
-    cv.box(0.16, 0.38, 5, 0.84, 0.43, 9, { top: () => lighter(wood), left: slats(wood), right: () => darker(wood, 2) });
-  }, { shadow: 0 });
+  return isoProp(
+    10,
+    (cv) => {
+      const slats =
+        (base: RGBA): Tex =>
+        (_u, _v, z) => {
+          const k = Math.floor(z) % 2;
+          return k === 0 ? base : darker(base);
+        };
+      // Legs / end frames.
+      for (const u of [0.2, 0.78]) {
+        cv.box(u, 0.38, 0, u + 0.04, 0.62, 4, {
+          top: () => frame,
+          left: () => frame,
+          right: () => darker(frame),
+        });
+        cv.box(u, 0.38, 0, u + 0.04, 0.44, 9, {
+          top: () => frame,
+          left: () => frame,
+          right: () => darker(frame),
+        });
+      }
+      // Seat and backrest slats.
+      cv.box(0.16, 0.42, 3, 0.84, 0.62, 4, {
+        top: (_u, v) => (Math.floor(v * 32) % 2 === 0 ? lighter(wood) : wood),
+        left: () => darker(wood),
+        right: () => darker(wood, 2),
+      });
+      cv.box(0.16, 0.38, 5, 0.84, 0.43, 9, {
+        top: () => lighter(wood),
+        left: slats(wood),
+        right: () => darker(wood, 2),
+      });
+    },
+    { shadow: 0 },
+  );
 }
 
 function kiosk(city: CityId): PropSprite {
   const body = city === 'paris' ? C('green1') : city === 'london' ? C('gray1') : C('green2');
   const roof = city === 'paris' ? C('green2') : city === 'london' ? C('crim1') : C('green3');
-  return isoProp(26, (cv) => {
-    const mags = (u: number, v: number, z: number): RGBA => {
-      const x = Math.floor((u + (1 - v)) * 16);
-      const y = Math.floor(z);
-      if (y < 2) return darker(body);
-      if (y > 9 && y < 14) return C('navy0'); // vendor window
-      if (y >= 3 && y <= 9) {
-        const cols = [C('crim2'), C('ochre3'), C('white'), C('blue2'), C('pink2'), C('lime')];
-        if ((y === 5 || y === 8)) return darker(body);
-        return cols[hash(x >> 1, y >> 2, 7) % cols.length]!;
-      }
-      return body;
-    };
-    cv.box(0.22, 0.22, 0, 0.78, 0.78, 16, { top: null, left: mags, right: (u, v, z) => darker(mags(u, v, z)) });
-    // Overhanging roof.
-    cv.box(0.14, 0.14, 16, 0.86, 0.86, 18, {
-      top: () => lighter(roof),
-      left: (u) => (Math.floor(u * 16) % 3 === 0 ? darker(roof) : roof),
-      right: () => darker(roof),
-    });
-    if (city === 'paris') {
-      // Little dome and finial.
-      cv.box(0.32, 0.32, 18, 0.68, 0.68, 21, { top: () => lighter(roof), left: () => roof, right: () => darker(roof) });
-      cv.box(0.44, 0.44, 21, 0.56, 0.56, 23, { top: () => C('ochre2'), left: () => C('ochre2'), right: () => C('ochre1') });
-      cv.pole({ u: 0.5, v: 0.5, z: 23 }, 2, C('ochre2'));
-    } else {
-      // Sign board on top.
-      cv.box(0.3, 0.45, 18, 0.7, 0.55, 22, {
-        top: () => C('white'),
-        left: (u, _v, z) => (Math.floor(z) === 20 && Math.floor(u * 32) % 2 === 0 ? C('crim1') : C('white')),
-        right: () => C('gray6'),
+  return isoProp(
+    26,
+    (cv) => {
+      const side =
+        (shadeN: number) =>
+        (s: number, z: number): RGBA => {
+          const x = Math.floor(s);
+          const y = Math.floor(z);
+          let c: RGBA;
+          if (y < 2) c = darker(body);
+          else if (y >= 10 && y <= 12 && x > 1 && x < 8)
+            c = y === 12 ? C('navy1') : C('navy0'); // vendor hatch
+          else if (y >= 3 && y <= 8 && x > 0 && x < 9) {
+            // Racks of papers and magazines: pale pages with a few bright covers.
+            if (y === 5 || y === 8) c = darker(body);
+            else {
+              const h = hash(x >> 1, y >> 2, 7) % 9;
+              c =
+                h < 4
+                  ? C('white')
+                  : h < 6
+                    ? C('gray6')
+                    : [C('crim2'), C('ochre3'), C('blue2')][h - 6]!;
+            }
+          } else c = body;
+          return shadeN ? darker(c, shadeN) : c;
+        };
+      const L = side(0);
+      const R = side(1);
+      cv.box(0.22, 0.22, 0, 0.78, 0.78, 14, {
+        top: null,
+        left: (u, _v, z) => L((u - 0.22) * 16, z),
+        right: (_u, v, z) => R((0.78 - v) * 16, z),
       });
-    }
-  }, { shadow: 0 });
+      // Overhanging roof.
+      cv.box(0.14, 0.14, 14, 0.86, 0.86, 16, {
+        top: (u, v) => (Math.floor((u + v) * 8) % 3 === 0 ? darker(roof) : roof),
+        left: () => darker(roof),
+        right: () => darker(roof, 2),
+      });
+      if (city === 'paris') {
+        // Little dome and gilded finial.
+        cv.box(0.3, 0.3, 16, 0.7, 0.7, 19, {
+          top: () => lighter(roof),
+          left: () => roof,
+          right: () => darker(roof),
+        });
+        cv.box(0.44, 0.44, 19, 0.56, 0.56, 21, {
+          top: () => C('ochre2'),
+          left: () => C('ochre2'),
+          right: () => C('ochre1'),
+        });
+        cv.pole({ u: 0.5, v: 0.5, z: 21 }, 2, C('ochre2'));
+      } else {
+        // Sign board on top.
+        const sc = city === 'madrid' ? C('crim1') : C('navy1');
+        cv.box(0.3, 0.46, 16, 0.7, 0.54, 20, {
+          top: () => C('gray6'),
+          left: (u, _v, z) =>
+            Math.floor(z) === 18 && Math.floor(u * 32) % 2 === 0 ? sc : C('white'),
+          right: () => C('gray6'),
+        });
+      }
+    },
+    { shadow: 0 },
+  );
 }
 
 function phonebox(): PropSprite {
   const red = C('crim2');
-  return isoProp(26, (cv) => {
-    const face = (base: RGBA) => (s: number, z: number): RGBA => {
-      const x = Math.floor(s);
-      const y = Math.floor(z);
-      if (y >= 19) return x >= 1 && x <= 4 && y === 20 ? C('white') : base; // TELEPHONE band
-      if (y <= 1) return darker(base);
-      if (x === 0 || x === 5) return base;
-      if (y % 4 === 0 || x === 3) return base; // glazing bars
-      return y > 14 ? C('zinc2') : C('zinc1');
-    };
-    const L = face(red);
-    const R = face(darker(red));
-    cv.box(0.32, 0.32, 0, 0.68, 0.68, 22, {
-      top: () => red,
-      left: (u, _v, z) => L((u - 0.32) * 16, z),
-      right: (_u, v, z) => darker(R((0.68 - v) * 16, z)),
-    });
-    cv.box(0.36, 0.36, 22, 0.64, 0.64, 24, { top: () => lighter(red), left: () => red, right: () => darker(red) });
-    cv.dot({ u: 0.5, v: 0.5, z: 25 }, C('ochre2'));
-  }, { shadow: 0 });
+  return isoProp(
+    26,
+    (cv) => {
+      const face =
+        (base: RGBA) =>
+        (s: number, z: number): RGBA => {
+          const x = Math.floor(s);
+          const y = Math.floor(z);
+          if (y >= 19) return x >= 1 && x <= 4 && y === 20 ? C('white') : base; // TELEPHONE band
+          if (y <= 1) return darker(base);
+          if (x === 0 || x === 5) return base;
+          if (y % 4 === 0 || x === 3) return base; // glazing bars
+          return y > 14 ? C('zinc2') : C('zinc1');
+        };
+      const L = face(red);
+      const R = face(darker(red));
+      cv.box(0.32, 0.32, 0, 0.68, 0.68, 22, {
+        top: () => red,
+        left: (u, _v, z) => L((u - 0.32) * 16, z),
+        right: (_u, v, z) => darker(R((0.68 - v) * 16, z)),
+      });
+      cv.box(0.36, 0.36, 22, 0.64, 0.64, 24, {
+        top: () => lighter(red),
+        left: () => red,
+        right: () => darker(red),
+      });
+      cv.dot({ u: 0.5, v: 0.5, z: 25 }, C('ochre2'));
+    },
+    { shadow: 0 },
+  );
 }
 
 function busStop(city: CityId): PropSprite {
   const frame = city === 'paris' ? C('green1') : city === 'london' ? C('gray2') : C('gray3');
   const roof = city === 'paris' ? C('green2') : city === 'madrid' ? C('crim1') : C('gray5');
-  return isoProp(22, (cv) => {
-    const glass: Tex = (u, _v, z) => {
-      const x = Math.floor(u * 32);
-      if (Math.floor(z) <= 1 || Math.floor(z) >= 13) return frame;
-      if (x % 9 === 0) return frame;
-      return Math.floor(z) === 12 || (x + Math.floor(z)) % 11 === 0 ? C('zinc3') : C('zinc2');
-    };
-    // Back glass wall (we see its front, +v side), ad panel at the far end, roof.
-    cv.box(0.08, 0.3, 0, 0.92, 0.34, 14, { top: () => frame, left: glass, right: () => frame });
-    cv.box(0.8, 0.34, 1, 0.92, 0.66, 13, {
-      top: () => frame,
-      left: () => frame,
-      right: (_u, v, z) => {
-        // Lit advertising panel.
-        const y = Math.floor(z);
-        const x = Math.floor(v * 32);
-        if (y < 3 || y > 11) return frame;
-        return [C('ochre4'), C('pink2'), C('sky'), C('white')][(x + (y >> 2)) % 4]!;
-      },
-    });
-    cv.box(0.04, 0.24, 14, 0.96, 0.7, 15, { top: () => lighter(roof), left: () => roof, right: () => darker(roof) });
-    // Bench inside.
-    cv.box(0.2, 0.34, 3, 0.7, 0.44, 4, { top: () => C('gray5'), left: () => C('gray4'), right: () => C('gray3') });
-    // Stop flag on a pole at the near end.
-    cv.pole({ u: 0.12, v: 0.68, z: 0 }, 18, C('gray3'));
-    const flagC = city === 'london' ? C('crim2') : city === 'madrid' ? C('crim1') : C('navy2');
-    for (let z = 16; z < 21; z++) {
-      cv.dot({ u: 0.12, v: 0.7, z }, flagC, 1);
-      cv.dot({ u: 0.15, v: 0.7, z }, z === 18 ? C('white') : flagC, 1);
-      cv.dot({ u: 0.18, v: 0.7, z }, flagC, 1);
-    }
-  }, { shadow: 0 });
+  return isoProp(
+    22,
+    (cv) => {
+      const glass: Tex = (u, _v, z) => {
+        const x = Math.floor(u * 32);
+        if (Math.floor(z) <= 1 || Math.floor(z) >= 13) return frame;
+        if (x % 9 === 0) return frame;
+        return Math.floor(z) === 12 || (x + Math.floor(z)) % 11 === 0 ? C('zinc3') : C('zinc2');
+      };
+      // Back glass wall (we see its front, +v side), ad panel at the far end, roof.
+      cv.box(0.08, 0.3, 0, 0.92, 0.34, 14, { top: () => frame, left: glass, right: () => frame });
+      cv.box(0.8, 0.34, 1, 0.92, 0.66, 13, {
+        top: () => frame,
+        left: () => frame,
+        right: (_u, v, z) => {
+          // Lit advertising panel.
+          const y = Math.floor(z);
+          const x = Math.floor(v * 32);
+          if (y < 3 || y > 11) return frame;
+          return [C('ochre4'), C('pink2'), C('sky'), C('white')][(x + (y >> 2)) % 4]!;
+        },
+      });
+      cv.box(0.04, 0.24, 14, 0.96, 0.7, 15, {
+        top: () => lighter(roof),
+        left: () => roof,
+        right: () => darker(roof),
+      });
+      // Bench inside.
+      cv.box(0.2, 0.34, 3, 0.7, 0.44, 4, {
+        top: () => C('gray5'),
+        left: () => C('gray4'),
+        right: () => C('gray3'),
+      });
+      // Stop flag on a pole at the near end.
+      cv.pole({ u: 0.12, v: 0.68, z: 0 }, 18, C('gray3'));
+      const flagC = city === 'london' ? C('crim2') : city === 'madrid' ? C('crim1') : C('navy2');
+      for (let z = 16; z < 21; z++) {
+        cv.dot({ u: 0.12, v: 0.7, z }, flagC, 1);
+        cv.dot({ u: 0.15, v: 0.7, z }, z === 18 ? C('white') : flagC, 1);
+        cv.dot({ u: 0.18, v: 0.7, z }, flagC, 1);
+      }
+    },
+    { shadow: 0 },
+  );
 }
 
 function planter(city: CityId, seed: number): PropSprite {
   const stone = city === 'london' ? C('gray6') : city === 'paris' ? C('stone4') : C('stone3');
-  const box = isoProp(8, (cv) => {
-    cv.box(0.2, 0.25, 0, 0.8, 0.75, 5, {
-      top: () => C('earth1'),
-      left: (_u, _v, z) => (Math.floor(z) === 4 ? lighter(stone) : stone),
-      right: (_u, _v, z) => (Math.floor(z) === 4 ? stone : darker(stone)),
-    });
-  }, { outline: false });
+  const box = isoProp(
+    8,
+    (cv) => {
+      cv.box(0.2, 0.25, 0, 0.8, 0.75, 5, {
+        top: () => C('earth1'),
+        left: (_u, _v, z) => (Math.floor(z) === 4 ? lighter(stone) : stone),
+        right: (_u, _v, z) => (Math.floor(z) === 4 ? stone : darker(stone)),
+      });
+    },
+    { outline: false },
+  );
   // Shrub on top.
   const bush = treeSprite('bush', seed);
-  const out = createBuffer(Math.max(box.frames[0]!.w, bush.frames[0]!.w) + 4, box.frames[0]!.h + 12);
+  const out = createBuffer(
+    Math.max(box.frames[0]!.w, bush.frames[0]!.w) + 4,
+    box.frames[0]!.h + 12,
+  );
   const ax = Math.floor(out.w / 2);
   const ay = out.h - (box.frames[0]!.h - box.anchor.y) - 1;
   blitAt(out, box.frames[0]!, ax - box.anchor.x, ay - box.anchor.y);
@@ -552,13 +651,20 @@ function planter(city: CityId, seed: number): PropSprite {
   return finish([out], { x: ax, y: ay }, { shadow: 0 });
 }
 
-function blitAt(dst: PixelBuffer, src: PixelBuffer, dx: number, dy: number, opaqueOnly = false): void {
-  for (let y = 0; y < src.h; y++) for (let x = 0; x < src.w; x++) {
-    const c = getPixel(src, x, y);
-    const a = c & 255;
-    if (a === 0 || (opaqueOnly && a !== 255)) continue;
-    setPixel(dst, x + dx, y + dy, c);
-  }
+function blitAt(
+  dst: PixelBuffer,
+  src: PixelBuffer,
+  dx: number,
+  dy: number,
+  opaqueOnly = false,
+): void {
+  for (let y = 0; y < src.h; y++)
+    for (let x = 0; x < src.w; x++) {
+      const c = getPixel(src, x, y);
+      const a = c & 255;
+      if (a === 0 || (opaqueOnly && a !== 255)) continue;
+      setPixel(dst, x + dx, y + dy, c);
+    }
 }
 
 function cafe(city: CityId, seed: number): PropSprite {
@@ -575,56 +681,79 @@ function cafe(city: CityId, seed: number): PropSprite {
             [C('white'), C('crim2')],
             [C('ochre3'), C('white')],
           ]);
-  return isoProp(24, (cv) => {
-    // Chairs either side of the table.
-    for (const [u, v] of [
-      [0.24, 0.5],
-      [0.7, 0.5],
-    ] as const) {
-      cv.box(u, v - 0.08, 0, u + 0.08, v + 0.08, 3, { top: () => lighter(chair), left: () => chair, right: () => darker(chair) });
-      const back = u < 0.5 ? u : u + 0.06;
-      cv.box(back, v - 0.08, 3, back + 0.02, v + 0.08, 7, { top: () => chair, left: () => chair, right: () => darker(chair) });
-    }
-    // Round table: pedestal + top.
-    cv.pole({ u: 0.5, v: 0.5, z: 0 }, 5, C('gray2'));
-    cv.box(0.4, 0.4, 5, 0.6, 0.6, 6, { top: () => table, left: () => darker(table), right: () => darker(table, 2) });
-    // Umbrella.
-    cv.pole({ u: 0.5, v: 0.5, z: 6 }, 12, C('gray6'));
-    const z = 18;
-    const R = 0.42;
-    for (let k = 0; k < 8; k++) {
-      const a0 = (k / 8) * Math.PI * 2;
-      const a1 = ((k + 1) / 8) * Math.PI * 2;
-      const col = k % 2 === 0 ? umb[0] : umb[1];
-      const lit = Math.cos((a0 + a1) / 2 - Math.PI * 0.75) > 0;
-      cv.poly(
-        [
-          { u: 0.5, v: 0.5, z: z + 3 },
-          { u: 0.5 + Math.cos(a0) * R, v: 0.5 + Math.sin(a0) * R, z },
-          { u: 0.5 + Math.cos(a1) * R, v: 0.5 + Math.sin(a1) * R, z },
-        ],
-        () => (lit ? col : darker(col)),
-      );
-    }
-  }, { shadow: 0 });
+  return isoProp(
+    24,
+    (cv) => {
+      // Chairs either side of the table.
+      for (const [u, v] of [
+        [0.24, 0.5],
+        [0.7, 0.5],
+      ] as const) {
+        cv.box(u, v - 0.08, 0, u + 0.08, v + 0.08, 3, {
+          top: () => lighter(chair),
+          left: () => chair,
+          right: () => darker(chair),
+        });
+        const back = u < 0.5 ? u : u + 0.06;
+        cv.box(back, v - 0.08, 3, back + 0.02, v + 0.08, 7, {
+          top: () => chair,
+          left: () => chair,
+          right: () => darker(chair),
+        });
+      }
+      // Round table: pedestal + top.
+      cv.pole({ u: 0.5, v: 0.5, z: 0 }, 5, C('gray2'));
+      cv.box(0.4, 0.4, 5, 0.6, 0.6, 6, {
+        top: () => table,
+        left: () => darker(table),
+        right: () => darker(table, 2),
+      });
+      // Umbrella.
+      cv.pole({ u: 0.5, v: 0.5, z: 6 }, 12, C('gray6'));
+      const z = 18;
+      const R = 0.42;
+      for (let k = 0; k < 8; k++) {
+        const a0 = (k / 8) * Math.PI * 2;
+        const a1 = ((k + 1) / 8) * Math.PI * 2;
+        const col = k % 2 === 0 ? umb[0] : umb[1];
+        const lit = Math.cos((a0 + a1) / 2 - Math.PI * 0.75) > 0;
+        cv.poly(
+          [
+            { u: 0.5, v: 0.5, z: z + 3 },
+            { u: 0.5 + Math.cos(a0) * R, v: 0.5 + Math.sin(a0) * R, z },
+            { u: 0.5 + Math.cos(a1) * R, v: 0.5 + Math.sin(a1) * R, z },
+          ],
+          () => (lit ? col : darker(col)),
+        );
+      }
+    },
+    { shadow: 0 },
+  );
 }
 
 function tape(): PropSprite {
-  return isoProp(10, (cv) => {
-    for (const u of [0.08, 0.92]) {
-      // Plastic barrier posts (red/white).
-      for (let z = 0; z < 8; z++) cv.dot({ u, v: 0.5, z }, z % 3 === 0 ? C('white') : C('crim2'));
-      cv.dot({ u: u + 0.02, v: 0.5, z: 0 }, C('crim1'));
-    }
-    for (let k = 0; k <= 60; k++) {
-      const t = k / 60;
-      const sag = Math.sin(t * Math.PI) * 1.5;
-      const z = 7 - sag;
-      const c = Math.floor(t * 14) % 2 === 0 ? C('hivis2') : C('ink');
-      cv.dot({ u: 0.08 + 0.84 * t, v: 0.5, z }, c);
-      cv.dot({ u: 0.08 + 0.84 * t, v: 0.5, z: z - 1 }, Math.floor(t * 14) % 2 === 0 ? C('hivis1') : C('ink'));
-    }
-  }, { shadow: 0 });
+  return isoProp(
+    10,
+    (cv) => {
+      for (const u of [0.08, 0.92]) {
+        // Plastic barrier posts (red/white).
+        for (let z = 0; z < 8; z++) cv.dot({ u, v: 0.5, z }, z % 3 === 0 ? C('white') : C('crim2'));
+        cv.dot({ u: u + 0.02, v: 0.5, z: 0 }, C('crim1'));
+      }
+      for (let k = 0; k <= 60; k++) {
+        const t = k / 60;
+        const sag = Math.sin(t * Math.PI) * 1.5;
+        const z = 7 - sag;
+        const c = Math.floor(t * 14) % 2 === 0 ? C('hivis2') : C('ink');
+        cv.dot({ u: 0.08 + 0.84 * t, v: 0.5, z }, c);
+        cv.dot(
+          { u: 0.08 + 0.84 * t, v: 0.5, z: z - 1 },
+          Math.floor(t * 14) % 2 === 0 ? C('hivis1') : C('ink'),
+        );
+      }
+    },
+    { shadow: 0 },
+  );
 }
 
 // --------------------------------------------------------------------------------- lamps etc --
@@ -649,7 +778,8 @@ const CITY_METAL: Record<CityId, [string, string, string]> = {
 };
 
 function binProp(city: CityId): PropSprite {
-  if (city === 'paris') return gridProp(P.BIN_PARIS, keys({ M: 'green2', m: 'green1' }), { shadow: 3 });
+  if (city === 'paris')
+    return gridProp(P.BIN_PARIS, keys({ M: 'green2', m: 'green1' }), { shadow: 3 });
   const k =
     city === 'london'
       ? keys({ B: 'gray2', b: 'gray1', A: 'ochre2', d: 'ink', m: 'gray1' })
@@ -660,7 +790,15 @@ function binProp(city: CityId): PropSprite {
 function bollard(city: CityId): PropSprite {
   const [M, m, A] = CITY_METAL[city];
   if (city === 'paris') return gridProp(P.BOLLARD_PARIS, keys({ M, m }), { shadow: 2 });
-  return gridProp(P.BOLLARD, keys({ M: city === 'madrid' ? 'earth2' : M, m: city === 'madrid' ? 'earth1' : m, A: city === 'madrid' ? 'stone4' : A }), { shadow: 2 });
+  return gridProp(
+    P.BOLLARD,
+    keys({
+      M: city === 'madrid' ? 'earth2' : M,
+      m: city === 'madrid' ? 'earth1' : m,
+      A: city === 'madrid' ? 'stone4' : A,
+    }),
+    { shadow: 2 },
+  );
 }
 
 function hydrant(city: CityId): PropSprite {
@@ -688,14 +826,33 @@ function trafficLight(city: CityId): PropSprite {
 export type SignType = 'noentry' | 'oneway' | 'yield' | 'parking';
 export const SIGN_TYPES: readonly SignType[] = ['noentry', 'oneway', 'yield', 'parking'];
 function sign(t: SignType): PropSprite {
-  const src = { noentry: P.SIGN_NOENTRY, oneway: P.SIGN_ONEWAY, yield: P.SIGN_YIELD, parking: P.SIGN_PARKING }[t];
+  const src = {
+    noentry: P.SIGN_NOENTRY,
+    oneway: P.SIGN_ONEWAY,
+    yield: P.SIGN_YIELD,
+    parking: P.SIGN_PARKING,
+  }[t];
   return gridProp(src, keys({ M: 'gray4', m: 'gray3' }), { shadow: 2 });
 }
 
 function metro(city: CityId): PropSprite {
-  const src = city === 'madrid' ? P.METRO_MADRID : city === 'london' ? P.METRO_LONDON : P.METRO_PARIS;
-  const k = keys({ M: 'gray3', m: 'gray2', G: 'green2', g: 'green1', y: 'ochre3', O: 'ochre2', Y: 'ochre4' });
-  return gridProp(src, k, { shadow: city === 'paris' ? 0 : 3 }, city === 'paris' ? ['O', 'Y'] : undefined);
+  const src =
+    city === 'madrid' ? P.METRO_MADRID : city === 'london' ? P.METRO_LONDON : P.METRO_PARIS;
+  const k = keys({
+    M: 'gray3',
+    m: 'gray2',
+    G: 'green2',
+    g: 'green1',
+    y: 'ochre3',
+    O: 'ochre2',
+    Y: 'ochre4',
+  });
+  return gridProp(
+    src,
+    k,
+    { shadow: city === 'paris' ? 0 : 3 },
+    city === 'paris' ? ['O', 'Y'] : undefined,
+  );
 }
 
 function morris(seed: number): PropSprite {
@@ -703,8 +860,18 @@ function morris(seed: number): PropSprite {
   const k = keys({ G: 'green2', g: 'green1', A: 'ochre2' });
   // Poster colours vary per column.
   const pal = ['crim2', 'ochre3', 'sky', 'pink2', 'lime', 'white', 'purple', 'blue1'];
-  const remap: Record<string, string> = { p: d.pick(pal), P: d.pick(pal), y: d.pick(pal), C: d.pick(pal), n: d.pick(pal) };
-  return gridProp(P.MORRIS, { ...k, ...Object.fromEntries(Object.entries(remap).map(([a, b]) => [a, C(b)])) }, { shadow: 4 });
+  const remap: Record<string, string> = {
+    p: d.pick(pal),
+    P: d.pick(pal),
+    y: d.pick(pal),
+    C: d.pick(pal),
+    n: d.pick(pal),
+  };
+  return gridProp(
+    P.MORRIS,
+    { ...k, ...Object.fromEntries(Object.entries(remap).map(([a, b]) => [a, C(b)])) },
+    { shadow: 4 },
+  );
 }
 
 function flag(city: CityId): PropSprite {
@@ -740,7 +907,8 @@ function flagColour(city: CityId, x: number, y: number, W: number, H: number): R
   const cy = (H - 1) / 2;
   if (Math.abs(x - cx) < 1 || Math.abs(y - cy) < 0.6) return C('crim2');
   if (Math.abs(x - cx) < 2 || Math.abs(y - cy) < 1.6) return C('white');
-  const diag = Math.abs((x - cx) * (H / W) - (y - cy)) < 0.7 || Math.abs((x - cx) * (H / W) + (y - cy)) < 0.7;
+  const diag =
+    Math.abs((x - cx) * (H / W) - (y - cy)) < 0.7 || Math.abs((x - cx) * (H / W) + (y - cy)) < 0.7;
   if (diag) return C('white');
   return C('navy1');
 }
@@ -752,22 +920,88 @@ function pigeonSheets(): Record<'idle' | 'peck' | 'fly', PropSprite> {
     const f0 = frames[0]!;
     return { ...finish(frames, { x: Math.floor(f0.w / 2), y: f0.h - 1 }, { shadow }), fps };
   };
-  return { idle: mk(P.PIGEON_IDLE, 3, 2), peck: mk(P.PIGEON_PECK, 6, 2), fly: mk(P.PIGEON_FLY, 12, 0) };
+  return {
+    idle: mk(P.PIGEON_IDLE, 3, 2),
+    peck: mk(P.PIGEON_PECK, 6, 2),
+    fly: mk(P.PIGEON_FLY, 12, 0),
+  };
 }
 
 function bikeProp(kind: 'bicycle' | 'scooter', city: CityId, seed: number): PropSprite {
   const d = new Dice(seed);
-  const body =
+  const body = C(
     kind === 'bicycle'
       ? city === 'london'
         ? 'crim2'
         : city === 'madrid'
           ? 'white'
-          : d.pick(['teal1', 'green3', 'navy2'])
-      : d.pick(['sky', 'crim2', 'ochre3', 'white', 'green3', 'stone4']);
-  const k = keys({ F: body, f: 'gray5' });
-  k['f'] = darker(C(body));
-  return gridProp(kind === 'bicycle' ? P.BIKE : P.SCOOTER, k, { shadow: 4 });
+          : d.pick(['teal2', 'green3', 'blue1'])
+      : d.pick(['sky', 'crim2', 'ochre3', 'white', 'green3', 'stone4']),
+  );
+  const b = createBuffer(15, 11);
+  const ink = C('ink');
+  const tyre = C('gray1');
+  const ring = (cx: number, cy: number): void => {
+    for (const [x, y] of [
+      [-1, -2],
+      [0, -2],
+      [1, -2],
+      [-2, -1],
+      [2, -1],
+      [-2, 0],
+      [2, 0],
+      [-2, 1],
+      [2, 1],
+      [-1, 2],
+      [0, 2],
+      [1, 2],
+    ] as const)
+      setPixel(b, cx + x, cy + y, tyre);
+    setPixel(b, cx, cy, C('gray4'));
+  };
+  const line = (x0: number, y0: number, x1: number, y1: number, c: RGBA): void => {
+    const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+    for (let k = 0; k <= n; k++)
+      setPixel(b, Math.round(x0 + ((x1 - x0) * k) / n), Math.round(y0 + ((y1 - y0) * k) / n), c);
+  };
+  // Along i: rear wheel upper-left, front wheel lower-right.
+  ring(3, 4);
+  ring(11, 7);
+  if (kind === 'bicycle') {
+    line(3, 4, 6, 6, body); // chain stay
+    line(6, 6, 11, 7, body); // down tube to fork
+    line(5, 2, 6, 6, body); // seat tube
+    line(5, 2, 10, 3, body); // top tube
+    line(10, 3, 11, 7, darker(body)); // fork
+    setPixel(b, 4, 1, ink);
+    setPixel(b, 5, 1, ink); // saddle
+    setPixel(b, 10, 2, ink);
+    setPixel(b, 11, 2, ink);
+    setPixel(b, 9, 2, C('gray3')); // bars
+    if (city === 'london' || city === 'madrid') {
+      // Hire-bike basket.
+      setPixel(b, 12, 3, C('gray4'));
+      setPixel(b, 12, 4, C('gray3'));
+    }
+  } else {
+    // Vespa: rounded rear body, footboard, leg shield, headlamp.
+    for (let y = 1; y <= 5; y++)
+      for (let x = 1; x <= 6; x++) {
+        if ((x - 3.5) ** 2 / 9 + (y - 3.5) ** 2 / 5 > 1) continue;
+        setPixel(b, x, y, y <= 2 ? lighter(body) : x > 4 ? darker(body) : body);
+      }
+    line(5, 5, 9, 6, darker(body, 2)); // footboard
+    line(9, 2, 10, 6, body);
+    line(10, 2, 10, 5, darker(body));
+    setPixel(b, 2, 0, C('earth1'));
+    setPixel(b, 3, 0, C('earth1'));
+    setPixel(b, 4, 0, C('earth2')); // seat
+    setPixel(b, 9, 1, ink);
+    setPixel(b, 10, 1, C('gray3'));
+    setPixel(b, 11, 1, ink);
+    setPixel(b, 11, 3, C('ochre4')); // headlamp
+  }
+  return finish([b], { x: 7, y: 9 }, { shadow: 4 });
 }
 
 // --------------------------------------------------------------------------------- registry --
@@ -859,9 +1093,13 @@ export function propSprite(kind: string, city: CityId, seed = 0, axis: 'i' | 'j'
   }
 }
 
-/** Build every prop sprite (pure; registration happens in index.ts). */
+let propCache: PropEntry[] | null = null;
+
+/** Build every prop sprite (pure, memoised; registration happens in index.ts). */
 export function buildProps(): PropEntry[] {
+  if (propCache) return propCache;
   const out: PropEntry[] = [];
+  propCache = out;
   const add = (name: string, sprite: PropSprite): void => {
     out.push({ name, sprite });
   };
@@ -870,7 +1108,8 @@ export function buildProps(): PropEntry[] {
     add(`${name}.j`, mirrorProp(sprite));
   };
   for (const sp of ['plane', 'pine', 'chestnut', 'oak'] as const) {
-    for (let v = 0; v < TREE_VARIANTS; v++) add(`prop.tree.${sp}.${v}`, treeSprite(sp, v * 17 + sp.length));
+    for (let v = 0; v < TREE_VARIANTS; v++)
+      add(`prop.tree.${sp}.${v}`, treeSprite(sp, v * 17 + sp.length));
   }
   for (let v = 0; v < TREE_VARIANTS; v++) add(`prop.bush.${v}`, treeSprite('bush', v * 13 + 3));
   addAxis('prop.hedge', hedge());
@@ -886,8 +1125,10 @@ export function buildProps(): PropEntry[] {
     add(`prop.bollard.${city}`, bollard(city));
     add(`prop.trafficlight.${city}`, trafficLight(city));
     add(`prop.flag.${city}`, flag(city));
-    for (let v = 0; v < CAFE_VARIANTS; v++) addAxis(`prop.cafe.${city}.${v}`, cafe(city, v * 7 + city.length));
-    for (let v = 0; v < PLANTER_VARIANTS; v++) add(`prop.planter.${city}.${v}`, planter(city, v * 5 + 1));
+    for (let v = 0; v < CAFE_VARIANTS; v++)
+      addAxis(`prop.cafe.${city}.${v}`, cafe(city, v * 7 + city.length));
+    for (let v = 0; v < PLANTER_VARIANTS; v++)
+      add(`prop.planter.${city}.${v}`, planter(city, v * 5 + 1));
     for (let v = 0; v < BIKE_VARIANTS; v++) {
       const kind = city === 'london' || v === 0 ? 'bicycle' : 'scooter';
       addAxis(`prop.bike.${city}.${v}`, bikeProp(kind, city, v * 3 + city.length));
@@ -897,7 +1138,10 @@ export function buildProps(): PropEntry[] {
   add('prop.postbox', gridProp(P.POSTBOX, keys({ A: 'ochre2' }), { shadow: 3 }));
   add('prop.morris.0', morris(1));
   add('prop.morris.1', morris(2));
-  add('prop.wallace', gridProp(P.WALLACE, keys({ G: 'green2', g: 'green1', A: 'ochre2' }), { shadow: 4 }));
+  add(
+    'prop.wallace',
+    gridProp(P.WALLACE, keys({ G: 'green2', g: 'green1', A: 'ochre2' }), { shadow: 4 }),
+  );
   add('prop.statue', gridProp(P.STATUE, keys({}), { shadow: 5 }));
   add('prop.cone', gridProp(P.CONE, keys({}), { shadow: 2 }));
   for (const t of SIGN_TYPES) add(`prop.sign.${t}`, sign(t));
@@ -909,4 +1153,11 @@ export function buildProps(): PropEntry[] {
   add('prop.pigeon.peck', pg.peck);
   add('prop.pigeon.fly', pg.fly);
   return out;
+}
+
+/** Look up a built prop by registered name. */
+export function getProp(name: string): PropSprite {
+  const e = buildProps().find((p) => p.name === name);
+  if (!e) throw new Error(`Unknown prop "${name}"`);
+  return e.sprite;
 }

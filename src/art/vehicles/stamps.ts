@@ -82,7 +82,8 @@ export function battenburg(w: number, h: number, a: string, b: string, c = 2): P
   const ca = resolveColor(a);
   const cb = resolveColor(b);
   for (let y = 0; y < h; y++)
-    for (let x = 0; x < w; x++) setPixel(out, x, y, (Math.floor(x / c) + Math.floor(y / c)) % 2 ? cb : ca);
+    for (let x = 0; x < w; x++)
+      setPixel(out, x, y, (Math.floor(x / c) + Math.floor(y / c)) % 2 ? cb : ca);
   return out;
 }
 
@@ -158,7 +159,8 @@ export function muzzleFlash(
         let da = Math.abs(ang - a);
         if (da > Math.PI) da = 2 * Math.PI - da;
         const width = size === 1 ? 0.42 : 0.3;
-        if (d <= len && da < width * (1 - d / (len + 0.8))) v = Math.max(v, 0.85 - (d / len) * 0.75);
+        if (d <= len && da < width * (1 - d / (len + 0.8)))
+          v = Math.max(v, 0.85 - (d / len) * 0.75);
       }
       if (v <= 0.02) continue;
       const c = v > 0.8 ? core : v > 0.6 ? hot : v > 0.4 ? mid : v > 0.22 ? out : rim;

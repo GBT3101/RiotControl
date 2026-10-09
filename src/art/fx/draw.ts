@@ -299,6 +299,10 @@ export interface LobeStyle {
   holes?: readonly Lobe[];
   /** Extra width of the shadow crescent (0..1 of r, default 0.38). */
   shade?: number;
+  /** Per-lobe creases between overlapping lobes (default true). false = softer, merged look. */
+  creases?: boolean;
+  /** Spec highlight on every big lobe ('all', default) or only the biggest upper one ('one'). */
+  spec?: 'all' | 'one';
 }
 
 /**
@@ -318,6 +322,8 @@ export function paintLobes(b: PixelBuffer, lobes: readonly Lobe[], style: LobeSt
   const dist = mode === 'hot' ? chamfer(k) : new Float32Array(0);
   // Paint lobes.
   const paint = new Int16Array(b.w * b.h).fill(-1);
+  let specLobe: Lobe | null = null;
+  for (const l of lobes) if (!specLobe || l.r - l.y * 0.3 > specLobe.r - specLobe.y * 0.3) specLobe = l;
   for (const l of lobes) {
     const ry = l.r * (l.sy ?? 1);
     for (let y = Math.floor(l.y - ry - 1); y <= Math.ceil(l.y + ry + 1); y++) {
@@ -334,12 +340,13 @@ export function paintLobes(b: PixelBuffer, lobes: readonly Lobe[], style: LobeSt
           const rim = !mget(k, x + sd, y + sd) || !mget(k, x + Math.ceil(sd / 2), y + sd + 1);
           const s = Math.max(0.8, l.r * shade * 0.45);
           const crease = !inEllipse(x, y, l.x - s * 0.7, l.y - s * 0.75 * (l.sy ?? 1), l.r, ry);
-          const inShadow = rim || crease;
+          const inShadow = rim || (style.creases !== false && crease);
           const lr = Math.max(1, l.r * 0.42);
           const inLight =
             l.r >= 2 && !inEllipse(x, y, l.x + lr * 0.6, l.y + lr * 0.8 * (l.sy ?? 1), l.r, ry);
           const spec =
             ramp.length > 4 &&
+            (style.spec !== 'one' || l === specLobe) &&
             l.r >= Math.max(4, maxR * 0.85) &&
             inEllipse(x, y, l.x - l.r * 0.38, l.y - ry * 0.42, l.r * 0.3, ry * 0.26);
           step = inShadow ? 1 : spec ? 4 : inLight ? 3 : 2;

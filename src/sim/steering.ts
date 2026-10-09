@@ -71,28 +71,40 @@ export function updateCrowd(w: World, dt: number): void {
   const hasBreta = w.bretaSlot >= 0;
   let capAttackers = 0;
 
+  const actTA = c.actT;
+  const animA = c.anim;
+  const burnTA = c.burnT;
+  const cdA = c.cd;
+  const cd2A = c.cd2;
+  const facingA = c.facing;
+  const gasTA = c.gasT;
+  const lastAtkA = c.lastAtk;
+  const speedA = c.speed;
+  const stTA = c.stT;
+  const stunA = c.stun;
+  const typeA = c.type;
   for (let s = 0; s < hi; s++) {
     if (!alive[s]) continue;
-    const type = c.type[s]!;
+    const type = typeA[s]!;
 
     // ── Status effects ───────────────────────────────────────────────────────────────
-    let stun = c.stun[s]!;
+    let stun = stunA[s]!;
     if (stun > 0) {
       stun -= dt;
-      c.stun[s] = stun > 0 ? stun : 0;
+      stunA[s] = stun > 0 ? stun : 0;
     }
-    if (c.gasT[s]! > 0) {
-      c.gasT[s] = c.gasT[s]! - dt;
+    if (gasTA[s]! > 0) {
+      gasTA[s] = gasTA[s]! - dt;
       if (hurtProtester(w, s, gasDps * dt, DMG.gas, false, -1)) continue;
     }
-    if (c.burnT[s]! > 0) {
-      c.burnT[s] = c.burnT[s]! - dt;
+    if (burnTA[s]! > 0) {
+      burnTA[s] = burnTA[s]! - dt;
       if (hurtProtester(w, s, burnDps * dt, DMG.fire, true, -1)) continue;
     }
-    if (c.cd[s]! > 0) c.cd[s] = c.cd[s]! - dt;
-    if (c.cd2[s]! > 0) c.cd2[s] = c.cd2[s]! - dt;
-    const act = c.actT[s]!;
-    if (act > 0) c.actT[s] = act - dt;
+    if (cdA[s]! > 0) cdA[s] = cdA[s]! - dt;
+    if (cd2A[s]! > 0) cd2A[s] = cd2A[s]! - dt;
+    const act = actTA[s]!;
+    if (act > 0) actTA[s] = act - dt;
 
     // ── Throttled decisions ──────────────────────────────────────────────────────────
     if (P_HAS_THINK[type] && s % THINK === tickMod) {
@@ -109,8 +121,8 @@ export function updateCrowd(w: World, dt: number): void {
     resetDesire();
     switch (state[s]!) {
       case PS.SPAWNING: {
-        const t = c.stT[s]! - dt;
-        c.stT[s] = t;
+        const t = stTA[s]! - dt;
+        stTA[s] = t;
         marchDesire(w, s);
         D.speed = 0.35;
         if (t <= 0) {
@@ -163,11 +175,11 @@ export function updateCrowd(w: World, dt: number): void {
     // ── Steering ─────────────────────────────────────────────────────────────────────
     const x = xs[s]!;
     const y = ys[s]!;
-    let spd = c.speed[s]! * D.speed;
-    const stunned = c.stun[s]! > 0;
-    if (stunned || c.actT[s]! > 0) spd = 0;
+    let spd = speedA[s]! * D.speed;
+    const stunned = stunA[s]! > 0;
+    if (stunned || actTA[s]! > 0) spd = 0;
     if (hasBreta) spd *= auraFactor(w, x, y);
-    if (c.gasT[s]! > 0) spd *= 0.6;
+    if (gasTA[s]! > 0) spd *= 0.6;
     let dvx = D.x * spd;
     let dvy = D.y * spd;
 
@@ -310,18 +322,18 @@ export function updateCrowd(w: World, dt: number): void {
 
     // ── Facing & animation hints ─────────────────────────────────────────────────────
     const sp2 = vx * vx + vy * vy;
-    if (D.face) c.facing[s] = facing4i(D.fx, D.fy);
-    else if (sp2 > 0.04) c.facing[s] = facing4i(vx, vy);
+    if (D.face) facingA[s] = facing4i(D.fx, D.fy);
+    else if (sp2 > 0.04) facingA[s] = facing4i(vx, vy);
     let anim: number;
     if (stunned) anim = PANIM.STUNNED;
-    else if (c.actT[s]! > 0) anim = c.anim[s]!;
+    else if (actTA[s]! > 0) anim = animA[s]!;
     else if (st === PS.CAPITOL) anim = PANIM.RIOT;
-    else if (st === PS.ENGAGED && P_HAS_MELEE[type] && w.time - c.lastAtk[s]! < 0.5)
+    else if (st === PS.ENGAGED && P_HAS_MELEE[type] && w.time - lastAtkA[s]! < 0.5)
       anim = PANIM.ATTACK;
     else if (sp2 > 0.04) {
-      anim = c.gasT[s]! > 0 ? PANIM.COUGH : sp2 > 2.6 ? PANIM.RUN : PANIM.WALK;
+      anim = gasTA[s]! > 0 ? PANIM.COUGH : sp2 > 2.6 ? PANIM.RUN : PANIM.WALK;
     } else anim = PANIM.IDLE;
-    c.anim[s] = anim;
+    animA[s] = anim;
   }
   w.capitol.attackers = capAttackers;
 }

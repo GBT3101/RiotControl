@@ -105,6 +105,22 @@ export interface PrimOpts {
   tag?: string;
 }
 
+interface GeomCache {
+  N: number;
+  prims: number;
+  depth: Float32Array;
+  primIx: Int32Array;
+  faceIx: Int16Array;
+  hitT: Float32Array;
+  backHit: Uint8Array;
+  shadow: Int8Array;
+}
+const GEOM_CACHE = new Map<string, GeomCache>();
+/** Drop cached geometry passes (call after registration to free memory). */
+export function clearRenderCache(): void {
+  GEOM_CACHE.clear();
+}
+
 interface ShadowGrid {
   a0: number;
   b0: number;
@@ -611,7 +627,12 @@ export class Scene {
   }
 
   /** Render the scene into a sprite with the anchor on the footprint's top vertex. */
-  render(cv: Canvas, opts: { outline?: boolean } = {}): RenderOut {
+  /**
+   * Render the scene. `cacheKey`: scenes rendered with the same key must have identical prim
+   * geometry (same prims in the same order, same cuts); the prim pass and the per-pixel cast
+   * shadows are then reused (damage states 0–3 of a Capitol share geometry).
+   */
+  render(cv: Canvas, opts: { outline?: boolean; cacheKey?: string } = {}): RenderOut {
     const m = cv.margin ?? 2;
     const left = 16 * cv.d + (cv.left ?? m);
     const right = 16 * cv.w + (cv.right ?? m);
@@ -620,17 +641,33 @@ export class Scene {
     const ay = cv.top;
     const H = cv.top + 8 * (cv.w + cv.d) + (cv.bottom ?? m);
     const N = W * H;
-    const depth = new Float32Array(N).fill(-Infinity);
-    const primIx = new Int32Array(N).fill(-1);
-    const faceIx = new Int16Array(N);
-    const hitT = new Float32Array(N);
+    const cached = opts.cacheKey ? GEOM_CACHE.get(opts.cacheKey) : undefined;
+    const fresh = !cached || cached.N !== N || cached.prims !== this.prims.length;
+    const g: GeomCache = fresh
+      ? {
+          N,
+          prims: this.prims.length,
+          depth: new Float32Array(N).fill(-Infinity),
+          primIx: new Int32Array(N).fill(-1),
+          faceIx: new Int16Array(N),
+          hitT: new Float32Array(N),
+          backHit: new Uint8Array(N),
+          shadow: new Int8Array(N).fill(-1),
+        }
+      : cached;
+    if (fresh && opts.cacheKey) GEOM_CACHE.set(opts.cacheKey, g);
+    const depth = new Float32Array(g.depth);
+    const primIx = new Int32Array(g.primIx);
+    const faceIx = g.faceIx;
+    const hitT = g.hitT;
+    const backHit = g.backHit;
+    const shadowCache = g.shadow;
     const preCol = new Uint32Array(N); // pre-coloured pixels (billboards / strokes)
     const preEmit = new Uint32Array(N);
-    const backHit = new Uint8Array(N);
 
     // --- geometry pass ---------------------------------------------------------------------
     const prims = this.prims;
-    for (let pi = 0; pi < prims.length; pi++) {
+    for (let pi = 0; pi < (fresh ? prims.length : 0); pi++) {
       const p = prims[pi]!;
       const [u0, u1, v0, v1, z0, z1] = p.aabb;
       const xs = [(u0 - v0) * 16, (u0 - v1) * 16, (u1 - v0) * 16, (u1 - v1) * 16];
@@ -676,6 +713,10 @@ export class Scene {
           }
         }
       }
+    }
+    if (fresh) {
+      g.depth.set(depth);
+      g.primIx.set(primIx);
     }
     // Billboards.
     for (const b of this.boards) {
@@ -764,8 +805,13 @@ export class Scene {
         const base = lightLevel(lam);
         let shadow = false;
         if (p.recv && lam > 0) {
-          const S = nz > 0.55 ? SUN_H : SUN_V;
-          shadow = this.occluded(pi, u + nu * 0.02, v + nv * 0.02, z + nz * 0.3, S);
+          const sc = shadowCache[i]!;
+          if (sc >= 0) shadow = sc === 1;
+          else {
+            const S = nz > 0.55 ? SUN_H : SUN_V;
+            shadow = this.occluded(pi, u + nu * 0.02, v + nv * 0.02, z + nz * 0.3, S);
+            shadowCache[i] = shadow ? 1 : 0;
+          }
         }
         let level = base;
         if (shadow) level = nz > 0.55 ? Math.min(level, 2) : Math.max(1, level - 1);
@@ -818,7 +864,8 @@ export class Scene {
     }
     if (opts.outline !== false) {
       // Coloured exterior outline: the darkest tone of the touching material.
-      const marks: Array<[number, number]> = [];
+      const markI: number[] = [];
+      const markC: number[] = [];
       for (let py = 0; py < H; py++) {
         for (let px = 0; px < W; px++) {
           const i = py * W + px;
@@ -841,12 +888,13 @@ export class Scene {
                       ? i + W
                       : -1;
             if (j < 0 || img.data[j * 4 + 3]! !== 255) continue;
-            marks.push([i, inkOf(packAt(img, j * 4))]);
+            markI.push(i);
+            markC.push(inkOf(packAt(img, j * 4)));
             break;
           }
         }
       }
-      for (const [i, c] of marks) put(img, i, c);
+      for (let k = 0; k < markI.length; k++) put(img, markI[k]!, markC[k]!);
     }
     return { img, night, anchor: { x: ax, y: ay } };
   }

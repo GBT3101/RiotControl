@@ -15,7 +15,9 @@ export { HELI_ALT };
 /** Humvee: turret anchor offset from the hull anchor (includes the drive-frame body bob). */
 export function humveeTurretOffset(hullDir: Dir8, frame = 0): Point {
   const bob = HUMVEE_BOB[frame % 4]!;
-  return projectPx([HUMVEE_PIVOT[0], HUMVEE_PIVOT[1], HUMVEE_PIVOT[2] + bob], { yaw: yaw8(hullDir) });
+  return projectPx([HUMVEE_PIVOT[0], HUMVEE_PIVOT[1], HUMVEE_PIVOT[2] + bob], {
+    yaw: yaw8(hullDir),
+  });
 }
 /** Humvee: muzzle offset from the turret anchor. */
 export function humveeMuzzle(turretDir: Dir8): Point {
@@ -58,7 +60,8 @@ export function heliLight(pose: HeliPose, d: Dir8): Point {
 
 /** Precomputed tables (handy for docs & debugging). */
 export function metaTables() {
-  const t8 = <T>(f: (d: Dir8) => T) => Object.fromEntries(DIR8.map((d) => [d, f(d)])) as Record<Dir8, T>;
+  const t8 = <T>(f: (d: Dir8) => T) =>
+    Object.fromEntries(DIR8.map((d) => [d, f(d)])) as Record<Dir8, T>;
   return {
     humveeTurretOffset: t8((d) => [0, 1, 2, 3].map((f) => humveeTurretOffset(d, f))),
     humveeMuzzle: t8(humveeMuzzle),

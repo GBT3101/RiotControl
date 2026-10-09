@@ -10,6 +10,7 @@ import { registerButtons } from './buttons';
 import { registerCards } from './cards';
 import { registerIcons } from './icons';
 import { registerLogo } from './logo';
+import { registerNewspaper } from './newspaper';
 import { registerPanels } from './panels';
 import { registerPortraits } from './portraits';
 
@@ -22,4 +23,5 @@ export function registerUiKit(reg: SpriteRegistry): void {
   registerBanners(reg);
   registerPortraits(reg);
   registerLogo(reg);
+  registerNewspaper(reg);
 }

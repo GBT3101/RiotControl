@@ -15,6 +15,7 @@ import { buildBourbon, BOURBON_D, BOURBON_W } from './bourbon';
 import { buildCongreso, CONGRESO_D, CONGRESO_W } from './congreso';
 import { DAMAGE_STATES, project, type DamageState } from './engine/kit';
 import { registerLandmarkFx } from './fx';
+import { clearRenderCache } from './engine/scene';
 import { registerSecondary } from './secondary';
 import { stepTile } from './steps';
 import type { Build } from './types';
@@ -74,7 +75,10 @@ export function registerLandmarks(reg: SpriteRegistry): void {
     const art = CAPITOL_ART[city];
     for (const st of DAMAGE_STATES) {
       const b = art.build(st);
-      const out = b.scene.render({ w: art.w, d: art.d, top: art.top });
+      const out = b.scene.render(
+        { w: art.w, d: art.d, top: art.top },
+        { cacheKey: `capitol.${city}.${st < 4 ? 'intact' : 'ruin'}` },
+      );
       const name = `lm.capitol.${city}.${st}`;
       reg.add(name, { group: 'landmarks', frames: out.img, anchor: out.anchor, tags: ['capitol'] });
       OVERLAYS.set(name, toPlacements(b));
@@ -103,4 +107,5 @@ export function registerLandmarks(reg: SpriteRegistry): void {
     });
   }
   registerSecondary(reg, OVERLAYS);
+  clearRenderCache();
 }

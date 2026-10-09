@@ -8,7 +8,6 @@ import { resolveColor } from '../palette';
 import * as A from './anims';
 import { trimFrames } from './build';
 import { renderFigure, type Facing, type Pose } from './figure';
-import { mirrorX } from '../lib/pixels';
 import { rollVariant, type ProtesterType, type Variant } from './variants';
 import type { City } from './sign';
 
@@ -42,9 +41,7 @@ interface Actor {
 }
 
 function animFrames(v: Variant, poses: Pose[], facing: Facing, mirror: boolean): { frames: PixelBuffer[]; anchor: { x: number; y: number } } {
-  const t = trimFrames(poses.map((p) => renderFigure(v.look, facing, p).buf));
-  if (!mirror) return t;
-  return { frames: t.frames.map(mirrorX), anchor: { x: t.frames[0]!.w - 1 - t.anchor.x, y: t.anchor.y } };
+  return trimFrames(poses.map((p) => renderFigure(v.look, facing, p, mirror).buf));
 }
 
 /** Plain asphalt road with faint iso tile seams and a dashed lane line. */
@@ -99,7 +96,7 @@ export function composeCrowd(opts: CrowdOptions = {}): PixelBuffer[] {
     let spec: A.AnimSpec | undefined;
     let poses: Pose[];
     if (kind === 'ko' || kind === 'die') {
-      spec = kind === 'ko' ? A.ko(v.kit, facing) : A.die(v.kit, facing);
+      spec = kind === 'ko' ? A.koBody(v.kit, facing) : A.body(v.kit, facing);
       poses = [spec.poses[spec.poses.length - 1]!];
     } else {
       spec =

@@ -468,9 +468,15 @@ export function hit(k: Kit, f: Facing): AnimSpec {
   };
 }
 
-/** Lethal death: recoil → stagger → buckle → fall forward → bounce → settle (face down). */
+const LETHAL_LYING: Pose = { legs: 'stand', armR: 'up', armL: 'upF', view: 'ne', xf: 'cw', noBack: true };
+const KO_LYING: Pose = { legs: 'wide', armR: 'up', armL: 'up', view: 'se', xf: 'ccw', face: 'ko', noBack: true };
+
+/**
+ * Lethal death, standing part: recoil → stagger → buckle → fall forward (4 frames). Chain
+ * into `body` (bounce + settle, face down) — split so the tall and the wide poses don't
+ * share one bounding box in the atlas.
+ */
 export function die(_k: Kit, _f: Facing): AnimSpec {
-  const lying: Pose = { legs: 'stand', armR: 'up', armL: 'upF', view: 'ne', xf: 'cw', noBack: true };
   return {
     fps: 10,
     loop: false,
@@ -478,17 +484,23 @@ export function die(_k: Kit, _f: Facing): AnimSpec {
       { legs: 'stand', armR: 'upF', armL: 'upF', dx: -1, lean: -1, hy: -1, face: 'wince' },
       { legs: 'step', armR: 'up', armL: 'swingB', dx: -1, lean: -1, face: 'wince' },
       { legs: 'crouch', armR: 'limp', armL: 'limp', hy: 1, face: 'dead' },
-      { legs: 'stand', armR: 'swingF', armL: 'swingF', face: 'dead', xf: 'tiltF', noShadow: false },
-      { ...lying, dy: -1 },
-      { ...lying },
-      { ...lying, armL: 'down' },
+      { legs: 'stand', armR: 'swingF', armL: 'swingF', face: 'dead', xf: 'tiltF' },
     ],
   };
 }
 
-/** Non-lethal KO: dizzy stagger → fall backward → body with X-eyes (face up). */
+/** Lethal body: hits the ground (bounce) then settles face down; hold the last frame. */
+export function body(_k: Kit, _f: Facing): AnimSpec {
+  return { fps: 10, loop: false, poses: [{ ...LETHAL_LYING, dy: -1 }, { ...LETHAL_LYING }] };
+}
+
+/** KO body (face up, X-eyes): bounce then settle. */
+export function koBody(_k: Kit, _f: Facing): AnimSpec {
+  return { fps: 8, loop: false, poses: [{ ...KO_LYING, dy: -1 }, { ...KO_LYING }] };
+}
+
+/** Non-lethal KO, standing part: dizzy stagger → sink → fall backward. Chain into `kobody`. */
 export function ko(_k: Kit, _f: Facing): AnimSpec {
-  const lying: Pose = { legs: 'wide', armR: 'up', armL: 'up', view: 'se', xf: 'ccw', face: 'ko', noBack: true };
   return {
     fps: 8,
     loop: false,
@@ -499,8 +511,6 @@ export function ko(_k: Kit, _f: Facing): AnimSpec {
       { legs: 'wide', armR: 'upF', armL: 'swingF', hx: 1, face: 'ko' },
       { legs: 'crouch', armR: 'limp', armL: 'limp', face: 'ko' },
       { legs: 'stand', armR: 'upF', armL: 'upF', face: 'ko', xf: 'tiltB' },
-      { ...lying, dy: -1 },
-      { ...lying },
     ],
   };
 }

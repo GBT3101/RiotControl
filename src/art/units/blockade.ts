@@ -379,7 +379,28 @@ function deployFrames(axis: BlockadeAxis): PixelBuffer[] {
   return [frame(-12, 0), frame(-5, 0), frame(1, 2), frame(0, 3), frame(0, 0)];
 }
 
+/** Card / codex icon: a pristine barrier with a traffic cone, 32×32. */
+function portrait(): PixelBuffer {
+  const out = createBuffer(32, 32);
+  blit(out, paintSegment('single', 0, 'i'), 0, 4);
+  const cone = createBuffer(7, 10);
+  const o = C('rust3');
+  const d = C('rust1');
+  const w = C('white');
+  const rows = ['...o...', '..ooo..', '..www..', '..oOo..', '.wwwww.', '.ooood.', 'ooooodd'];
+  rows.forEach((r, y) =>
+    [...r].forEach((ch, x) => {
+      if (ch === '.') return;
+      setPixel(cone, x, y + 2, ch === 'w' ? w : ch === 'd' ? d : ch === 'O' ? C('rust4') : o);
+    }),
+  );
+  outline(cone, C('ink'));
+  blit(out, cone, 22, 20);
+  return out;
+}
+
 export function registerBlockade(reg: SpriteRegistry): void {
+  reg.add('unit.blockade.portrait', { group: 'portraits', frames: [portrait()], fps: 0, hasShadow: true });
   for (const axis of ['i', 'j'] as const) {
     for (const piece of BLOCKADE_PIECES) {
       reg.add(`unit.blockade.${piece}.${axis}`, {

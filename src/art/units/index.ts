@@ -13,6 +13,10 @@ import { COP_SKINS, RIOT } from './riot';
 import { SNIPER, SNIPER_THROWN } from './sniper';
 import { SOLDIER } from './soldier';
 
+export { unitAnimCatalog, unitAnimMeta, BRIGADE_SQUAD_OFFSETS, type UnitAnimMeta } from './catalog';
+export { BLOCKADE_PIECES, BLOCKADE_STATES } from './blockade';
+export { COP_SKINS } from './riot';
+
 export function registerUnits(reg: SpriteRegistry): void {
   registerUnitDef(reg, RIOT);
   // Skin variants of the riot officer (idle + walk) for crowds of officers (demo / M8).

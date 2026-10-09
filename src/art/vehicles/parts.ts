@@ -2,7 +2,7 @@
  * Reusable hand-built vehicle parts (wheels, sandbags, jerry cans, antennae, crew figures).
  * Units: world pixels (see render3d.ts). Model axes: x forward, y right, z up.
  */
-import { Model, type V3 } from './render3d';
+import type { Model, V3 } from './render3d';
 
 export interface WheelOpts {
   /** Tread phase 0..1 (one tread pitch) — animate per drive frame. */
@@ -58,7 +58,9 @@ export function sandbag(m: Model, c: V3, across = false, dark = false): void {
 export function jerryCan(m: Model, c: V3, mat = 'jerry'): void {
   m.boxc(mat, c, [1.1, 1.8, 2.4])
     .bevel(0.3, { top: true, vert: true })
-    .paint((p, n) => (Math.abs(n[0]) > 0.5 && Math.abs(p[1]) < 0.2 && Math.abs(p[2]) < 0.8 ? 'jerryDk' : undefined));
+    .paint((p, n) =>
+      Math.abs(n[0]) > 0.5 && Math.abs(p[1]) < 0.2 && Math.abs(p[2]) < 0.8 ? 'jerryDk' : undefined,
+    );
   m.boxc('steel', [c[0], c[1] - 0.5, c[2] + 1.35], [0.6, 0.5, 0.4]);
 }
 
@@ -66,8 +68,16 @@ export function jerryCan(m: Model, c: V3, mat = 'jerry'): void {
 export function antenna(m: Model, base: V3, len: number, lean = 8): void {
   m.boxc('dark', [base[0], base[1], base[2] + 0.5], [0.9, 0.9, 1]);
   const r = (lean * Math.PI) / 180;
-  m.boxc('wire', [base[0] - Math.sin(r) * len * 0.5, base[1], base[2] + (Math.cos(r) * len) / 2], [0.8, 0.8, len]).rot('y', -lean);
-  m.ell('wire', [base[0] - Math.sin(r) * len, base[1], base[2] + Math.cos(r) * len], [0.45, 0.45, 0.45]);
+  m.boxc(
+    'wire',
+    [base[0] - Math.sin(r) * len * 0.5, base[1], base[2] + (Math.cos(r) * len) / 2],
+    [0.8, 0.8, len],
+  ).rot('y', -lean);
+  m.ell(
+    'wire',
+    [base[0] - Math.sin(r) * len, base[1], base[2] + Math.cos(r) * len],
+    [0.45, 0.45, 0.45],
+  );
 }
 
 export interface CrewOpts {
@@ -96,13 +106,19 @@ export function crew(m: Model, at: V3, o: CrewOpts = {}): void {
   const body = o.body ?? 'oliveDk';
   const skin = o.skin ?? 'skin';
   // Torso (vest) with shoulders.
-  m.box(body, [x - 1.1 * k, y - 1.7 * k, z], [x + 1.0 * k, y + 1.7 * k, z + 3.4 * k]).bevel(0.5, { top: true });
+  m.box(body, [x - 1.1 * k, y - 1.7 * k, z], [x + 1.0 * k, y + 1.7 * k, z + 3.4 * k]).bevel(0.5, {
+    top: true,
+  });
   // Arms to the grips.
   if (!o.noArms) {
     const gx = o.gripX ?? x + 2.2;
     const gz = o.gripZ ?? z + 2.6;
     for (const s of [-1, 1]) {
-      m.box(body, [x - 0.4, y + s * 1.7 * k - 0.6, gz - 0.6], [gx, y + s * 1.7 * k + 0.6, gz + 0.5]);
+      m.box(
+        body,
+        [x - 0.4, y + s * 1.7 * k - 0.6, gz - 0.6],
+        [gx, y + s * 1.7 * k + 0.6, gz + 0.5],
+      );
       m.boxc(skin, [gx + 0.2, y + s * 1.2 * k, gz], [0.9, 1.0, 0.9]);
     }
   }
@@ -120,6 +136,8 @@ export function crew(m: Model, at: V3, o: CrewOpts = {}): void {
   const hm = o.helmet ?? 'helmetNavy';
   m.ell(hm, [x - 0.05, y, hz + 0.55 * k], [1.95 * k, 1.85 * k, 1.6 * k])
     .cut([0, 0, -1], [0, 0, hz + 0.15 * k])
-    .paint((p) => (hm === 'helmetNavy' && p[2] > -0.3 * k && p[2] < 0.15 * k ? 'hivis' : undefined));
+    .paint((p) =>
+      hm === 'helmetNavy' && p[2] > -0.3 * k && p[2] < 0.15 * k ? 'hivis' : undefined,
+    );
   if (o.headset) m.boxc('dark', [x, y - 1.9 * k, hz + 0.2], [0.8, 0.5, 1]);
 }

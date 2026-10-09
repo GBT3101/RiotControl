@@ -48,7 +48,7 @@ const CY = 12;
 
 function frame(lobes: readonly Lobe[]): PixelBuffer {
   const b = buf(W, H);
-  paintLobes(b, lobes, { ramp: GAS_RAMP, outlineLit: 'olive2' });
+  paintLobes(b, lobes, { ramp: GAS_RAMP, outlineLit: 'olive2', creases: false, spec: 'one' });
   return b;
 }
 
@@ -131,6 +131,34 @@ function trailFrames(): PixelBuffer[] {
     paintLobes(b, lobes, { ramp: GAS_RAMP, outlineLit: 'olive2' });
     return b;
   });
+}
+
+export interface PuffPlacement {
+  dx: number;
+  dy: number;
+  variant: string;
+  /** Start delay in seconds (stagger the grow anims). */
+  delay: number;
+}
+
+/**
+ * Organic gas-cloud layout: `n` puffs (6–12) scattered in an iso ellipse of radius `rx`
+ * (ry = rx/2), back puffs first (draw in this order), mixed variants and staggered delays.
+ */
+export function gasCloudLayout(seed: number, n = 9, rx = 36): PuffPlacement[] {
+  const rnd = prng(seed);
+  const out: PuffPlacement[] = [];
+  for (let i = 0; i < n; i++) {
+    const a = rnd() * Math.PI * 2;
+    const d = i === 0 ? 0 : Math.sqrt(rnd()) * 0.85;
+    out.push({
+      dx: Math.round(Math.cos(a) * rx * d),
+      dy: Math.round(Math.sin(a) * rx * 0.5 * d),
+      variant: GAS_PUFF_VARIANTS[Math.floor(rnd() * GAS_PUFF_VARIANTS.length)]!,
+      delay: Math.round((d * 0.5 + rnd() * 0.25) * 100) / 100,
+    });
+  }
+  return out.sort((p, q) => p.dy - q.dy);
 }
 
 export function registerGas(reg: SpriteRegistry): void {

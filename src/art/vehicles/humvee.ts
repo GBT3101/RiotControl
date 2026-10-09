@@ -5,6 +5,7 @@
  */
 import { flame, smokeColumn } from './fxparts';
 import { antenna, crew, jerryCan, sandbag, wheel } from './parts';
+import { charPaint } from './materials';
 import { Model, type Paint, type V3 } from './render3d';
 import { STENCILS } from './stamps';
 
@@ -31,18 +32,26 @@ const DENTS: Array<[V3, number]> = [
   [[0.5, -6, 6.5], 0.9],
 ];
 const SCRATCHES: Array<[V3, V3]> = [
-  [[4.5, 6, 6.6], [7.5, 6, 5.6]],
-  [[-3.5, -6, 6.8], [-0.5, -6, 6.2]],
+  [
+    [4.5, 6, 6.6],
+    [7.5, 6, 5.6],
+  ],
+  [
+    [-3.5, -6, 6.8],
+    [-0.5, -6, 6.2],
+  ],
 ];
 
 function near(q: V3, list: Array<[V3, number]>): boolean {
-  return list.some(([c, r]) => (q[0] - c[0]) ** 2 + (q[1] - c[1]) ** 2 + ((q[2] - c[2]) * 1.3) ** 2 < r * r);
+  return list.some(
+    ([c, r]) => (q[0] - c[0]) ** 2 + (q[1] - c[1]) ** 2 + ((q[2] - c[2]) * 1.3) ** 2 < r * r,
+  );
 }
 
 /** Base paint for olive panels: mud on the lower flanks, damage marks per state. */
 function olivePaint(state: HullState): Paint {
   return (_p, n, q) => {
-    if (state === 'wreck') return near(q, SCORCH) || q[2] < 7 ? 'soot' : 'char';
+    if (state === 'wreck') return near(q, SCORCH) || q[2] < 5 ? 'soot' : charPaint(q, n);
     if (state === 'dmg2' && near(q, SCORCH)) return 'soot';
     if (state !== 'ok') {
       if (near(q, DENTS)) return 'dentDk';
@@ -86,7 +95,8 @@ export function humveeHull(frame: number, state: HullState): Model {
         for (const wx of [-7.8, 8.0]) {
           if ((q[0] - wx) ** 2 + (q[2] - 3.5) ** 2 < 4.4 * 4.4) return wreck ? 'inkFlat' : 'dark';
         }
-        if (!wreck && (Math.abs(q[0] - 3.3) < 0.3 || Math.abs(q[0] + 4.1) < 0.3) && q[2] > 4.6) return 'oliveDk';
+        if (!wreck && (Math.abs(q[0] - 3.3) < 0.3 || Math.abs(q[0] + 4.1) < 0.3) && q[2] > 4.6)
+          return 'oliveDk';
       }
       if (n[0] > 0.5 && n[2] > 0.3) {
         if (Math.abs(q[1]) < 3.2) return Math.floor(q[1] + 10) % 2 === 0 ? 'grille' : 'dark';
@@ -109,7 +119,8 @@ export function humveeHull(frame: number, state: HullState): Model {
         if (q[2] > 8.6 && q[2] < 11.5 && Math.abs(q[1]) < 4.9 && Math.abs(q[1]) > 0.45) {
           if (state === 'dmg1' || state === 'dmg2') {
             const d = Math.abs(q[1] - 2.6) + Math.abs(q[2] - 10.2);
-            if (d < 1.4 && (Math.round(q[1] * 2) + Math.round(q[2] * 2)) % 3 === 0) return 'glassHi';
+            if (d < 1.4 && (Math.round(q[1] * 2) + Math.round(q[2] * 2)) % 3 === 0)
+              return 'glassHi';
           }
           if (!wreck && Math.abs(q[1] + q[2] * 0.9 - 7.6) < 0.6) return 'glassHi';
           return glass;
@@ -124,7 +135,12 @@ export function humveeHull(frame: number, state: HullState): Model {
           }
         }
         if (!wreck && Math.abs(q[0] + 0.5) < 0.3 && q[2] < 8.7) return 'oliveDk';
-        if (!wreck && q[2] > 7.9 && q[2] < 8.4 && (Math.abs(q[0] - 1.6) < 0.6 || Math.abs(q[0] + 2.4) < 0.6))
+        if (
+          !wreck &&
+          q[2] > 7.9 &&
+          q[2] < 8.4 &&
+          (Math.abs(q[0] - 1.6) < 0.6 || Math.abs(q[0] + 2.4) < 0.6)
+        )
           return 'steel';
       }
       return paint(p, n, q);
@@ -134,13 +150,14 @@ export function humveeHull(frame: number, state: HullState): Model {
   b.cyl(wreck ? 'soot' : 'oliveDk', [HUMVEE_PIVOT[0], 0, 12.9], 3.5, 0.5, 'z');
   // Rear load bed under a sand canvas cover with hoops and tie-down ropes.
   b.box(body, [-12, -5.8, 7.3], [-4.4, 5.8, 8.6]).paint((p, n, q) => {
-    if (n[0] < -0.6 && Math.abs(q[1]) > 4.4) return wreck ? 'soot' : state === 'dmg2' && q[1] > 0 ? 'lampRdk' : 'lampR';
+    if (n[0] < -0.6 && Math.abs(q[1]) > 4.4)
+      return wreck ? 'soot' : state === 'dmg2' && q[1] > 0 ? 'lampRdk' : 'lampR';
     return paint(p, n, q);
   });
   if (!wreck) {
     b.box('canvas', [-11.8, -5.5, 8.4], [-4.6, 5.5, 11.6])
       .bevel(1.3, { top: true })
-      .paint((p, n, q) => {
+      .paint((_p, _n, q) => {
         if (Math.abs(q[0] + 6.6) < 0.4 || Math.abs(q[0] + 9.6) < 0.4) return 'canvasDk';
         if (state === 'dmg2' && near(q, [[[-9, 5.5, 10], 1.6]])) return 'dark';
         if (state !== 'ok' && near(q, [[[-7, -5.5, 10.4], 0.8]])) return 'dark';
@@ -148,7 +165,8 @@ export function humveeHull(frame: number, state: HullState): Model {
       });
   } else {
     // Burnt hoops only.
-    for (const x of [-6.6, -9.6]) b.box('char', [x - 0.4, -5.4, 8.6], [x + 0.4, 5.4, 11]).cut([0, 0, 1], [0, 0, 10.6]);
+    for (const x of [-6.6, -9.6])
+      b.box('char', [x - 0.4, -5.4, 8.6], [x + 0.4, 5.4, 11]).cut([0, 0, 1], [0, 0, 10.6]);
   }
   // Bumpers, winch and tow hooks.
   b.box('steel', [11.8, -6.3, 3.6], [13.0, 6.3, 4.9]).bevel(0.3, { top: true });
@@ -210,7 +228,9 @@ export function humveeTurret(frame: 'idle' | 'fire0' | 'fire1', dmg = false): Mo
   };
   m.box('olive', [2.2, -3.8, 0.8], [3.0, 3.8, 4.8]).bevel(0.6, { top: true }).paint(shieldPaint);
   for (const s of [-1, 1]) {
-    m.box('olive', [-0.4, s * 3.6 - 0.4, 0.8], [2.6, s * 3.6 + 0.4, 4.2]).rot('z', s * 24).paint(shieldPaint);
+    m.box('olive', [-0.4, s * 3.6 - 0.4, 0.8], [2.6, s * 3.6 + 0.4, 4.2])
+      .rot('z', s * 24)
+      .paint(shieldPaint);
   }
   m.box('steel', [0.4, -0.45, 1.0], [1.3, 0.45, 5.0]);
   // M2 .50 cal: receiver, barrel jacket, barrel, flash hider; ammo can on the left.

@@ -5,7 +5,7 @@
  * feet, sole row) at (GX, GY). Parts attach through origins/anchors (see book.ts).
  */
 import { renderKeys, type KeyMap } from '../lib/grid';
-import { blit, createBuffer, type PixelBuffer, type Point } from '../lib/pixels';
+import { blit, createBuffer, mirrorX, type PixelBuffer, type Point } from '../lib/pixels';
 import { resolveToneKeys, type ToneMap } from './tones';
 import type { PartDef } from './book';
 
@@ -117,6 +117,8 @@ export interface Placed {
   keys?: Readonly<Record<string, string>>;
   /** Alternative tones for pixels at work x ≥ fromX (split-dye hair). */
   split?: { tones: ToneMap; fromX: number };
+  /** Lettered part (signs, boards): never flipped when the figure is mirrored. */
+  text?: boolean;
 }
 
 export function anchorAt(p: Placed, name: string, fallback?: Point): Point {
@@ -134,29 +136,65 @@ function keysFor(keys: Readonly<Record<string, string>>, tones: ToneMap): KeyMap
   return k;
 }
 
+const imgCache = new WeakMap<PartDef, Map<string, PixelBuffer>>();
+const objIds = new WeakMap<object, number>();
+let nextId = 1;
+function oid(o: object): number {
+  let id = objIds.get(o);
+  if (id === undefined) objIds.set(o, (id = nextId++));
+  return id;
+}
+
+/** Rendered (coloured) part image, cached per part × key map × tones (× split column). */
+function partImage(p: Placed, keys: Readonly<Record<string, string>>, tones: ToneMap, cut: number | undefined): PixelBuffer {
+  let m = imgCache.get(p.part);
+  if (!m) imgCache.set(p.part, (m = new Map()));
+  const k = `${oid(keys)}:${oid(tones)}:${cut === undefined ? '' : `${cut}:${oid(p.split!.tones)}`}`;
+  let img = m.get(k);
+  if (img) return img;
+  img = renderKeys(p.part.grid, keysFor(keys, tones), {}, p.part.name);
+  if (p.split && cut !== undefined) {
+    const alt = renderKeys(p.part.grid, keysFor(keys, p.split.tones), {}, p.part.name);
+    for (let y = 0; y < img.h; y++) {
+      for (let x = Math.max(0, cut); x < img.w; x++) {
+        const i = (y * img.w + x) * 4;
+        img.data[i] = alt.data[i]!;
+        img.data[i + 1] = alt.data[i + 1]!;
+        img.data[i + 2] = alt.data[i + 2]!;
+      }
+    }
+  }
+  if (m.size > 64) m.clear();
+  m.set(k, img);
+  return img;
+}
+
+const mirCache = new WeakMap<PixelBuffer, PixelBuffer>();
+function mirrored(img: PixelBuffer): PixelBuffer {
+  let m = mirCache.get(img);
+  if (!m) mirCache.set(img, (m = mirrorX(img)));
+  return m;
+}
+
 /** Draw placed parts (stable-sorted by z) onto a fresh work canvas. */
-export function drawParts(parts: readonly Placed[], tones: ToneMap): PixelBuffer {
+export function drawParts(parts: readonly Placed[], tones: ToneMap, mirror = false): PixelBuffer {
   const out = createBuffer(WORK_W, WORK_H);
   const sorted = parts.map((p, i) => ({ p, i })).sort((a, b) => a.p.z - b.p.z || a.i - b.i);
   for (const { p } of sorted) {
     const keys = p.keys ?? BODY_KEYS;
     const x0 = p.at.x - p.part.origin.x;
     const y0 = p.at.y - p.part.origin.y;
-    const img = renderKeys(p.part.grid, keysFor(keys, tones), {}, p.part.name);
-    if (p.split) {
-      const alt = renderKeys(p.part.grid, keysFor(keys, p.split.tones), {}, p.part.name);
-      const cut = p.split.fromX - x0;
-      for (let y = 0; y < img.h; y++) {
-        for (let x = Math.max(0, cut); x < img.w; x++) {
-          const i = (y * img.w + x) * 4;
-          img.data[i] = alt.data[i]!;
-          img.data[i + 1] = alt.data[i + 1]!;
-          img.data[i + 2] = alt.data[i + 2]!;
-        }
-      }
-    }
-    blit(out, img, x0, y0);
+    const img = partImage(p, keys, tones, p.split ? p.split.fromX - x0 : undefined);
+    if (mirror) blit(out, p.text ? img : mirrored(img), 2 * GX - (x0 + img.w - 1), y0);
+    else blit(out, img, x0, y0);
   }
+  return out;
+}
+
+/** Mirror a whole work buffer about the ground column GX (matches registry mirroring). */
+export function mirrorWork(src: PixelBuffer): PixelBuffer {
+  const out = createBuffer(src.w, src.h);
+  blit(out, mirrorX(src), 2 * GX - (src.w - 1), 0);
   return out;
 }
 
@@ -232,4 +270,39 @@ export function shift(src: PixelBuffer, dx: number, dy: number): PixelBuffer {
   const out = createBuffer(src.w, src.h);
   blit(out, src, dx, dy);
   return out;
+}
+
+/**
+ * Fast 4-neighbour exterior outline (same result as lib/pixels `outline` without options):
+ * every non-opaque pixel touching an opaque one becomes `colour` (packed RGBA).
+ */
+export function fastOutline(buf: PixelBuffer, colour: number): PixelBuffer {
+  const { w, h, data } = buf;
+  const n = w * h;
+  const opaque = new Uint8Array(n);
+  for (let i = 0; i < n; i++) opaque[i] = data[i * 4 + 3] === 255 ? 1 : 0;
+  const r = (colour >>> 24) & 255;
+  const g = (colour >>> 16) & 255;
+  const b = (colour >>> 8) & 255;
+  const a = colour & 255;
+  for (let y = 0; y < h; y++) {
+    const row = y * w;
+    for (let x = 0; x < w; x++) {
+      const i = row + x;
+      if (opaque[i]) continue;
+      if (
+        (x + 1 < w && opaque[i + 1]) ||
+        (x > 0 && opaque[i - 1]) ||
+        (y + 1 < h && opaque[i + w]) ||
+        (y > 0 && opaque[i - w])
+      ) {
+        const o = i * 4;
+        data[o] = r;
+        data[o + 1] = g;
+        data[o + 2] = b;
+        data[o + 3] = a;
+      }
+    }
+  }
+  return buf;
 }

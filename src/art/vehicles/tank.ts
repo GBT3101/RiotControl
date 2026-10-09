@@ -5,6 +5,7 @@
  */
 import { flame, smokeColumn } from './fxparts';
 import { antenna, crew } from './parts';
+import { charPaint } from './materials';
 import { Model, rotY, rotZ, type Paint, type V3 } from './render3d';
 import { STENCILS } from './stamps';
 
@@ -30,12 +31,14 @@ const DENTS: Array<[V3, number]> = [
   [[14, 3, 7.5], 1.0],
 ];
 function near(q: V3, list: Array<[V3, number]>): boolean {
-  return list.some(([c, r]) => (q[0] - c[0]) ** 2 + (q[1] - c[1]) ** 2 + ((q[2] - c[2]) * 1.3) ** 2 < r * r);
+  return list.some(
+    ([c, r]) => (q[0] - c[0]) ** 2 + (q[1] - c[1]) ** 2 + ((q[2] - c[2]) * 1.3) ** 2 < r * r,
+  );
 }
 
 function hullPaint(state: TankState): Paint {
   return (_p, n, q) => {
-    if (state === 'wreck') return near(q, SCORCH) || q[2] < 4 ? 'soot' : 'char';
+    if (state === 'wreck') return near(q, SCORCH) || q[2] < 4 ? 'soot' : charPaint(q, n);
     if (state === 'dmg2' && near(q, SCORCH)) return 'soot';
     if (state !== 'ok' && near(q, DENTS)) return 'dentDk';
     const mudLine = 3.6 + 0.8 * Math.sin(q[0] * 0.7 + q[1]) + (Math.abs(q[0]) > 12 ? 1 : 0);
@@ -62,16 +65,19 @@ function track(m: Model, yc: number, frame: number, state: TankState): void {
   // Road wheels peeking under the skirt.
   for (let i = 0; i < 6; i++) {
     const x = -11 + i * 4.4;
-    m.cyl(wreck ? 'char' : 'oliveDk', [x, outer - Math.sign(yc) * 0.4, 2.2], 1.9, 0.8, 'y').paint((p, n) => {
-      if (Math.abs(n[1]) < 0.5) return undefined;
-      const d = Math.hypot(p[0], p[2]);
-      if (d < 0.6) return 'steel';
-      const a = Math.atan2(p[2], p[0]) + phase * 1.6;
-      return d > 1.2 && Math.abs(Math.sin(a * 2)) > 0.9 ? 'dark' : undefined;
-    });
+    m.cyl(wreck ? 'char' : 'oliveDk', [x, outer - Math.sign(yc) * 0.4, 2.2], 1.9, 0.8, 'y').paint(
+      (p, n) => {
+        if (Math.abs(n[1]) < 0.5) return undefined;
+        const d = Math.hypot(p[0], p[2]);
+        if (d < 0.6) return 'steel';
+        const a = Math.atan2(p[2], p[0]) + phase * 1.6;
+        return d > 1.2 && Math.abs(Math.sin(a * 2)) > 0.9 ? 'dark' : undefined;
+      },
+    );
   }
   // Drive sprocket (rear) and idler (front) hubs.
-  for (const x of [-12.5, 12.5]) m.cyl('steel', [x, outer - Math.sign(yc) * 0.2, 3.15], 1.0, 0.7, 'y');
+  for (const x of [-12.5, 12.5])
+    m.cyl('steel', [x, outer - Math.sign(yc) * 0.2, 3.15], 1.0, 0.7, 'y');
 }
 
 export function tankHull(frame: number, state: TankState, withTurret?: { yaw: number }): Model {
@@ -91,12 +97,14 @@ export function tankHull(frame: number, state: TankState, withTurret?: { yaw: nu
       // Driver's hatch & vision blocks on the glacis.
       if (n[0] > 0.4 && n[2] > 0.4) {
         if (Math.abs(q[1] - 2.2) < 1.3 && q[0] > 11.2 && q[0] < 12.6) return 'dark';
-        if (Math.abs(q[1] - 2.2) < 1.1 && q[0] > 10.2 && q[0] < 11.2) return wreck ? 'soot' : 'glass';
+        if (Math.abs(q[1] - 2.2) < 1.1 && q[0] > 10.2 && q[0] < 11.2)
+          return wreck ? 'soot' : 'glass';
         // Headlight clusters.
         if (Math.abs(Math.abs(q[1]) - 7.5) < 0.8 && q[2] < 7.4) return wreck ? 'soot' : 'lampY';
       }
       // Turret-ring shadow on the roof (separates the turret layer from the hull).
-      if (n[2] > 0.7 && (q[0] - TANK_PIVOT[0]) ** 2 + q[1] ** 2 < 6.6 * 6.6) return wreck ? 'inkFlat' : 'oliveDk';
+      if (n[2] > 0.7 && (q[0] - TANK_PIVOT[0]) ** 2 + q[1] ** 2 < 6.6 * 6.6)
+        return wreck ? 'inkFlat' : 'oliveDk';
       // Engine deck grilles.
       if (n[2] > 0.7 && q[0] < -6 && q[0] > -14 && Math.abs(q[1]) < 6) {
         if (Math.floor(q[0] + 100) % 2 === 0) return wreck ? 'inkFlat' : 'grille';
@@ -106,13 +114,19 @@ export function tankHull(frame: number, state: TankState, withTurret?: { yaw: nu
       return paint(p, n, q);
     });
   // Side skirts (armour panels) with bolt rows, mud and number stencil.
+  // Five panels per side; battle damage knocks panels off (dmg1: one, dmg2+: three).
+  const lost = state === 'ok' ? [] : state === 'dmg1' ? ['1:2'] : ['1:2', '-1:1', '1:4'];
   for (const s of [-1, 1]) {
-    m.box(body, [-14.6, s * 9.2 - 0.5, 4.3], [15.2, s * 9.2 + 0.5, 6.4])
-      .cut([1, 0, 0.9], [15.2, 0, 5.2])
-      .paint((p, n, q) => {
-        if (Math.abs(n[1]) > 0.6 && Math.floor((q[0] + 100) / 5.2) !== Math.floor((q[0] + 100.4) / 5.2)) return 'oliveDk';
-        return paint(p, n, q);
-      });
+    for (let k = 0; k < 5; k++) {
+      if (lost.includes(`${s}:${k}`)) continue;
+      const x0 = -14.6 + k * 5.96;
+      m.box(body, [x0, s * 9.2 - 0.5, 4.3], [x0 + 5.86, s * 9.2 + 0.5, 6.4])
+        .cut([1, 0, 0.9], [15.2, 0, 5.2])
+        .paint((p, n, q) => {
+          if (Math.abs(n[1]) > 0.6 && q[0] - x0 < 0.5) return 'oliveDk';
+          return paint(p, n, q);
+        });
+    }
   }
   // Tow cable along the deck, spare track links, toolbox.
   if (!wreck) {
@@ -129,7 +143,11 @@ export function tankHull(frame: number, state: TankState, withTurret?: { yaw: nu
   if (state === 'dmg2') smokeColumn(m, TANK_ENGINE, frame, 'dark', 3);
   if (withTurret) {
     const R = rotZ(withTurret.yaw);
-    m.add(tankTurret('idle', wreck ? 'wreck' : state === 'dmg2' ? 'dmg' : 'ok', frame), TANK_PIVOT, R);
+    m.add(
+      tankTurret('idle', wreck ? 'wreck' : state === 'dmg2' ? 'dmg' : 'ok', frame),
+      TANK_PIVOT,
+      R,
+    );
   }
   if (wreck) {
     flame(m, [TANK_ENGINE[0], 2, TANK_ENGINE[2]], frame, true, 0);
@@ -145,13 +163,17 @@ export type TurretState = 'ok' | 'dmg' | 'wreck';
 /**
  * Turret. Origin = pivot. `fire` 0..3 = recoil frames (0 = shot), 'idle' = at rest.
  */
-export function tankTurret(fire: 'idle' | 0 | 1 | 2 | 3, state: TurretState = 'ok', frame = 0): Model {
+export function tankTurret(
+  fire: 'idle' | 0 | 1 | 2 | 3,
+  state: TurretState = 'ok',
+  frame = 0,
+): Model {
   const m = new Model();
   const wreck = state === 'wreck';
   const body = wreck ? 'char' : 'olive';
   const recoil = fire === 'idle' ? 0 : TANK_RECOIL[fire];
-  const scorch: Paint = (_p, _n, q) => {
-    if (wreck) return (q[0] + q[1]) % 5 < 2 ? 'soot' : undefined;
+  const scorch: Paint = (_p, n, q) => {
+    if (wreck) return charPaint(q, n);
     if (state === 'dmg' && (q[0] - 2) ** 2 + (q[1] + 4) ** 2 < 5) return 'soot';
     return undefined;
   };
@@ -166,7 +188,13 @@ export function tankTurret(fire: 'idle' | 0 | 1 | 2 | 3, state: TurretState = 'o
   // Stowage basket on the bustle.
   if (!wreck) {
     m.box('oliveDk', [-11, -5.2, 1.0], [-8.4, 5.2, 3.6]).paint((_p, n, q) =>
-      n[2] > 0.5 ? (Math.floor(q[1] + 20) % 3 === 0 ? 'canvas' : 'canvasDk') : Math.floor(q[1] + 20) % 2 ? 'gun' : undefined,
+      n[2] > 0.5
+        ? Math.floor(q[1] + 20) % 3 === 0
+          ? 'canvas'
+          : 'canvasDk'
+        : Math.floor(q[1] + 20) % 2
+          ? 'gun'
+          : undefined,
     );
     m.box('canvas', [-10.6, -4.6, 3.4], [-8.6, -0.6, 4.6]).bevel(0.5, { top: true });
   }
@@ -174,21 +202,29 @@ export function tankTurret(fire: 'idle' | 0 | 1 | 2 | 3, state: TurretState = 'o
   const droop = wreck ? 1.2 : 0;
   const g = new Model();
   g.box(body, [5.2, -2.1, 1.0], [7.4, 2.1, 4.0]).bevel(0.4, { top: true, front: true });
-  g.cyl('olive', [10, 0, 2.6], 0.95, 6.4, 'x');
-  g.cyl('oliveDk', [13.9, 0, 2.6], 1.15, 2.0, 'x');
-  g.cyl('olive', [17.0, 0, 2.6], 0.85, 4.6, 'x');
-  g.cyl('oliveDk', [19.5, 0, 2.6], 1.0, 0.9, 'x');
+  g.cyl(body, [10, 0, 2.6], 0.95, 6.4, 'x');
+  g.cyl(wreck ? 'soot' : 'oliveDk', [13.9, 0, 2.6], 1.15, 2.0, 'x');
+  g.cyl(body, [17.0, 0, 2.6], 0.85, 4.6, 'x');
+  g.cyl(wreck ? 'soot' : 'oliveDk', [19.5, 0, 2.6], 1.0, 0.9, 'x');
   m.add(g, [-recoil, 0, droop ? 0.4 : 0], droop ? rotY(droop * 4) : undefined);
   // Coax / smoke dischargers on the cheeks.
   if (!wreck) {
     for (const s of [-1, 1]) {
-      for (let k = 0; k < 3; k++) m.cyl('gun', [3.4 - k * 1.1, s * 5.9, 3.9], 0.45, 1.6, 'y').rot('x', s * -30);
+      for (let k = 0; k < 3; k++)
+        m.cyl('gun', [3.4 - k * 1.1, s * 5.9, 3.9], 0.45, 1.6, 'y').rot('x', s * -30);
     }
   }
   // Commander's cupola with the commander leaning out; loader's hatch closed.
   m.cyl(wreck ? 'soot' : 'oliveDk', [-3.2, 2.8, 4.9], 2.1, 0.9, 'z');
   if (state !== 'wreck') {
-    crew(m, [-3.2, 2.8, 4.4], { beret: true, helmet: 'navyCloth', body: 'oliveDk', headset: true, noArms: true, big: true });
+    crew(m, [-3.2, 2.8, 4.4], {
+      beret: true,
+      helmet: 'navyCloth',
+      body: 'oliveDk',
+      headset: true,
+      noArms: true,
+      big: true,
+    });
     m.box('oliveDk', [-2.2, 1.0, 5.2], [-1.2, 4.6, 6.0]); // forearms on the hatch rim
     m.box(state === 'dmg' ? 'soot' : 'gun', [-1.0, 0.6, 5.3], [3.2, 1.3, 6.0]); // pintle MG
   }
@@ -200,9 +236,9 @@ export function tankTurret(fire: 'idle' | 0 | 1 | 2 | 3, state: TurretState = 'o
   }
   // Turret number stencil.
   if (!wreck) {
-    for (const s of [-1, 1]) m.decal({ at: [s > 0 ? -6 : -1, s * 6.25, 2.8], n: [0, s, 0], img: STENCILS.star });
+    for (const s of [-1, 1])
+      m.decal({ at: [s > 0 ? -6 : -1, s * 6.25, 2.8], n: [0, s, 0], img: STENCILS.star });
   }
   void frame;
   return m;
 }
-

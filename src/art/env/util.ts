@@ -128,3 +128,31 @@ export function shadeBuffer(src: PixelBuffer, n: number): PixelBuffer {
   }
   return out;
 }
+
+/**
+ * Fast coloured exterior outline, in place: every transparent pixel 4-adjacent to an opaque one
+ * becomes that neighbour's colour `steps` darker (neighbour priority: below, above, right, left).
+ * Shadow (partial-alpha) pixels are overwritten.
+ */
+export function outlineDarker(buf: PixelBuffer, steps = 3): void {
+  const { w, h, data } = buf;
+  const src = new Uint32Array(w * h);
+  for (let i = 0, p = 0; i < src.length; i++, p += 4) {
+    src[i] = data[p + 3] === 255 ? ((data[p]! << 24) | (data[p + 1]! << 16) | (data[p + 2]! << 8) | 255) >>> 0 : 0;
+  }
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = y * w + x;
+      if (src[i]) continue;
+      const n =
+        (y + 1 < h && src[i + w]) || (y > 0 && src[i - w]) || (x + 1 < w && src[i + 1]) || (x > 0 && src[i - 1]) || 0;
+      if (!n) continue;
+      const c = darker(n, steps);
+      const p = i * 4;
+      data[p] = (c >>> 24) & 255;
+      data[p + 1] = (c >>> 16) & 255;
+      data[p + 2] = (c >>> 8) & 255;
+      data[p + 3] = 255;
+    }
+  }
+}

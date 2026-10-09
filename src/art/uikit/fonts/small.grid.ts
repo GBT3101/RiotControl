@@ -789,6 +789,30 @@ X..
 ..X
 .X.
 X..
+@·
+.
+.
+.
+X
+
+@«
+.....
+.....
+.X.X.
+X.X..
+.X.X.
+
+@»
+.....
+.....
+.X.X.
+..X.X
+.X.X.
+
+@°
+.X.
+X.X
+.X.
 `;
 
 /** Accent marks (2 rows), centred over the base glyph. */

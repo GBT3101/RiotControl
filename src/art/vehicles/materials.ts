@@ -20,7 +20,10 @@ export const MATS: MatTable = {
   mud: m(['earth0', 'earth1', 'earth2', 'earth3', 'earth4'], 2, { ol: 'ink' }),
   canvas: m(['stone0', 'stone1', 'stone2', 'stone3', 'stone4', 'stone5'], 2, { ol: 'ink' }),
   canvasDk: m(['ink', 'stone0', 'stone1', 'stone2', 'stone3'], 2, { ol: 'ink' }),
-  sandbag: m(['earth1', 'earth2', 'earth3', 'stone2', 'stone3', 'stone4'], 2, { ol: 'earth0', spec: true }),
+  sandbag: m(['earth1', 'earth2', 'earth3', 'stone2', 'stone3', 'stone4'], 2, {
+    ol: 'earth0',
+    spec: true,
+  }),
   sandbagDk: m(['earth0', 'earth1', 'earth2', 'earth3', 'stone2'], 2, { ol: 'earth0' }),
   jerry: m(['rust0', 'rust1', 'rust2', 'rust3', 'rust4'], 2, { ol: 'rust0', spec: true }),
   jerryDk: m(['rust0', 'rust0', 'rust1', 'rust2'], 1, { ol: 'rust0' }),
@@ -47,7 +50,12 @@ export const MATS: MatTable = {
   lampBhi: m(['sky'], 0, { flat: true }),
   lampBoff: m(['navy2'], 0, { flat: true }),
   inkFlat: m(['ink'], 0, { flat: true }),
-  wire: m(['ink', 'gray1', 'gray2', 'gray3'], 1, { ol: 'ink', noOutline: true, noEdge: true, noContour: true }),
+  wire: m(['ink', 'gray1', 'gray2', 'gray3'], 1, {
+    ol: 'ink',
+    noOutline: true,
+    noEdge: true,
+    noContour: true,
+  }),
   // --- People ---
   skin: m(['earth2', 'earth3', 'earth4', 'earth5', 'earth6'], 2, { ol: 'earth1' }),
   skinDk: m(['earth0', 'earth1', 'earth2', 'earth3', 'earth4'], 2, { ol: 'earth0' }),
@@ -74,19 +82,25 @@ export const MATS: MatTable = {
   orange: m(['rust1', 'rust2', 'rust3', 'rust4', 'ochre3'], 1, { ol: 'rust0' }),
   mint: m(['green1', 'teal1', 'teal2', 'sky', 'white'], 1, { ol: 'green0' }),
   beige: m(['stone0', 'stone1', 'stone2', 'stone3', 'stone4', 'stone5'], 3, { ol: 'stone0' }),
+  chassis: m(['ink', 'gray1', 'gray2', 'earth1', 'gray3', 'gray4'], 2, { ol: 'ink' }),
   gray: m(['gray2', 'gray3', 'gray4', 'gray5', 'gray6'], 2, { ol: 'ink' }),
   redDk: m(['rust0', 'rust0', 'rust1', 'crim1', 'rust2'], 2, { ol: 'rust0' }),
   mintDk: m(['green1', 'green1', 'teal1', 'teal2', 'sky'], 1, { ol: 'green0' }),
   canvasGrey: m(['ink', 'gray1', 'gray2', 'gray3', 'gray4'], 2, { ol: 'ink' }),
   cardboard: m(['earth1', 'earth2', 'earth3', 'earth4', 'earth5'], 2, { ol: 'earth0' }),
   denim: m(['navy0', 'navy1', 'navy2', 'blue1', 'blue2'], 2, { ol: 'ink' }),
-  helmetRed: m(['rust0', 'crim1', 'crim2', 'rust3', 'rust4', 'white'], 2, { ol: 'rust0', spec: true }),
+  helmetRed: m(['rust0', 'crim1', 'crim2', 'rust3', 'rust4', 'white'], 2, {
+    ol: 'rust0',
+    spec: true,
+  }),
   glassGrille: m(['ink', 'navy0', 'zinc0', 'zinc1'], 2, { ol: 'ink', noEdge: true }),
   lampGreen: m(['lime'], 0, { flat: true }),
   lampGreenDk: m(['green3'], 0, { flat: true }),
   // --- Damage ---
   char: m(['ink', 'ink', 'gray1', 'gray2', 'gray3'], 2, { ol: 'ink' }),
   charRust: m(['ink', 'rust0', 'earth1', 'earth2', 'earth3'], 2, { ol: 'ink' }),
+  ash: m(['gray2', 'gray3', 'gray4', 'gray5', 'gray6'], 2, { ol: 'ink' }),
+  rustBurn: m(['ink', 'rust0', 'earth2', 'rust1', 'earth3', 'rust2'], 2, { ol: 'ink' }),
   soot: m(['ink', 'gray1', 'gray2', 'gray3'], 1, { ol: 'ink' }),
   ember: m(['rust3'], 0, { flat: true }),
   emberHi: m(['ochre3'], 0, { flat: true }),
@@ -96,7 +110,20 @@ export const MATS: MatTable = {
 
 /** Map every non-lamp material to its burnt equivalent (for wrecks). */
 export function burntKey(key: string): string {
-  if (['char', 'soot', 'charRust', 'glassBroken', 'inkFlat', 'dark', 'grille', 'ember', 'emberHi'].includes(key)) return key;
+  if (
+    [
+      'char',
+      'soot',
+      'charRust',
+      'glassBroken',
+      'inkFlat',
+      'dark',
+      'grille',
+      'ember',
+      'emberHi',
+    ].includes(key)
+  )
+    return key;
   if (key.startsWith('lamp') || key === 'inkFlat') return 'soot';
   if (key.startsWith('glass')) return 'glassBroken';
   if (key === 'tyre' || key === 'rubber' || key === 'tread') return 'soot';
@@ -104,4 +131,21 @@ export function burntKey(key: string): string {
   if (key.startsWith('skin') || key.endsWith('Cloth') || key.startsWith('helmet')) return 'char';
   if (key === 'sandbag' || key === 'sandbagDk' || key === 'mud') return 'charRust';
   return 'char';
+}
+
+/**
+ * Burnt-metal look for wreck panels (model-space point q, local normal n): flaky grey ash on
+ * top faces, rust-brown heat-bloomed flanks with broad black soot tongues licking up from the
+ * openings. Broad, hand-tuned bands (periods of 8–14 px), never noise.
+ */
+export function charPaint(q: readonly number[], n?: readonly number[]): string {
+  const top = (n?.[2] ?? 0) > 0.6;
+  if (top) {
+    const a = Math.sin(q[0]! * 0.42 + q[1]! * 0.3) + 0.6 * Math.sin(q[1]! * 0.8 - q[0]! * 0.2);
+    return a > 1.05 ? 'ash' : a < -0.7 ? 'rustBurn' : 'char';
+  }
+  const tongue =
+    Math.sin(q[0]! * 0.5 + 0.7) + 0.5 * Math.sin(q[0]! * 1.2 + q[1]! * 0.4) - (q[2]! - 4) * 0.12;
+  if (tongue > 0.6) return 'char';
+  return q[2]! < 3 ? 'char' : 'rustBurn';
 }

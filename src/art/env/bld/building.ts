@@ -13,10 +13,10 @@
  */
 import type { BuildingData, CityId, RoofType } from '../../../maps/contract';
 import { SHADOW, SHADOW_ALPHA, resolveColor, type RGBA } from '../../palette';
-import { createBuffer, getPixel, setPixel, type PixelBuffer, type Point } from '../../lib/pixels';
+import { createBuffer, setPixel, type PixelBuffer, type Point } from '../../lib/pixels';
 import { C, darker, lighter } from '../color';
 import { IsoCanvas, type Tex, type V3 } from '../raster';
-import { Dice, hash } from '../util';
+import { Dice, hash, outlineDarker } from '../util';
 import { Face } from './face';
 import { BAY, CORNICE, STOREY, bayLayout, floorProgramme, paintFace } from './facade';
 import { makeLook, type Look } from './looks';
@@ -325,27 +325,7 @@ function clampBay(lay: { n: number; margin: number }, px: number): number {
 }
 
 function outlineDark(img: PixelBuffer): void {
-  const marks: Array<[number, number, RGBA]> = [];
-  for (let y = 0; y < img.h; y++) {
-    for (let x = 0; x < img.w; x++) {
-      if ((getPixel(img, x, y) & 255) !== 0) continue;
-      let src = 0;
-      for (const [dx, dy] of [
-        [0, 1],
-        [0, -1],
-        [1, 0],
-        [-1, 0],
-      ] as const) {
-        const c = getPixel(img, x + dx, y + dy);
-        if ((c & 255) === 255) {
-          src = c;
-          break;
-        }
-      }
-      if (src) marks.push([x, y, darker(src, 3)]);
-    }
-  }
-  for (const [x, y, c] of marks) setPixel(img, x, y, c);
+  outlineDarker(img, 3);
 }
 
 function castShadow(w: number, d: number, h: number): { img: PixelBuffer; anchor: Point } {

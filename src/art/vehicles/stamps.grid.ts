@@ -174,8 +174,16 @@ export const MICRO_FONT: Record<string, string> = {
   E: `WWW\nW..\nWW.\nW..\nWWW`,
   I: `WWW\n.W.\n.W.\n.W.\nWWW`,
   L: `W..\nW..\nW..\nW..\nWWW`,
-  M: `W.W\nWWW\nWWW\nW.W\nW.W`,
-  N: `WW.\nW.W\nW.W\nW.W\nW.W`,
+  M: `W...W
+WW.WW
+W.W.W
+W...W
+W...W`,
+  N: `W..W
+WW.W
+W.WW
+W..W
+W..W`,
   O: `.W.\nW.W\nW.W\nW.W\n.W.`,
   P: `WW.\nW.W\nWW.\nW..\nW..`,
   R: `WW.\nW.W\nWW.\nW.W\nW.W`,

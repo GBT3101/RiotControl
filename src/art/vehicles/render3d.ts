@@ -169,7 +169,11 @@ export class PrimHandle {
   cut(n: V3, at: V3): this {
     const nn = norm(n);
     const nl = applyT(this.prim.R, nn);
-    const rel = applyT(this.prim.R, [at[0] - this.prim.T[0], at[1] - this.prim.T[1], at[2] - this.prim.T[2]]);
+    const rel = applyT(this.prim.R, [
+      at[0] - this.prim.T[0],
+      at[1] - this.prim.T[1],
+      at[2] - this.prim.T[2],
+    ]);
     const d = nl[0] * rel[0] + nl[1] * rel[1] + nl[2] * rel[2];
     this.prim.clips.push({ n: nl, d });
     return this;
@@ -178,7 +182,10 @@ export class PrimHandle {
    * Chamfer edges of a box: `top` cuts the 4 top edges, `vert` the 4 vertical edges,
    * `bottom` the 4 bottom edges, by `c` units (45°).
    */
-  bevel(c: number, which: { top?: boolean; vert?: boolean; bottom?: boolean; front?: boolean } = { top: true }): this {
+  bevel(
+    c: number,
+    which: { top?: boolean; vert?: boolean; bottom?: boolean; front?: boolean } = { top: true },
+  ): this {
     const s = this.prim.shape;
     if (s.kind !== 'box') return this;
     const [hx, hy, hz] = s.h;
@@ -267,12 +274,22 @@ export class Model {
   }
   /** Box by centre + size. */
   boxc(mat: string, c: V3, size: V3): PrimHandle {
-    return this.box(mat, [c[0] - size[0] / 2, c[1] - size[1] / 2, c[2] - size[2] / 2], [c[0] + size[0] / 2, c[1] + size[1] / 2, c[2] + size[2] / 2]);
+    return this.box(
+      mat,
+      [c[0] - size[0] / 2, c[1] - size[1] / 2, c[2] - size[2] / 2],
+      [c[0] + size[0] / 2, c[1] + size[1] / 2, c[2] + size[2] / 2],
+    );
   }
   /** Cylinder: centre, radius, length along `axis` (model axis before any rot). */
   cyl(mat: string, c: V3, r: number, len: number, axis: 'x' | 'y' | 'z'): PrimHandle {
     const ax = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
-    return this.push({ shape: { kind: 'cyl', r, hl: len / 2, axis: ax }, mat, R: I3, T: c, clips: [] });
+    return this.push({
+      shape: { kind: 'cyl', r, hl: len / 2, axis: ax },
+      mat,
+      R: I3,
+      T: c,
+      clips: [],
+    });
   }
   ell(mat: string, c: V3, r: V3): PrimHandle {
     return this.push({ shape: { kind: 'ell', r }, mat, R: I3, T: c, clips: [] });
@@ -289,12 +306,22 @@ export class Model {
   add(other: Model, offset: V3 = [0, 0, 0], R: M3 = I3): this {
     for (const p of other.prims) {
       const T = apply(R, p.T);
-      this.prims.push({ ...p, R: mul(R, p.R), T: [T[0] + offset[0], T[1] + offset[1], T[2] + offset[2]], clips: p.clips });
+      this.prims.push({
+        ...p,
+        R: mul(R, p.R),
+        T: [T[0] + offset[0], T[1] + offset[1], T[2] + offset[2]],
+        clips: p.clips,
+      });
     }
     for (const d of other.decals) {
       const at = apply(R, d.at);
       const u = d.u ?? decalU(d.n);
-      this.decals.push({ ...d, at: [at[0] + offset[0], at[1] + offset[1], at[2] + offset[2]], n: apply(R, d.n), u: apply(R, u) });
+      this.decals.push({
+        ...d,
+        at: [at[0] + offset[0], at[1] + offset[1], at[2] + offset[2]],
+        n: apply(R, d.n),
+        u: apply(R, u),
+      });
     }
     for (const o of other.overlays) {
       const at = apply(R, o.at);
@@ -607,10 +634,15 @@ export interface Rendered {
 /**
  * Render one model in one view into a w×h canvas with the model origin at (ax, ay).
  */
-export function renderModel(model: Model, mats: MatTable, view: View, opts: RenderOptions = {}): Rendered {
+export function renderModel(
+  model: Model,
+  mats: MatTable,
+  view: View,
+  opts: RenderOptions = {},
+): Rendered {
   const W = opts.w ?? 128;
   const H = opts.h ?? 128;
-  const ax = opts.ax ?? (W >> 1);
+  const ax = opts.ax ?? W >> 1;
   const ay = opts.ay ?? Math.floor(H * 0.7);
   const sc = view.scale ?? 1;
   const N = W * H;
@@ -665,7 +697,11 @@ export function renderModel(model: Model, mats: MatTable, view: View, opts: Rend
     const y1 = Math.min(H - 1, ay + c.by1);
     const M = c.M;
     // world offset (a, b, z) for pixel: a = sy + sx/2, b = sy − sx/2 with sx = (px−ax)/sc …
-    const base = applyT(M, [-ay / sc - ax / (2 * sc) - c.W[0], -ay / sc + ax / (2 * sc) - c.W[1], -c.W[2]]);
+    const base = applyT(M, [
+      -ay / sc - ax / (2 * sc) - c.W[0],
+      -ay / sc + ax / (2 * sc) - c.W[1],
+      -c.W[2],
+    ]);
     const ox = applyT(M, [1 / (2 * sc), -1 / (2 * sc), 0]);
     const oy = applyT(M, [1 / sc, 1 / sc, 0]);
     const dl = c.dl;
@@ -708,7 +744,11 @@ export function renderModel(model: Model, mats: MatTable, view: View, opts: Rend
     if (prim.paint) {
       const lp: V3 = [hit.lx[i]!, hit.ly[i]!, hit.lz[i]!];
       const mp = apply(prim.R, lp);
-      const k = prim.paint(lp, [hit.lnx[i]!, hit.lny[i]!, hit.lnz[i]!], [mp[0] + prim.T[0], mp[1] + prim.T[1], mp[2] + prim.T[2]]);
+      const k = prim.paint(
+        lp,
+        [hit.lnx[i]!, hit.lny[i]!, hit.lnz[i]!],
+        [mp[0] + prim.T[0], mp[1] + prim.T[1], mp[2] + prim.T[2]],
+      );
       if (k) key = k;
     }
     const m = mats[key];
@@ -726,10 +766,18 @@ export function renderModel(model: Model, mats: MatTable, view: View, opts: Rend
       const k = matKey[i];
       if (!k || mats[k]!.flat) continue;
       const pi = hit.prim[i];
-      if (matKey[i - 1] !== k || matKey[i + 1] !== k || matKey[i - W] !== k || matKey[i + W] !== k) continue;
-      if (hit.prim[i - 1] !== pi || hit.prim[i + 1] !== pi || hit.prim[i - W] !== pi || hit.prim[i + W] !== pi) continue;
+      if (matKey[i - 1] !== k || matKey[i + 1] !== k || matKey[i - W] !== k || matKey[i + W] !== k)
+        continue;
+      if (
+        hit.prim[i - 1] !== pi ||
+        hit.prim[i + 1] !== pi ||
+        hit.prim[i - W] !== pi ||
+        hit.prim[i + W] !== pi
+      )
+        continue;
       const s0 = step[i - 1]!;
-      if (s0 !== step[i] && step[i + 1] === s0 && step[i - W] === s0 && step[i + W] === s0) step2[i] = s0;
+      if (s0 !== step[i] && step[i + 1] === s0 && step[i - W] === s0 && step[i + W] === s0)
+        step2[i] = s0;
     }
   }
   step.set(step2);
@@ -746,7 +794,12 @@ export function renderModel(model: Model, mats: MatTable, view: View, opts: Rend
         if (m.flat || m.noEdge) continue;
         const below = i + W;
         // Top face pixel above a side face of the same primitive → front top edge.
-        if (hit.nz[i]! > 0.7 && hit.prim[below] === hit.prim[i] && hit.nz[below]! < 0.45 && matKey[below]) {
+        if (
+          hit.nz[i]! > 0.7 &&
+          hit.prim[below] === hit.prim[i] &&
+          hit.nz[below]! < 0.45 &&
+          matKey[below]
+        ) {
           add[i] = 1;
           continue;
         }
@@ -794,7 +847,12 @@ export function renderModel(model: Model, mats: MatTable, view: View, opts: Rend
           if (mats[matKey[j]!]!.flat) return false;
           return hit.t[j]! - t > thr;
         };
-        if ((x > 0 && near(i - 1)) || (x < W - 1 && near(i + 1)) || (y > 0 && near(i - W)) || (y < H - 1 && near(i + W)))
+        if (
+          (x > 0 && near(i - 1)) ||
+          (x < W - 1 && near(i + 1)) ||
+          (y > 0 && near(i - W)) ||
+          (y < H - 1 && near(i + W))
+        )
           marks.push(i);
       }
     }
@@ -890,7 +948,15 @@ export function renderModel(model: Model, mats: MatTable, view: View, opts: Rend
   return { buf, anchor: { x: ax, y: ay }, hit };
 }
 
-function drawDecal(buf: PixelBuffer, hit: Hit, comp: Compiled[], d: Decal, view: View, ax: number, ay: number): void {
+function drawDecal(
+  buf: PixelBuffer,
+  hit: Hit,
+  comp: Compiled[],
+  d: Decal,
+  view: View,
+  ax: number,
+  ay: number,
+): void {
   const V = viewMatrix(view);
   const nw = apply(V, d.n);
   // Face must look towards the camera.
@@ -921,7 +987,14 @@ function drawDecal(buf: PixelBuffer, hit: Hit, comp: Compiled[], d: Decal, view:
   }
 }
 
-function drawOverlay(buf: PixelBuffer, hit: Hit, o: Overlay, view: View, ax: number, ay: number): void {
+function drawOverlay(
+  buf: PixelBuffer,
+  hit: Hit,
+  o: Overlay,
+  view: View,
+  ax: number,
+  ay: number,
+): void {
   const w = toWorld(o.at, view);
   const sc = view.scale ?? 1;
   const s = worldToScreen(w, sc);
@@ -986,7 +1059,10 @@ export function cropAnim(bufs: PixelBuffer[], anchor: Point, margin = 0): Anim {
   y1 = Math.max(y1, anchor.y) + margin;
   const w = x1 - x0 + 1;
   const h = y1 - y0 + 1;
-  return { frames: bufs.map((b) => crop(b, x0, y0, w, h)), anchor: { x: anchor.x - x0, y: anchor.y - y0 } };
+  return {
+    frames: bufs.map((b) => crop(b, x0, y0, w, h)),
+    anchor: { x: anchor.x - x0, y: anchor.y - y0 },
+  };
 }
 
 /** Conservative screen bounds (relative to the origin pixel) of a model in a view. */
@@ -1044,7 +1120,9 @@ export function renderAnim(
   const H = opts.h ?? by1 - by0 + 2 * pad + 1;
   const ax = opts.ax ?? pad - bx0;
   const ay = opts.ay ?? pad - by0;
-  const bufs = models.map((m, i) => renderModel(m, mats, viewOf(i), { ...opts, w: W, h: H, ax, ay }).buf);
+  const bufs = models.map(
+    (m, i) => renderModel(m, mats, viewOf(i), { ...opts, w: W, h: H, ax, ay }).buf,
+  );
   return cropAnim(bufs, { x: ax, y: ay });
 }
 

@@ -4,7 +4,14 @@
  * sample per pixel with palette colours only.
  */
 import { SHADOW, SHADOW_ALPHA, resolveColor, type RGBA } from '../palette';
-import { blit, createBuffer, setPixel, getPixel, type PixelBuffer, type Point } from '../lib/pixels';
+import {
+  blit,
+  createBuffer,
+  setPixel,
+  getPixel,
+  type PixelBuffer,
+  type Point,
+} from '../lib/pixels';
 import { heliBody, HELI_ALT, HELI_LIGHT, HELI_POSES } from './heli';
 import { MATS } from './materials';
 import { cropAnim, project, renderModel, type Anim } from './render3d';
@@ -55,12 +62,31 @@ export function rotorAnim(): Anim {
           best = Math.min(best, d);
         }
         // Blade: angular half-width shrinking with radius (≈ constant chord).
-        const bw = (0.9 / r) * (180 / Math.PI);
+        const bw = (1.35 / r) * (180 / Math.PI);
         let c: RGBA | 0 = 0;
-        if (best < bw || best > 360 - bw) c = r > R - 2 ? tip : best < bw * 0.4 || best > 360 - bw * 0.4 ? bladeHi : blade;
-        else if (best < 26 && r > 4) c = SHADOW_C;
+        if (best < bw || best > 360 - bw) c = 0;
+        else if (best < 20 && r > 6) c = SHADOW_C;
         else if (r > R - 0.9) c = SHADOW_C;
         if (c) setPixel(buf, x, y, c);
+      }
+    }
+    // Blades as solid screen-space lines (continuous at every angle), 2 px thick.
+    for (let k = 0; k < 4; k++) {
+      const ang = ((f * 22.5 + k * 90) * Math.PI) / 180;
+      const a = Math.cos(ang) * R;
+      const b = Math.sin(ang) * R;
+      const ex = a - b;
+      const ey = (a + b) / 2;
+      const steps = Math.ceil(Math.max(Math.abs(ex), Math.abs(ey)) * 2);
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const x = Math.round(cx + ex * t);
+        const y = Math.round(cy + ey * t);
+        if (t * R < 2) continue;
+        const isTip = t * R > R - 2.2;
+        setPixel(buf, x, y, isTip ? tip : blade);
+        if (getPixel(buf, x, y - 1) === 0 || (getPixel(buf, x, y - 1) & 255) !== 255)
+          setPixel(buf, x, y - 1, isTip ? tip : bladeHi);
       }
     }
     frames.push(buf);
@@ -71,7 +97,13 @@ export function rotorAnim(): Anim {
 /** Ground shadow of the body (vertical footprint), anchored at the ground point under the CoM. */
 export function heliShadow(yaw: number): Anim {
   const v = { yaw };
-  const r = renderModel(heliBody(0, false, v), MATS, v, { shadowOnly: true, w: 90, h: 70, ax: 45, ay: 35 });
+  const r = renderModel(heliBody(0, false, v), MATS, v, {
+    shadowOnly: true,
+    w: 90,
+    h: 70,
+    ax: 45,
+    ay: 35,
+  });
   // Add a faint rotor-disc ring in the shadow (every other pixel would be dither — keep it solid).
   return cropAnim([r.buf], r.anchor);
 }
@@ -112,7 +144,8 @@ export function heliBeam(yaw: number, alt = HELI_ALT): Anim {
       }
       // Beam: points whose segment towards the lens passes the spot (cone between lens & ellipse).
       const t = (sy - L.y) / (spot.y - L.y || 1e-6);
-      const along = Math.abs(spot.y - L.y) > Math.abs(spot.x - L.x) ? t : (sx - L.x) / (spot.x - L.x || 1e-6);
+      const along =
+        Math.abs(spot.y - L.y) > Math.abs(spot.x - L.x) ? t : (sx - L.x) / (spot.x - L.x || 1e-6);
       if (along < 0.04 || along > 1) continue;
       const px = L.x + (sx - L.x) / along;
       const py = L.y + (sy - L.y) / along;
@@ -140,7 +173,7 @@ export function downwashAnim(): Anim {
       [22 + f * 3, small, 15],
     ];
     for (const [r, img, off] of rings) {
-      const n = r < 20 ? 10 : 14;
+      const n = r < 20 ? 14 : 18;
       for (let k = 0; k < n; k++) {
         const th = ((k * 360) / n + off + f * 4) * (Math.PI / 180);
         const a = Math.cos(th) * r;
@@ -159,6 +192,7 @@ export function downwashAnim(): Anim {
 
 /** Utility for previews/tests: does a buffer contain any pixel? */
 export function isEmpty(b: PixelBuffer): boolean {
-  for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) if (getPixel(b, x, y) & 255) return false;
+  for (let y = 0; y < b.h; y++)
+    for (let x = 0; x < b.w; x++) if (getPixel(b, x, y) & 255) return false;
   return true;
 }

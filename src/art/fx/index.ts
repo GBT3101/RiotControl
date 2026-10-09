@@ -16,7 +16,7 @@ export { ghostTint, rangeRing, rangeRadiusPx } from './markers';
 export { lightPool } from './lights';
 export { waxSeal } from './misc';
 export { DIRS, DIR_VEC, type Dir8 } from './particles';
-export { GAS_PUFF_VARIANTS } from './gas';
+export { GAS_PUFF_VARIANTS, gasCloudLayout, type PuffPlacement } from './gas';
 
 export function registerFx(reg: SpriteRegistry): void {
   registerGas(reg);

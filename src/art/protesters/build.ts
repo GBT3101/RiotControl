@@ -40,8 +40,12 @@ export interface BuildOptions {
   variantsPerType?: number | Partial<Record<ProtesterType, number>>;
   /** Restrict to some types. */
   types?: readonly ProtesterType[];
-  /** Register mirrored SW / NW copies (default true). */
-  mirrors?: boolean;
+  /**
+   * Mirrored SW / NW copies: `true` = all, `false` = none (flip SE / NE at runtime),
+   * `'text'` (default) = only where lettering must stay readable (SE → SW of variants with a
+   * sign or sandwich board); everything else is flipped at runtime (see `protesterSprite`).
+   */
+  mirrors?: boolean | 'text';
   /** Gallery group (default 'protesters'). */
   group?: string;
   /** Only build these animations (default all). */
@@ -97,8 +101,8 @@ export const ANIMS: readonly AnimDef[] = [
   { name: 'hit', make: A.hit, facings: ['se', 'ne'] },
   { name: 'die', make: A.die, facings: ['se', 'ne'] },
   { name: 'ko', make: A.ko, facings: ['se', 'ne'] },
-  { name: 'body', make: A.die, facings: ['se'], last: true },
-  { name: 'kobody', make: A.ko, facings: ['se'], last: true },
+  { name: 'body', make: A.body, facings: ['se'] },
+  { name: 'kobody', make: A.koBody, facings: ['se'] },
   { name: 'door', make: A.door, facings: ['se'] },
 ];
 
@@ -137,18 +141,28 @@ export function trimFrames(frames: readonly PixelBuffer[]): { frames: PixelBuffe
 }
 
 /** Render one animation of a variant (untrimmed work-canvas frames + points). */
-export function renderAnim(v: Variant, def: AnimDef, facing: Facing): { spec: A.AnimSpec; frames: FrameInfo[] } | undefined {
+export function renderAnim(
+  v: Variant,
+  def: AnimDef,
+  facing: Facing,
+  mirror = false,
+): { spec: A.AnimSpec; frames: FrameInfo[] } | undefined {
   const spec = def.make(v.kit, facing);
   if (!spec) return undefined;
   const poses = def.last ? [spec.poses[spec.poses.length - 1]!] : spec.poses;
-  return { spec, frames: poses.map((p) => renderFigure(v.look, facing, p)) };
+  return { spec, frames: poses.map((p) => renderFigure(v.look, facing, p, mirror)) };
+}
+
+/** Variants with lettering (signs, sandwich boards) need their mirrored facings re-rendered. */
+function hasText(v: Variant): boolean {
+  return !!(v.look.sign || v.look.board);
 }
 
 /** Register all sprites of one variant. Returns its info. */
 export function registerVariant(
   reg: SpriteRegistry,
   v: Variant,
-  opts: { mirrors?: boolean; group?: string; anims?: readonly string[] },
+  opts: { mirrors?: boolean | 'text'; group?: string; anims?: readonly string[] },
   manifest?: ProtesterManifest,
 ): VariantInfo {
   const prefix = `prot.${v.type}.v${v.index}`;
@@ -157,26 +171,37 @@ export function registerVariant(
     if (def.when && !def.when(v)) continue;
     if (opts.anims && !opts.anims.includes(def.name)) continue;
     for (const facing of def.facings) {
-      const r = renderAnim(v, def, facing);
-      if (!r) continue;
-      const t = trimFrames(r.frames.map((f) => f.buf));
-      const name = `${prefix}.${def.name}.${facing}`;
-      reg.add(name, {
-        group: opts.group ?? 'protesters',
-        frames: t.frames,
-        fps: def.last ? 0 : r.spec.fps,
-        loop: def.last ? false : r.spec.loop,
-        anchor: t.anchor,
-        hasShadow: true,
-        tags: ['protester', v.type],
-        mirrorAs: opts.mirrors === false ? undefined : `${prefix}.${def.name}.${MIRROR[facing]}`,
-      });
-      if (manifest) {
-        manifest.frames += t.frames.length * (opts.mirrors === false ? 1 : 2);
-        manifest.pixels += t.frames.length * t.frames[0]!.w * t.frames[0]!.h * (opts.mirrors === false ? 1 : 2);
-        if (r.spec.keyFrame !== undefined && !def.last) {
-          const pt = r.frames[r.spec.keyFrame]!.points[r.spec.keyPoint ?? 'handR'];
-          if (pt) manifest.events[name] = { frame: r.spec.keyFrame, dx: pt.x - GX, dy: pt.y - GY };
+      const mode = opts.mirrors ?? 'text';
+      const textMirror = hasText(v) && facing === 'se' && mode !== false;
+      const wantMirror = mode === true || textMirror;
+      const separate = wantMirror && hasText(v);
+      const jobs: Array<[string, boolean]> = [[`${prefix}.${def.name}.${facing}`, false]];
+      if (separate) jobs.push([`${prefix}.${def.name}.${MIRROR[facing]}`, true]);
+      for (const [name, mirror] of jobs) {
+        const r = renderAnim(v, def, facing, mirror);
+        if (!r) continue;
+        const t = trimFrames(r.frames.map((f) => f.buf));
+        reg.add(name, {
+          group: opts.group ?? 'protesters',
+          frames: t.frames,
+          fps: def.last ? 0 : r.spec.fps,
+          loop: def.last ? false : r.spec.loop,
+          anchor: t.anchor,
+          hasShadow: true,
+          tags: ['protester', v.type, ...(mirror ? ['mirrored'] : [])],
+          mirrorAs: wantMirror && !separate ? `${prefix}.${def.name}.${MIRROR[facing]}` : undefined,
+        });
+        if (manifest) {
+          const copies = wantMirror && !separate ? 2 : 1;
+          manifest.frames += t.frames.length * copies;
+          manifest.pixels += t.frames.length * t.frames[0]!.w * t.frames[0]!.h * copies;
+          if (r.spec.keyFrame !== undefined && !def.last) {
+            const pt = r.frames[r.spec.keyFrame]!.points[r.spec.keyPoint ?? 'handR'];
+            if (pt) {
+              manifest.events[name] = { frame: r.spec.keyFrame, dx: pt.x - GX, dy: pt.y - GY };
+              if (copies === 2) manifest.events[`${prefix}.${def.name}.${MIRROR[facing]}`] = { frame: r.spec.keyFrame, dx: GX - pt.x, dy: pt.y - GY };
+            }
+          }
         }
       }
       if (!info.anims.includes(def.name)) info.anims.push(def.name);
@@ -212,3 +237,25 @@ export function buildProtesterSheets(reg: SpriteRegistry, opts: BuildOptions = {
 
 export { PROTESTER_TYPES, rollVariant };
 export type { ProtesterType, Variant };
+
+/**
+ * Resolve which sprite to draw for a facing: SW / NW use a registered mirror if there is one
+ * (lettered variants), otherwise the SE / NE sprite flipped horizontally (`flip: true` →
+ * `sprite.scale.x = -1`; the anchor column mirrors to `w - 1 - anchor.x`, which Pixi's
+ * normalised anchor handles automatically when the texture's defaultAnchor is used).
+ */
+export function protesterSprite(
+  has: (name: string) => boolean,
+  prefix: string,
+  anim: string,
+  facing: 'se' | 'sw' | 'ne' | 'nw',
+): { name: string; flip: boolean } {
+  const direct = `${prefix}.${anim}.${facing}`;
+  if (has(direct)) return { name: direct, flip: false };
+  const base = facing === 'sw' ? 'se' : facing === 'nw' ? 'ne' : facing;
+  const alt = `${prefix}.${anim}.${base}`;
+  if (has(alt)) return { name: alt, flip: base !== facing };
+  // single-facing anims: climb (ne only), body / kobody / door (se only)
+  const other = `${prefix}.${anim}.${base === 'se' ? 'ne' : 'se'}`;
+  return { name: other, flip: facing === 'sw' || facing === 'nw' ? base === 'se' ? false : true : false };
+}

@@ -80,32 +80,38 @@ export class IsoCanvas {
     const minY = Math.max(0, Math.floor(Math.min(...ys)));
     const maxY = Math.min(this.img.h - 1, Math.ceil(Math.max(...ys)));
     const n = pts.length;
-    // Orientation of the screen polygon.
-    let area = 0;
-    for (let k = 0; k < n; k++) {
-      const k2 = (k + 1) % n;
-      area += xs[k]! * ys[k2]! - xs[k2]! * ys[k]!;
-    }
-    const sgn = area >= 0 ? 1 : -1;
-    const eps = 1e-7;
+    const n = pts.length;
     const W = this.img.w;
     const data = this.img.data;
     const ldata = this.light.data;
+    const eps = 1e-6;
     for (let py = minY; py <= maxY; py++) {
       const cy = py + 0.5;
-      for (let px = minX; px <= maxX; px++) {
-        const cx = px + 0.5;
-        let inside = true;
-        for (let k = 0; k < n; k++) {
-          const k2 = k === n - 1 ? 0 : k + 1;
-          const ex = xs[k2]! - xs[k]!;
-          const ey = ys[k2]! - ys[k]!;
-          if (sgn * (ex * (cy - ys[k]!) - ey * (cx - xs[k]!)) < -eps) {
-            inside = false;
-            break;
-          }
+      // Convex polygon: the row span is bounded by the edge crossings at this scanline.
+      let lo = Infinity;
+      let hi = -Infinity;
+      for (let k = 0; k < n; k++) {
+        const k2 = k === n - 1 ? 0 : k + 1;
+        const y0 = ys[k]!;
+        const y1 = ys[k2]!;
+        if ((cy < y0 - eps && cy < y1 - eps) || (cy > y0 + eps && cy > y1 + eps)) continue;
+        const x0 = xs[k]!;
+        const x1 = xs[k2]!;
+        if (Math.abs(y1 - y0) < 1e-9) {
+          if (x0 < lo) lo = Math.min(x0, x1);
+          if (x1 > hi || x0 > hi) hi = Math.max(x0, x1);
+          continue;
         }
-        if (!inside) continue;
+        const t = Math.min(1, Math.max(0, (cy - y0) / (y1 - y0)));
+        const x = x0 + (x1 - x0) * t;
+        if (x < lo) lo = x;
+        if (x > hi) hi = x;
+      }
+      if (hi < lo) continue;
+      const pxStart = Math.max(minX, Math.ceil(lo - 0.5 - eps));
+      const pxEnd = Math.min(maxX, Math.floor(hi - 0.5 + eps));
+      for (let px = pxStart; px <= pxEnd; px++) {
+        const cx = px + 0.5;
         // Ray/plane: a = (u−v), b = (u+v); x' = 16a, y' = 8b − z.
         const a = (cx - this.ox) / 16;
         const sy = cy - this.oy;

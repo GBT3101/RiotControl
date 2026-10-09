@@ -288,7 +288,37 @@ export const BUBBLE_TAIL_DOWN = grid(`
   ...o....
 `, { o: 'ink', W: 'white', s: 'stone4' });
 
+/**
+ * Minimap frame: brass bezel with rivets, compass "N" tab and a dark recess. The map area is
+ * the inner rect `MINIMAP_INNER` (relative to the frame) — draw the minimap there.
+ */
+export function minimapFrame(w = 84, h = 84): PixelBuffer {
+  const b = buf(w, h + 4);
+  const p = panel('brass', w, h);
+  stamp(b, p, 0, 4);
+  rect(b, 5, 9, w - 10, h - 10, 'ink');
+  rect(b, 6, 10, w - 12, h - 12, 'navy0');
+  for (const [x, y] of [[2, 6], [w - 6, 6], [2, h], [w - 6, h]] as const) stamp(b, RIVET, x, y);
+  // Compass tab.
+  const cx = Math.floor(w / 2);
+  rect(b, cx - 5, 0, 11, 9, 'ink');
+  rect(b, cx - 4, 1, 9, 7, 'crim1');
+  hline(b, cx - 4, 1, 9, 'crim2');
+  // "N"
+  for (let y = 2; y < 7; y++) {
+    px(b, cx - 2, y, 'stone5');
+    px(b, cx + 2, y, 'stone5');
+  }
+  px(b, cx - 1, 3, 'stone5');
+  px(b, cx, 4, 'stone5');
+  px(b, cx + 1, 5, 'stone5');
+  return b;
+}
+
+export const MINIMAP_INNER = { x: 6, y: 10, w: 72, h: 72 };
+
 export function registerPanels(reg: SpriteRegistry): void {
+  reg.add('ui.minimap.frame', { group: 'ui', frames: minimapFrame(), anchor: { x: 0, y: 0 } });
   for (const kind of Object.keys(DRAW) as PanelKind[]) {
     const [w, h] = SOURCE_SIZE[kind];
     reg.add(`ui.panel.${kind}`, { group: 'ui', frames: panel(kind, w, h), anchor: { x: 0, y: 0 }, tags: ['nineslice'] });

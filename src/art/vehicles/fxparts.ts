@@ -16,7 +16,14 @@ const PUFFS = {
  * Rising smoke column from `base` (model space): `n` puffs 4 px apart that rise 1 px per frame
  * and drift right with the wind, growing as they rise. Seamless over 4 frames.
  */
-export function smokeColumn(m: Model, base: V3, frame: number, tone: PuffTone, n = 3, spacing = 4): void {
+export function smokeColumn(
+  m: Model,
+  base: V3,
+  frame: number,
+  tone: PuffTone,
+  n = 3,
+  spacing = 4,
+): void {
   const set = PUFFS[tone];
   for (let k = n - 1; k >= 0; k--) {
     const h = k * spacing + ((frame % 4) * spacing) / 4;

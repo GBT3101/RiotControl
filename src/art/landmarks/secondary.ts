@@ -509,9 +509,9 @@ function londonEye(frame: number): Build {
     zc + r * Math.sin(a),
   ];
   // A-frame legs behind the wheel (lower u + v = farther).
-  for (const off of [-0.02, 0, 0.02]) {
-    s.line([[C[0] - 1.1 + off, C[1] - 1.7, 1], [C[0] - 0.2 + off, C[1] - 0.2, zc]], 'gray6', { bias: -0.4 });
-    s.line([[C[0] - 1.7 + off, C[1] - 1.1, 1], [C[0] - 0.2 + off, C[1] - 0.2, zc]], 'gray5', { bias: -0.4 });
+  for (const off of [-0.03, 0, 0.03]) {
+    s.line([[0.4 + off, 2.2 - off, 1], [C[0] - 0.3, C[1] - 0.3, zc]], off === 0 ? 'white' : 'gray6', { bias: 0.8 });
+    s.line([[2.2 + off, 0.4 - off, 1], [C[0] - 0.3, C[1] - 0.3, zc]], off === 0 ? 'gray6' : 'gray5', { bias: 0.8 });
   }
   // Rim (double ring), spokes, capsules.
   const rot = (frame / n) * ((2 * Math.PI) / 32);
@@ -522,9 +522,9 @@ function londonEye(frame: number): Build {
   };
   ring(Rr, 'white');
   ring(Rr - 3, 'gray6');
-  for (let k = 0; k < 32; k++) {
-    const a = rot + (k / 32) * Math.PI * 2;
-    s.line([pt(a, 4), pt(a, Rr - 3)], 'gray5', { bias: -0.05 });
+  for (let k = 0; k < 16; k++) {
+    const a = rot * 0 + (k / 16) * Math.PI * 2 + rot;
+    s.line([pt(a, 4), pt(a, Rr - 3)], 'gray4', { bias: -0.05 });
   }
   const capsule = grid(
     `
@@ -677,8 +677,8 @@ function lattice(scale: number): (u: number, v: number, z: number, f: number) =>
     const cell = Math.max(4, scale);
     const x = mod(a, cell);
     const y = mod(b, cell);
-    const diag = Math.abs(x - y) < 1.1 || Math.abs(x + y - cell) < 1.1;
-    const frame = x < 1 || y < 1;
+    const diag = Math.abs(x - y) < 1.3 || Math.abs(x + y - cell) < 1.3;
+    const frame = x < 1.5 || y < 1.2;
     return !(diag || frame);
   };
 }
@@ -724,7 +724,7 @@ function eiffel(): Build {
       { nu: 0, nv: -1, nz: kv - kh, c: -(bv - h0) },
     ];
     s.poly(pl, [Math.min(bu, tu) - h0, Math.max(bu, tu) + h0, Math.min(bv, tv) - h0, Math.max(bv, tv) + h0, 0, zP1], iron, {
-      cut: lattice(6),
+      cut: lattice(11),
     });
     // Masonry pier.
     s.box(bu - 0.7, bu + 0.7, bv - 0.7, bv + 0.7, 1, 4, plain(R.lime));
@@ -753,10 +753,10 @@ function eiffel(): Build {
   };
   s.box(1.6, 4.4, 1.6, 4.4, zP1, zP1 + 8, deck);
   // Second section.
-  s.prismN(3, 3, 1.15, 0.62, zP1 + 8, 140, 4, iron, { cut: lattice(5) });
+  s.prismN(3, 3, 1.15, 0.62, zP1 + 8, 140, 4, iron, { cut: lattice(9) });
   s.box(2.25, 3.75, 2.25, 3.75, 140, 146, deck);
   // Third section — the long taper.
-  s.prismN(3, 3, 0.6, 0.18, 146, 260, 4, iron, { cut: lattice(4) });
+  s.prismN(3, 3, 0.6, 0.18, 146, 260, 4, iron, { cut: lattice(7) });
   s.prismN(3, 3, 0.18, 0.12, 260, 300, 4, iron);
   s.box(2.82, 3.18, 2.82, 3.18, 300, 308, deck);
   s.prismN(3, 3, 0.12, 0.04, 308, 318, 4, iron);
@@ -930,7 +930,7 @@ export function registerSecondary(
     let night = null;
     for (let f = 0; f < art.frames; f++) {
       const b = art.build(f);
-      const out = b.scene.render(cv);
+      const out = b.scene.render(cv, { cacheKey: art.frames > 1 && id !== 'londonEye' ? `lm.${id}` : undefined });
       frames.push(out.img);
       if (f === 0) {
         first = b;

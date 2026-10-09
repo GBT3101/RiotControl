@@ -5,7 +5,7 @@
  * arms and held items with facing-dependent z. Builds (slim / regular / stocky, ±1 px
  * height) are derived from the single hand-drawn base by duplicating grid columns / rows.
  */
-import { createBuffer, outline, silhouette, type PixelBuffer, type Point } from '../lib/pixels';
+import { createBuffer, mirrorX, silhouette, type PixelBuffer, type Point } from '../lib/pixels';
 import { resolveColor } from '../palette';
 import {
   clipAbove,
@@ -32,6 +32,8 @@ import {
   WORK_W,
   anchorAt,
   drawParts,
+  fastOutline,
+  mirrorWork,
   rotCCW,
   rotCW,
   shearRows,
@@ -279,7 +281,7 @@ export interface FrameInfo {
 }
 
 /** Compose one frame on the work canvas. */
-export function renderFigure(look: Look, facing: Facing, pose: Pose): FrameInfo {
+export function renderFigure(look: Look, facing: Facing, pose: Pose, mirror = false): FrameInfo {
   const view: Facing = pose.view ?? facing;
   const se = view === 'se';
   const b = look.build;
@@ -328,7 +330,7 @@ export function renderFigure(look: Look, facing: Facing, pose: Pose): FrameInfo 
 
   // Back / front gear.
   if (look.back === 'board' && look.board && se && !pose.noBack) {
-    parts.push({ part: look.board.part, at: neck, z: 1.45, keys: look.board.keys });
+    parts.push({ part: look.board.part, at: neck, z: 1.45, keys: look.board.keys, text: true });
   } else if (look.back && !pose.noBack) {
     const g = opt(`gear.${look.back}.${view}`);
     if (g) parts.push({ part: g, at: neck, z: se ? -2 : 1.5, keys: GEAR_KEYS });
@@ -409,15 +411,22 @@ export function renderFigure(look: Look, facing: Facing, pose: Pose): FrameInfo 
         : pose.sign === 'cardL'
           ? { x: handL.x + 3, y: handL.y + 2 + dy }
           : { x: handR.x, y: handR.y + dy };
-    parts.push({ part: art, at, z: pose.sign === 'pole' ? 5 : 3.8, keys: look.sign.keys });
+    parts.push({ part: art, at, z: pose.sign === 'pole' ? 5 : 3.8, keys: look.sign.keys, text: true });
   }
 
-  let buf = drawParts(parts, look.tones);
+  // Mirrored frames (SW / NW) flip every part except lettering, so slogans stay readable.
+  let buf = drawParts(parts, look.tones, mirror && !pose.xf);
 
   // Transforms (lying / falling).
-  if (pose.xf) buf = transformFigure(buf, pose.xf, facing);
+  if (pose.xf) {
+    buf = transformFigure(buf, pose.xf, facing);
+    if (mirror) buf = mirrorWork(buf);
+  }
+  if (mirror) {
+    for (const k of Object.keys(points)) points[k] = { x: 2 * GX - points[k]!.x, y: points[k]!.y };
+  }
   if (pose.white) buf = silhouette(buf, resolveColor('white'));
-  outline(buf, resolveColor(pose.glow ?? 'ink'));
+  fastOutline(buf, resolveColor(pose.glow ?? 'ink'));
 
   // FX (after outline).
   for (const m of pose.fx ?? []) {
@@ -425,11 +434,11 @@ export function renderFigure(look: Look, facing: Facing, pose: Pose): FrameInfo 
     if (!fxp) continue;
     const base =
       m.at === 'tipR'
-        ? (points.tipR ?? handR)
+        ? (points.tipR ?? points.handR!)
         : m.at === 'handR'
-          ? handR
+          ? points.handR!
           : m.at === 'handL'
-            ? handL
+            ? points.handL!
             : m.at === 'head'
               ? points.head!
               : m.at === 'mouth'
@@ -437,10 +446,14 @@ export function renderFigure(look: Look, facing: Facing, pose: Pose): FrameInfo 
                 : m.at === 'chest'
                   ? points.chest!
                   : m.at === 'backR'
-                    ? (points.backR ?? handR)
-                    : { x: ox, y: oy };
+                    ? (points.backR ?? points.handR!)
+                    : { x: mirror ? 2 * GX - ox : ox, y: oy };
     const img = renderKeys(fxp.grid, FX_KEYS, {}, fxp.name);
-    blit(buf, img, base.x + (m.dx ?? 0) - fxp.origin.x, base.y + (m.dy ?? 0) - fxp.origin.y);
+    if (mirror) {
+      // base is already mirrored; mirror the offset and the sprite
+      const bx = base.x - (m.dx ?? 0) - (img.w - 1 - fxp.origin.x);
+      blit(buf, mirrorX(img), bx, base.y + (m.dy ?? 0) - fxp.origin.y);
+    } else blit(buf, img, base.x + (m.dx ?? 0) - fxp.origin.x, base.y + (m.dy ?? 0) - fxp.origin.y);
   }
 
   if (!pose.noShadow) groundShadow(buf, pose.xf === 'cw' || pose.xf === 'ccw');

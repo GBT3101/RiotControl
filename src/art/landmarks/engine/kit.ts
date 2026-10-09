@@ -384,11 +384,16 @@ export function project(u: number, v: number, z: number): { x: number; y: number
 // Gothic Revival walls (Westminster, the Abbey)
 // ---------------------------------------------------------------------------------------------
 
-const LANCETS = new Map<string, Module>();
+const LANCETS = new Map<Ramp5, Map<number, Module>>();
 /** A pointed lancet window module `w` wide (3 or 5) and `h` tall, with a transom. */
 export function lancet(w: number, h: number, ramp: Ramp5): Module {
-  const key = `${w}x${h}:${ramp.join()}`;
-  let m = LANCETS.get(key);
+  let byRamp = LANCETS.get(ramp);
+  if (!byRamp) {
+    byRamp = new Map();
+    LANCETS.set(ramp, byRamp);
+  }
+  const key = w * 1000 + h;
+  let m = byRamp.get(key);
   if (m) return m;
   const rows: string[] = [];
   for (let y = 0; y < h; y++) {
@@ -410,7 +415,7 @@ export function lancet(w: number, h: number, ramp: Ramp5): Module {
     keys: { g: R.dark, G: { r: R.glass, d: 0 }, m: { r: ramp, d: -1 }, s: { r: ramp, d: 1 } },
     night: { g: 'ochre2', G: 'ochre3', m: 'ochre1' },
   };
-  LANCETS.set(key, m);
+  byRamp.set(key, m);
   return m;
 }
 
