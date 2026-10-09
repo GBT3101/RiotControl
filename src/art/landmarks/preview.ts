@@ -86,7 +86,8 @@ export function composePreview(reg: SpriteRegistry, spec: PreviewSpec): PixelBuf
         const a = img.data[si + 3]! / 255;
         if (a === 0) continue;
         const di = (ty * W + tx) * 4;
-        for (let c = 0; c < 3; c++) out.data[di + c] = out.data[di + c]! * (1 - a) + img.data[si + c]! * a;
+        for (let c = 0; c < 3; c++)
+          out.data[di + c] = out.data[di + c]! * (1 - a) + img.data[si + c]! * a;
       }
     }
   };
@@ -108,7 +109,8 @@ export function composePreview(reg: SpriteRegistry, spec: PreviewSpec): PixelBuf
   const ground =
     spec.ground ??
     ((i: number, j: number): Ground => {
-      if (j >= art.d + 4 && j <= art.d + 5) return j === art.d + 4 && i % 2 === 0 ? 'dash' : 'asphalt';
+      if (j >= art.d + 4 && j <= art.d + 5)
+        return j === art.d + 4 && i % 2 === 0 ? 'dash' : 'asphalt';
       if (i >= art.w + 3 && i <= art.w + 4) return 'asphalt';
       if (j > art.d + 5 || i > art.w + 4) return 'sidewalk';
       return 'plaza';
@@ -149,7 +151,13 @@ export function composePreview(reg: SpriteRegistry, spec: PreviewSpec): PixelBuf
   // 3. Landmarks back-to-front (by footprint centre), each followed by its overlays.
   const items = [
     { name: `lm.capitol.${spec.city}.${spec.state}`, i: 0, j: 0, w: art.w, d: art.d },
-    ...spec.landmarks.map((l) => ({ name: `lm.${l.id}`, i: l.i, j: l.j, w: LANDMARKS[l.id].w, d: LANDMARKS[l.id].d })),
+    ...spec.landmarks.map((l) => ({
+      name: `lm.${l.id}`,
+      i: l.i,
+      j: l.j,
+      w: LANDMARKS[l.id].w,
+      d: LANDMARKS[l.id].d,
+    })),
   ].sort((a, b) => a.i + a.w / 2 + a.j + a.d / 2 - (b.i + b.w / 2 + b.j + b.d / 2));
   for (const it of items) {
     const [x, y] = tileXY(it.i, it.j);

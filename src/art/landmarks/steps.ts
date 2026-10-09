@@ -27,8 +27,10 @@ export function stepTile(city: CityId): PixelBuffer {
       const v = (sy / 8 - sx / 16) / 2;
       const f = (v * 4) % 1; // position within a step (0 back → 1 front edge)
       let tone: number;
-      if (f > 0.78) tone = 1; // riser in shade below the nosing
-      else if (f > 0.62) tone = 4; // lit nosing
+      if (f > 0.78)
+        tone = 1; // riser in shade below the nosing
+      else if (f > 0.62)
+        tone = 4; // lit nosing
       else tone = 3; // tread
       // Slab joints across the treads.
       if (tone === 3 && (u * 2) % 1 < 0.06) tone = 2;

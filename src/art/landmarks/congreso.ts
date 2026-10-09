@@ -157,16 +157,21 @@ export function buildCongreso(state: DamageState): Build {
   const seed = 1100;
 
   // --- Damage bookkeeping -----------------------------------------------------------------
-  const decals: Decal[] = scatterDecals(state, seed, [
-    ['left', 'body', 6, 34, 2, 15],
-    ['left', 'body', 110, 138, 2, 15],
-    ['right', 'body', 10, 74, 2, 15],
-    ['left', 'podium', 36, 108, 2, 15],
-    ['left', 'ped', 25, 36, 2, 10],
-    ['left', 'ped', 110, 120, 2, 10],
-    ['left', 'body', 40, 104, 18, 32],
-    ['left', 'stairs', 40, 104, 2, 16],
-  ], 1.4);
+  const decals: Decal[] = scatterDecals(
+    state,
+    seed,
+    [
+      ['left', 'body', 6, 34, 2, 15],
+      ['left', 'body', 110, 138, 2, 15],
+      ['right', 'body', 10, 74, 2, 15],
+      ['left', 'podium', 36, 108, 2, 15],
+      ['left', 'ped', 25, 36, 2, 10],
+      ['left', 'ped', 110, 120, 2, 10],
+      ['left', 'body', 40, 104, 18, 32],
+      ['left', 'stairs', 40, 104, 2, 16],
+    ],
+    1.4,
+  );
   const holes: Array<{ side: 'left' | 'right'; fx: number; z: number; r: number }> =
     state >= 4
       ? [
@@ -188,7 +193,11 @@ export function buildCongreso(state: DamageState): Build {
   const burning: Array<{ side: 'left' | 'right'; fx: number; zTop: number; w: number }> = [];
   const frontBays = [9, 22, 115, 128];
   const rightBays = [15, 30, 45, 60];
-  const statusOf = (side: 'left' | 'right', bay: number, row: number): ReturnType<typeof windowStatus> =>
+  const statusOf = (
+    side: 'left' | 'right',
+    bay: number,
+    row: number,
+  ): ReturnType<typeof windowStatus> =>
     windowStatus(state, bay * 3 + row + (side === 'left' ? 0 : 500), seed);
   for (const [side, bays] of [
     ['left', frontBays],
@@ -214,7 +223,15 @@ export function buildCongreso(state: DamageState): Build {
 
   // Scorched roof zones around the roof fires (coherent burns, not noise).
   const burns: Array<[number, number, number]> =
-    state === 3 ? [[7.2, 2.6, 0.7]] : state >= 4 ? [[6.9, 2.2, 1.5], [2.0, 3.4, 1.1], [4.5, 1.6, 0.8]] : [];
+    state === 3
+      ? [[7.2, 2.6, 0.7]]
+      : state >= 4
+        ? [
+            [6.9, 2.2, 1.5],
+            [2.0, 3.4, 1.1],
+            [4.5, 1.6, 0.8],
+          ]
+        : [];
   function scorch(u: number, v: number): 0 | 1 | 2 {
     for (const [bu, bv, br] of burns) {
       const a = Math.atan2(v - bv, u - bu);
@@ -243,7 +260,8 @@ export function buildCongreso(state: DamageState): Build {
   const bodyWall: Material = (c) => {
     if (c.side === 'back') return interior(c);
     if (c.side === 'top') {
-      if (scorch(c.u, c.v) === 2) return c.night ? 'rust3' : hash(c.px, c.py) < 0.5 ? 'ochre3' : 'rust2';
+      if (scorch(c.u, c.v) === 2)
+        return c.night ? 'rust3' : hash(c.px, c.py) < 0.5 ? 'ochre3' : 'rust2';
       return c.night ? null : lv(cream, c.level);
     }
     const side = c.side === 'right' ? 'right' : 'left';
@@ -263,7 +281,12 @@ export function buildCongreso(state: DamageState): Build {
     // Portico back wall: door + windows.
     if (side === 'left' && c.fx > 36 && c.fx < 108) {
       const dk = sampleModule(DOOR, c, 65, 37);
-      if (dk !== null) return state >= 3 && dk !== 'F' && dk !== 'P' && dk !== 'p' && !c.night ? (hash(c.fx, c.fz) < 0.3 ? 'rust1' : 'ink') : moduleColour(DOOR, dk, c);
+      if (dk !== null)
+        return state >= 3 && dk !== 'F' && dk !== 'P' && dk !== 'p' && !c.night
+          ? hash(c.fx, c.fz) < 0.3
+            ? 'rust1'
+            : 'ink'
+          : moduleColour(DOOR, dk, c);
       for (const b of [44, 54, 86, 96]) {
         const r = paintWindow(WIN_PORTICO, c, b, 40, statusOf('left', b, 2));
         if (r !== undefined) return r;
@@ -286,8 +309,7 @@ export function buildCongreso(state: DamageState): Build {
       return lv(cream, Math.min(c.level, 2) - (z > 44 ? 1 : 0));
     }
     // Corner quoins.
-    const quoin =
-      side === 'left' ? c.fx <= 6 || c.fx >= 137 : c.fx >= 73;
+    const quoin = side === 'left' ? c.fx <= 6 || c.fx >= 137 : c.fx >= 73;
     if (z >= 52) return lv(cream, c.level + 1);
     if (z === 51) return lv(cream, c.level - 1);
     if (z >= 49) return mod(c.fx, 2) === 0 ? lv(cream, c.level) : lv(cream, c.level - 2);
@@ -366,7 +388,12 @@ export function buildCongreso(state: DamageState): Build {
   s.hip(0.55, 8.45, 0.8, 4.45, 54, 61, 1.5, slateRoof, { cut: roofCut });
   // Oeil-de-boeuf dormers on the front and side slopes, and chimney stacks.
   const dormer: Material = (c) => {
-    if (c.night) return c.side === 'left' || c.side === 'right' ? (mod(c.fx, 16) === 7 && c.fz >= 57 && c.fz <= 58 ? 'ochre2' : null) : null;
+    if (c.night)
+      return c.side === 'left' || c.side === 'right'
+        ? mod(c.fx, 16) === 7 && c.fz >= 57 && c.fz <= 58
+          ? 'ochre2'
+          : null
+        : null;
     if (c.edge) return cream[0];
     if (c.side === 'left' || c.side === 'right') {
       const dx = Math.abs(mod(c.fx, 16) - 7.5);
@@ -383,7 +410,8 @@ export function buildCongreso(state: DamageState): Build {
     s.box(7.95, 8.35, v - 0.3, v + 0.3, 54, 61, dormer);
     s.gable(7.9, 8.41, v - 0.36, v + 0.36, 61, 64, 'u', dormer);
   }
-  const chimney: Material = (c) => (c.night ? null : c.edge ? R.brick[0] : c.fz >= 67 ? lv(cream, c.level) : lv(R.brick, c.level));
+  const chimney: Material = (c) =>
+    c.night ? null : c.edge ? R.brick[0] : c.fz >= 67 ? lv(cream, c.level) : lv(R.brick, c.level);
   for (const [u, v] of [
     [1.0, 1.4],
     [8.0, 0.95],
@@ -449,7 +477,9 @@ export function buildCongreso(state: DamageState): Build {
   for (const [i, u0] of [1.4, 6.9].entries()) {
     s.box(u0, u0 + 0.7, 6.15, 6.85, 1, 4, granMat, { tag: 'ped' });
     s.box(u0 + 0.06, u0 + 0.64, 6.21, 6.79, 4, 12, granMat, { tag: 'ped' });
-    s.box(u0 - 0.03, u0 + 0.73, 6.12, 6.88, 12, 14, plain(R.granite, { rim: true }), { tag: 'ped' });
+    s.box(u0 - 0.03, u0 + 0.73, 6.12, 6.88, 12, 14, plain(R.granite, { rim: true }), {
+      tag: 'ped',
+    });
     const toppled = (state === 3 && i === 1) || state >= 4;
     if (toppled && i === 1) {
       s.sprite(bronzeLion(true), 12, 14, u0 + 0.9, 7.0, 1);
@@ -459,7 +489,13 @@ export function buildCongreso(state: DamageState): Build {
   }
 
   // Columns (two shattered in state 4) with the entablature and pediment above.
-  const broken = state >= 4 ? new Map([[1, 31], [4, 24]]) : new Map<number, number>();
+  const broken =
+    state >= 4
+      ? new Map([
+          [1, 31],
+          [4, 24],
+        ])
+      : new Map<number, number>();
   for (let k = 0; k < 6; k++) {
     column(s, {
       u: 2.75 + k * 0.7,

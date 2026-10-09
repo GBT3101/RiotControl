@@ -69,7 +69,12 @@ const DESIGNS: Record<string, { d: Design; h: number }> = {
  * Waving flag frames. Anchor = the hoist's top pixel (sits on the pole tip): the flag flies
  * to the screen right of the pole. `torn` = ragged fly end, scorch and holes.
  */
-export function flagFrames(code: keyof typeof DESIGNS, n = 6, torn = false, scale = 1): PixelBuffer[] {
+export function flagFrames(
+  code: keyof typeof DESIGNS,
+  n = 6,
+  torn = false,
+  scale = 1,
+): PixelBuffer[] {
   const { d, h } = DESIGNS[code]!;
   const w = Math.round(FW * scale);
   const hh = Math.round(h * scale);
@@ -165,7 +170,9 @@ export function fireFrames(w: number, h: number, n = 6, seed = 1): PixelBuffer[]
       const sy = Math.floor(hash(k, f, seed + 1) * h * 0.4);
       if (!buf.data[(sy * w + sx) * 4 + 3]) setPixel(buf, sx, sy, resolveColor('ochre3'));
     }
-    outline(buf, resolveColor('rust1'), { sides: { top: true, left: true, right: true, bottom: false } });
+    outline(buf, resolveColor('rust1'), {
+      sides: { top: true, left: true, right: true, bottom: false },
+    });
     frames.push(buf);
   }
   return frames;
@@ -173,12 +180,16 @@ export function fireFrames(w: number, h: number, n = 6, seed = 1): PixelBuffer[]
 
 function readRgba(b: PixelBuffer, x: number, y: number): number {
   const i = (y * b.w + x) * 4;
-  return ((b.data[i]! << 24) | (b.data[i + 1]! << 16) | (b.data[i + 2]! << 8) | b.data[i + 3]!) >>> 0;
+  return (
+    ((b.data[i]! << 24) | (b.data[i + 1]! << 16) | (b.data[i + 2]! << 8) | b.data[i + 3]!) >>> 0
+  );
 }
 
 /** Rising smoke column: puffs drift up and grow; loops seamlessly. Anchor: bottom centre. */
 export function smokeFrames(w: number, h: number, n = 6, dark = true): PixelBuffer[] {
-  const ramp: SwatchName[] = dark ? ['gray1', 'gray2', 'gray3', 'gray4'] : ['gray3', 'gray4', 'gray5', 'gray6'];
+  const ramp: SwatchName[] = dark
+    ? ['gray1', 'gray2', 'gray3', 'gray4']
+    : ['gray3', 'gray4', 'gray5', 'gray6'];
   const puffs = 5;
   const frames: PixelBuffer[] = [];
   for (let f = 0; f < n; f++) {
@@ -259,12 +270,32 @@ export function registerLandmarkFx(reg: SpriteRegistry): void {
     });
   }
   const fire = (name: string, w: number, h: number, seed: number): void => {
-    reg.add(name, { group: g, frames: fireFrames(w, h, 6, seed), fps: 12, anchor: { x: w >> 1, y: h - 1 } });
+    reg.add(name, {
+      group: g,
+      frames: fireFrames(w, h, 6, seed),
+      fps: 12,
+      anchor: { x: w >> 1, y: h - 1 },
+    });
   };
   fire('lm.fx.fire.s', 8, 12, 1);
   fire('lm.fx.fire.m', 12, 18, 2);
   fire('lm.fx.fire.l', 18, 28, 3);
-  reg.add('lm.fx.smoke', { group: g, frames: smokeFrames(22, 48), fps: 6, anchor: { x: 11, y: 47 } });
-  reg.add('lm.capitol.london.hands.l', { group: g, frames: clockHands('l'), fps: 1, anchor: { x: 8, y: 8 } });
-  reg.add('lm.capitol.london.hands.r', { group: g, frames: clockHands('r'), fps: 1, anchor: { x: 8, y: 8 } });
+  reg.add('lm.fx.smoke', {
+    group: g,
+    frames: smokeFrames(22, 48),
+    fps: 6,
+    anchor: { x: 11, y: 47 },
+  });
+  reg.add('lm.capitol.london.hands.l', {
+    group: g,
+    frames: clockHands('l'),
+    fps: 1,
+    anchor: { x: 8, y: 8 },
+  });
+  reg.add('lm.capitol.london.hands.r', {
+    group: g,
+    frames: clockHands('r'),
+    fps: 1,
+    anchor: { x: 8, y: 8 },
+  });
 }

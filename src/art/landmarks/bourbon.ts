@@ -109,12 +109,21 @@ export function buildBourbon(state: DamageState): Build {
     1.3,
   );
   const scorch = scorchZones(
-    state === 3 ? [[8.6, 2.6, 0.8]] : state >= 4 ? [[8.4, 2.4, 1.4], [2.6, 3.0, 1.1], [5.5, 1.4, 0.7]] : [],
+    state === 3
+      ? [[8.6, 2.6, 0.8]]
+      : state >= 4
+        ? [
+            [8.4, 2.4, 1.4],
+            [2.6, 3.0, 1.1],
+            [5.5, 1.4, 0.7],
+          ]
+        : [],
   );
   const roof = roofMat(R.zinc, scorch, 4);
   const roofCut =
     state >= 4
-      ? (u: number, v: number): boolean => scorch(u, v) === 2 && hash(Math.floor(u * 3), Math.floor(v * 3)) < 0.75
+      ? (u: number, v: number): boolean =>
+          scorch(u, v) === 2 && hash(Math.floor(u * 3), Math.floor(v * 3)) < 0.75
       : undefined;
   if (state >= 3) ov.push({ sprite: 'lm.fx.smoke', u: 8.6, v: 2.6, z: 56 });
   if (state >= 4) {
@@ -132,7 +141,8 @@ export function buildBourbon(state: DamageState): Build {
     ] as const) {
       const st = windowStatus(state, b * 2 + row, seed);
       if (st === 'burning' || st === 'gutted') burnt.push({ side: 'right', fx: b + 3, zTop });
-      if (st === 'burning') ov.push({ sprite: 'lm.fx.fire.s', u: 10.8, v: (b + 3) / 16, z: zTop - 9 });
+      if (st === 'burning')
+        ov.push({ sprite: 'lm.fx.fire.s', u: 10.8, v: (b + 3) / 16, z: zTop - 9 });
     }
   }
 
@@ -184,7 +194,8 @@ export function buildBourbon(state: DamageState): Build {
       if (z === top - 3) return lv(L, c.level - 1);
       if (z === top - 5) return mod(c.fx, 2) ? lv(L, c.level - 1) : lv(L, c.level);
       // Portico recess in shade.
-      if (side === 'left' && tag === 'body' && z < 54) return lv(L, Math.min(c.level, 2) - (z > 40 ? 1 : 0));
+      if (side === 'left' && tag === 'body' && z < 54)
+        return lv(L, Math.min(c.level, 2) - (z > 40 ? 1 : 0));
       if (z < 20) {
         if (z === 19) return lv(L, c.level + 1);
         if (mod(z, 4) === 0) return lv(L, c.level - 1);
@@ -217,7 +228,12 @@ export function buildBourbon(state: DamageState): Build {
   s.box(1.0, 10.0, 0.5, 4.6, 1, 46, wall('body'), { tag: 'body', cut: bodyCut });
   s.hip(1.2, 9.8, 0.7, 4.4, 46, 54, 1.2, roof, { cut: roofCut });
   const glass: Material = (c) => {
-    if (c.night) return mod(c.fx, 4) === 0 || mod(c.fz, 4) === 0 ? null : mod(c.fx + c.fz, 9) === 0 ? 'ochre3' : 'ochre1';
+    if (c.night)
+      return mod(c.fx, 4) === 0 || mod(c.fz, 4) === 0
+        ? null
+        : mod(c.fx + c.fz, 9) === 0
+          ? 'ochre3'
+          : 'ochre1';
     if (c.edge) return 'ink';
     if (state >= 2 && mod(c.fx, 7) < 2) return 'ink';
     if (mod(c.fx, 4) === 0 || mod(c.fz, 4) === 0) return lv(R.metal, c.level);
@@ -232,7 +248,8 @@ export function buildBourbon(state: DamageState): Build {
     s.hip(u0 + 0.05, u0 + 0.75, 0.65, 4.8, 36, 41, 0.3, roof);
   }
   // Chimney stacks on the main roof.
-  const chimney: Material = (c) => (c.night ? null : c.edge ? L[0] : c.fz >= 58 ? lv(L, c.level + 1) : lv(L, c.level));
+  const chimney: Material = (c) =>
+    c.night ? null : c.edge ? L[0] : c.fz >= 58 ? lv(L, c.level + 1) : lv(L, c.level);
   for (const [u, v] of [
     [2.0, 1.2],
     [9.1, 1.2],
@@ -252,9 +269,25 @@ export function buildBourbon(state: DamageState): Build {
   };
   s.box(1.3, 9.7, 4.6, 5.8, 1, 18, gran, { tag: 'podium' });
   stairs(s, 1.3, 9.7, 7.0, 5.8, 1, 18, 6, stepMat(R.limePale, decals));
-  const broken = state >= 4 ? new Map([[2, 30], [3, 40], [8, 26]]) : new Map<number, number>();
+  const broken =
+    state >= 4
+      ? new Map([
+          [2, 30],
+          [3, 40],
+          [8, 26],
+        ])
+      : new Map<number, number>();
   for (let k = 0; k < 12; k++) {
-    column(s, { u: 1.6 + k * 0.709, v: 5.5, z0: 18, z1: 54, r: 0.14, ramp: R.limePale, brokenAt: broken.get(k), tag: 'col' });
+    column(s, {
+      u: 1.6 + k * 0.709,
+      v: 5.5,
+      z0: 18,
+      z1: 54,
+      r: 0.14,
+      ramp: R.limePale,
+      brokenAt: broken.get(k),
+      tag: 'col',
+    });
   }
   if (state >= 4) {
     const rub = plain(R.limePale);
@@ -265,7 +298,8 @@ export function buildBourbon(state: DamageState): Build {
   }
   const gapCut =
     state >= 4
-      ? (u: number, _v: number, z: number): boolean => Math.abs(u - 3.3) < 0.7 - (z - 54) * 0.012 + Math.sin(z) * 0.05
+      ? (u: number, _v: number, z: number): boolean =>
+          Math.abs(u - 3.3) < 0.7 - (z - 54) * 0.012 + Math.sin(z) * 0.05
       : undefined;
   const entab: Material = (c) => {
     if (c.side === 'back') return interior(c);
@@ -304,7 +338,10 @@ export function buildBourbon(state: DamageState): Build {
     return lv(L, c.level - 2);
   };
   const pedCut =
-    state >= 4 ? (u: number, _v: number, z: number): boolean => u > 2.4 && u < 3.9 && z < 72 - (u - 2.4) * 2 + Math.sin(u * 20) : undefined;
+    state >= 4
+      ? (u: number, _v: number, z: number): boolean =>
+          u > 2.4 && u < 3.9 && z < 72 - (u - 2.4) * 2 + Math.sin(u * 20)
+      : undefined;
   s.gable(1.3, 9.7, 4.6, 5.8, 62, 78, 'v', pediment, { cut: pedCut });
 
   // --- Statues: two seated allegories at the stair foot, two statesmen on high pedestals --------
@@ -344,15 +381,21 @@ export function buildBourbon(state: DamageState): Build {
     ],
     'ochre2',
   );
-  ov.push({ sprite: state >= 2 ? 'lm.flag.fr.torn' : 'lm.flag.fr', u: 5.5, v: 4.45, z: poleTop, flag: true });
+  ov.push({
+    sprite: state >= 2 ? 'lm.flag.fr.torn' : 'lm.flag.fr',
+    u: 5.5,
+    v: 4.45,
+    z: poleTop,
+    flag: true,
+  });
 
   // Candelabra lamps at the stair foot.
   const lp = lamp(state >= 2);
-  for (const u of [1.6, 9.4]) s.sprite(lp.img, 2, 14, u, 6.95, 1, { emit: state >= 2 ? undefined : lp.night });
+  for (const u of [1.6, 9.4])
+    s.sprite(lp.img, 2, 14, u, 6.95, 1, { emit: state >= 2 ? undefined : lp.night });
 
   banner(s, state, 3.1, 7.9, 5.68, 46, 10, 'MERDE ALORS');
   rubble(s, state, 1.4, 9.6, 4.7, 5.75, 18, 10, seed);
   rubble(s, state, 0.1, 1.2, 5.75, 6.95, 1, 4, seed + 1);
   return { scene: s, overlays: ov };
 }
-

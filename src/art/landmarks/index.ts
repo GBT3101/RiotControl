@@ -89,7 +89,12 @@ export function registerLandmarks(reg: SpriteRegistry): void {
           anchor: out.anchor,
           tags: ['night'],
         });
-        const sh = b.scene.groundShadow({ w: art.w, d: art.d, top: 0 }, SHADOW_ALPHA, SHADOW, () => true);
+        const sh = b.scene.groundShadow(
+          { w: art.w, d: art.d, top: 0 },
+          SHADOW_ALPHA,
+          SHADOW,
+          () => true,
+        );
         reg.add(`lm.capitol.${city}.shadow`, {
           group: 'landmarks',
           frames: sh.img,

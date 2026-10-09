@@ -8,7 +8,12 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { SpriteRegistry } from '../src/art/lib/registry';
 import { registerLandmarks } from '../src/art/landmarks';
-import { composeDamageStrip, composePreview, type PreviewActor, type PreviewSpec } from '../src/art/landmarks/preview';
+import {
+  composeDamageStrip,
+  composePreview,
+  type PreviewActor,
+  type PreviewSpec,
+} from '../src/art/landmarks/preview';
 import type { PixelBuffer } from '../src/art/lib/pixels';
 import type { CityId } from '../src/maps/contract';
 // @ts-expect-error — plain JS helper without types
@@ -54,7 +59,8 @@ function save(buf: PixelBuffer, name: string, scale = 1): void {
 
 function guards(w: number, d: number): PreviewActor[] {
   const a: PreviewActor[] = [];
-  for (let i = 1; i < w - 1; i += 2) a.push({ sprite: 'unit.riot.idle.sw', i: i + 0.5, j: d + 0.3, frame: i });
+  for (let i = 1; i < w - 1; i += 2)
+    a.push({ sprite: 'unit.riot.idle.sw', i: i + 0.5, j: d + 0.3, frame: i });
   return a;
 }
 
@@ -74,9 +80,33 @@ function crowd(w: number, d: number, n: number): PreviewActor[] {
 }
 
 const SPECS: Record<CityId, Omit<PreviewSpec, 'actors' | 'state'> & { w: number; d: number }> = {
-  madrid: { city: 'madrid', w: 9, d: 7, landmarks: [{ id: 'cervantes', i: 1, j: 8 }, { id: 'neptuno', i: 10, j: 6 }] },
-  london: { city: 'london', w: 14, d: 6, landmarks: [{ id: 'churchill', i: 2, j: 7 }, { id: 'nelson', i: 15, j: 6 }] },
-  paris: { city: 'paris', w: 11, d: 7, landmarks: [{ id: 'obelisk', i: 1, j: 8 }, { id: 'concordeFountain', i: 12, j: 6 }] },
+  madrid: {
+    city: 'madrid',
+    w: 9,
+    d: 7,
+    landmarks: [
+      { id: 'cervantes', i: 1, j: 8 },
+      { id: 'neptuno', i: 10, j: 6 },
+    ],
+  },
+  london: {
+    city: 'london',
+    w: 14,
+    d: 6,
+    landmarks: [
+      { id: 'churchill', i: 2, j: 7 },
+      { id: 'nelson', i: 15, j: 6 },
+    ],
+  },
+  paris: {
+    city: 'paris',
+    w: 11,
+    d: 7,
+    landmarks: [
+      { id: 'obelisk', i: 1, j: 8 },
+      { id: 'concordeFountain', i: 12, j: 6 },
+    ],
+  },
 };
 
 describe('M3b previews', () => {

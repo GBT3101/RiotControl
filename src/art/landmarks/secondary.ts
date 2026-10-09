@@ -8,7 +8,16 @@ import type { SpriteRegistry } from '../lib/registry';
 import { LANDMARKS, type LandmarkId } from '../../maps/contract';
 import { Scene, type Material, type ShadeCtx } from './engine/scene';
 import { R, hash, lv, mod, plain, type Ramp5 } from './engine/materials';
-import { balustradeCut, column, gothicWall, lancet, paintWindow, project, roofMat, stairs, stepMat, textGrid } from './engine/kit';
+import {
+  balustradeCut,
+  column,
+  gothicWall,
+  paintWindow,
+  project,
+  roofMat,
+  stairs,
+  stepMat,
+} from './engine/kit';
 import { mod_ } from './engine/materials';
 import type { Build, Overlay } from './types';
 import {
@@ -117,7 +126,10 @@ function jet(
   for (let k = 0; k < N; k++) {
     const on = mod(k + frame, 4) !== 3;
     if (!on) continue;
-    s.line([pts[k]!, pts[k + 1]!], mod(k + frame, 4) === 0 ? 'white' : 'sky', { emit: 'sky', bias: 0.05 });
+    s.line([pts[k]!, pts[k + 1]!], mod(k + frame, 4) === 0 ? 'white' : 'sky', {
+      emit: 'sky',
+      bias: 0.05,
+    });
   }
 }
 
@@ -186,7 +198,14 @@ function cibeles(frame: number): Build {
   s.hip(1.0, 2.0, 1.1, 1.9, 2, 9, 0.3, plain(R.marble));
   s.sprite(figure(CIBELES, 'marble', 'cibeles'), 17, 21, 1.55, 1.55, 9);
   // Sceptre.
-  s.line([[1.62, 1.35, 20], [1.62, 1.35, 33]], 'gray5', { bias: 0.3 });
+  s.line(
+    [
+      [1.62, 1.35, 20],
+      [1.62, 1.35, 33],
+    ],
+    'gray5',
+    { bias: 0.3 },
+  );
   // Jets from the lions' mouths and the basin edge.
   jet(s, [1.05, 1.95, 12], [0.55, 2.35, 3], 6, frame);
   jet(s, [1.3, 2.05, 12], [1.05, 2.55, 3], 5, frame + 2);
@@ -200,10 +219,38 @@ function neptuno(frame: number): Build {
   s.hip(1.05, 1.95, 1.05, 1.95, 2, 8, 0.25, plain(R.marble));
   s.sprite(figure(NEPTUNE, 'marble', 'neptune'), 12, 19, 1.55, 1.55, 8);
   // Trident.
-  s.line([[1.7, 1.2, 24], [1.7, 1.2, 40]], 'gray4', { bias: 0.4 });
-  s.line([[1.64, 1.26, 40], [1.76, 1.14, 40]], 'gray4', { bias: 0.4 });
-  s.line([[1.64, 1.26, 40], [1.64, 1.26, 42]], 'gray4', { bias: 0.4 });
-  s.line([[1.76, 1.14, 40], [1.76, 1.14, 42]], 'gray4', { bias: 0.4 });
+  s.line(
+    [
+      [1.7, 1.2, 24],
+      [1.7, 1.2, 40],
+    ],
+    'gray4',
+    { bias: 0.4 },
+  );
+  s.line(
+    [
+      [1.64, 1.26, 40],
+      [1.76, 1.14, 40],
+    ],
+    'gray4',
+    { bias: 0.4 },
+  );
+  s.line(
+    [
+      [1.64, 1.26, 40],
+      [1.64, 1.26, 42],
+    ],
+    'gray4',
+    { bias: 0.4 },
+  );
+  s.line(
+    [
+      [1.76, 1.14, 40],
+      [1.76, 1.14, 42],
+    ],
+    'gray4',
+    { bias: 0.4 },
+  );
   jet(s, [1.0, 1.9, 9], [0.5, 2.4, 3], 7, frame);
   jet(s, [2.0, 1.0, 9], [2.5, 0.6, 3], 7, frame + 1);
   jet(s, [1.9, 1.9, 9], [2.4, 2.4, 3], 6, frame + 2);
@@ -214,7 +261,14 @@ function metropolis(): Build {
   const s = new Scene();
   plate(s, 3, 3, paving);
   const white = R.portland;
-  const wall = classicalWall({ ramp: white, pitch: 7, off: 2, rows: [70, 58, 46, 34, 22], top: 78, base: 12 });
+  const wall = classicalWall({
+    ramp: white,
+    pitch: 7,
+    off: 2,
+    rows: [70, 58, 46, 34, 22],
+    top: 78,
+    base: 12,
+  });
   s.box(0.15, 2.3, 0.15, 1.5, 1, 78, wall);
   s.box(0.15, 1.5, 0.15, 2.3, 1, 78, wall);
   // Rotunda with paired columns.
@@ -236,7 +290,7 @@ function metropolis(): Build {
     if (c.night) return null;
     if (c.edge) return 'ink';
     const a = Math.atan2(c.v - 1.95, c.u - 1.95);
-    const rib = Math.abs(mod(a * 4 / Math.PI + 0.5, 1) - 0.5) < 0.09;
+    const rib = Math.abs(mod((a * 4) / Math.PI + 0.5, 1) - 0.5) < 0.09;
     if (rib || mod(c.fz, 9) === 0) return lv(R.gold, c.level);
     return lv(R.slate, c.level + 1);
   };
@@ -250,48 +304,61 @@ function puertaAlcala(): Build {
   const s = new Scene();
   plate(s, 4, 2, paving);
   const g = R.granite;
-  // Openings: three arches + two square side openings through the gate (along v).
+  const M = R.marble;
+  // Openings through the gate (along v): three round arches + two square side passages.
+  const ARCH_U = [1.4, 2.0, 2.6];
   const opening = (u: number, z: number): boolean => {
-    for (const cu of [1.4, 2.0, 2.6]) {
-      if (Math.abs(u - cu) < 0.2 && z < 18 + Math.sqrt(Math.max(0, 0.04 - (u - cu) ** 2)) * 40 && z > 1) return true;
+    for (const cu of ARCH_U) {
+      const dx = (u - cu) * 16;
+      if (Math.abs(dx) < 3.5 && z > 1 && (z < 17 || Math.hypot(dx, z - 17) < 3.5)) return true;
     }
-    for (const cu of [0.65, 3.35]) if (Math.abs(u - cu) < 0.16 && z < 16 && z > 1) return true;
+    for (const cu of [0.62, 3.38]) if (Math.abs(u - cu) < 0.14 && z < 14 && z > 1) return true;
     return false;
   };
   const gate: Material = (c) => {
-    if (c.night) return c.side === 'left' && c.fz > 20 && c.fz < 40 ? null : null;
+    if (c.night) return null;
     if (c.side === 'back') return lv(g, 1);
     if (c.edge) return g[0];
     if (c.side === 'top') return lv(g, c.level);
     const z = c.fz;
-    if (z >= 44) return lv(g, c.level + 1);
-    if (z === 43 || z === 40) return lv(g, c.level - 1);
-    if (z > 40) return mod(c.fx, 2) ? lv(g, c.level - 1) : lv(g, c.level);
-    // Attached columns between the openings.
+    if (z >= 39) return lv(M, c.level + (z === 39 ? -1 : 0));
+    if (z >= 36) return mod(c.fx, 2) ? lv(M, c.level - 1) : lv(M, c.level);
     if (c.side === 'left') {
       const u = c.u;
+      // Attached Ionic columns flanking the arches.
       for (const cu of [1.1, 1.7, 2.3, 2.9]) {
-        const d = Math.abs(u - cu);
-        if (d < 0.07) return lv(R.marble, c.level + (u < cu ? 1 : -1));
+        const dx = (u - cu) * 16;
+        if (Math.abs(dx) < 1.5 && z > 3) return lv(M, c.level + (dx < 0 ? 1 : -1));
+        if (Math.abs(dx) < 2.5 && z > 32 && z < 36) return lv(M, c.level);
+      }
+      // Arch rings, keystones and dark reveals.
+      for (const cu of ARCH_U) {
+        const dx = (u - cu) * 16;
+        const r = Math.hypot(dx, z - 17);
+        if (z >= 17 && r >= 3.5 && r < 5.5) return lv(M, c.level + (Math.abs(dx) < 0.8 ? 1 : 0));
+        if (Math.abs(Math.abs(dx) - 3.9) < 0.6 && z < 17 && z > 1) return lv(g, c.level - 2);
       }
       if (z < 4) return lv(g, c.level - 1);
-      // Keystones / arch rings.
-      for (const cu of [1.4, 2.0, 2.6]) {
-        const d = Math.hypot((u - cu) * 40, z - 18);
-        if (d > 7 && d < 9 && z > 17) return lv(R.marble, c.level);
-      }
     }
     return mod(z, 5) === 0 ? lv(g, c.level - 1) : lv(g, c.level);
   };
-  s.box(0.2, 3.8, 0.6, 1.4, 1, 46, gate, {
+  s.box(0.2, 3.8, 0.7, 1.3, 1, 42, gate, {
     cut: (u, _v, z, f) => (f === 2 || f === 3 ? opening(u, z) : false),
   });
-  // Attic with pediment and trophies.
-  s.box(1.2, 2.8, 0.7, 1.3, 46, 58, plain(R.marble, { rim: true }));
-  s.gable(1.15, 2.85, 0.65, 1.35, 58, 66, 'v', plain(R.marble, { rim: true }));
-  for (const u of [0.5, 3.5]) {
-    s.box(u - 0.2, u + 0.2, 0.8, 1.2, 46, 50, plain(g));
-    s.sprite(marbleStatue('standing', false, true), 4, 19, u, 1.0, 50);
+  // Attic with the central pediment and the sculpted trophies.
+  const attic: Material = (c) => {
+    if (c.night) return null;
+    if (c.edge) return M[0];
+    if (c.side === 'left' && c.fz > 44 && c.fz < 50 && mod(c.fx, 3) !== 0)
+      return lv(M, c.level - 1);
+    return lv(M, c.level + (c.rim ? 1 : 0));
+  };
+  s.box(1.15, 2.85, 0.8, 1.2, 42, 52, attic);
+  s.gable(1.1, 2.9, 0.75, 1.25, 52, 59, 'v', attic);
+  s.sprite(marbleStatue('seated', false, true), 6, 17, 2.0, 1.0, 59, { bias: 0.2 });
+  for (const u of [0.55, 3.45]) {
+    s.box(u - 0.2, u + 0.2, 0.85, 1.15, 42, 46, plain(M));
+    s.sprite(marbleStatue('standing', false, true), 4, 19, u, 1.0, 46);
   }
   return { scene: s, overlays: [] };
 }
@@ -305,7 +372,14 @@ function palacioComunicaciones(): Build {
   s.box(0.5, 7.5, 0.5, 4.9, 1, 64, wall);
   s.hip(0.6, 7.4, 0.6, 4.8, 64, 74, 1.2, roof);
   // Corner turrets with pinnacle roofs.
-  const tw = classicalWall({ ramp: w, pitch: 7, off: 1, rows: [80, 62, 44, 26], top: 86, base: 14 });
+  const tw = classicalWall({
+    ramp: w,
+    pitch: 7,
+    off: 1,
+    rows: [80, 62, 44, 26],
+    top: 86,
+    base: 14,
+  });
   for (const [u, v] of [
     [0.9, 4.6],
     [7.1, 4.6],
@@ -314,7 +388,13 @@ function palacioComunicaciones(): Build {
   ] as const) {
     s.box(u - 0.55, u + 0.55, v - 0.55, v + 0.55, 1, 86, tw);
     s.hip(u - 0.6, u + 0.6, v - 0.6, v + 0.6, 86, 104, 0.6, roof);
-    s.line([[u, v, 104], [u, v, 110]], 'gray2');
+    s.line(
+      [
+        [u, v, 104],
+        [u, v, 110],
+      ],
+      'gray2',
+    );
   }
   // Central tower on the front.
   s.box(3.3, 4.7, 4.0, 5.4, 1, 104, tw);
@@ -339,8 +419,17 @@ function palacioComunicaciones(): Build {
   };
   s.box(3.3, 4.7, 5.4, 5.75, 1, 22, arcade);
   stairs(s, 3.3, 4.7, 6.0, 5.75, 1, 3, 1, stepMat(R.granite));
-  s.line([[4.0, 4.7, 150], [4.0, 4.7, 172]], 'gray2');
-  return { scene: s, overlays: [{ sprite: 'lm.flag.es.small', u: 4.0, v: 4.7, z: 172, flag: true }] };
+  s.line(
+    [
+      [4.0, 4.7, 150],
+      [4.0, 4.7, 172],
+    ],
+    'gray2',
+  );
+  return {
+    scene: s,
+    overlays: [{ sprite: 'lm.flag.es.small', u: 4.0, v: 4.7, z: 172, flag: true }],
+  };
 }
 
 function cervantes(): Build {
@@ -366,8 +455,26 @@ function abbey(): Build {
     return lv(R.grass, c.level - (mod(c.px * 3 + c.py * 5, 11) === 0 ? 1 : 0) - 1);
   });
   const st = R.honey;
-  const g = gothicWall({ ramp: st, pitch: 10, off: 3, rows: [{ zTop: 38, h: 20, w: 5 }], top: 46, state: 0, seed: 1, decals: [] });
-  const aisle = gothicWall({ ramp: st, pitch: 10, off: 3, rows: [{ zTop: 20, h: 11 }], top: 26, state: 0, seed: 2, decals: [] });
+  const g = gothicWall({
+    ramp: st,
+    pitch: 10,
+    off: 3,
+    rows: [{ zTop: 38, h: 20, w: 5 }],
+    top: 46,
+    state: 0,
+    seed: 1,
+    decals: [],
+  });
+  const aisle = gothicWall({
+    ramp: st,
+    pitch: 10,
+    off: 3,
+    rows: [{ zTop: 20, h: 11 }],
+    top: 26,
+    state: 0,
+    seed: 2,
+    decals: [],
+  });
   const roof = roofMat(R.slateLit, undefined, 3);
   // Nave + aisles.
   s.box(0.6, 5.8, 1.3, 2.7, 1, 46, g);
@@ -398,13 +505,14 @@ function abbey(): Build {
       const dz = c.z - 34;
       const r = Math.hypot(dx, dz);
       if (r < 9) {
-        const spoke = Math.abs(mod(Math.atan2(dz, dx) * 8 / Math.PI + 0.5, 1) - 0.5) < 0.18;
+        const spoke = Math.abs(mod((Math.atan2(dz, dx) * 8) / Math.PI + 0.5, 1) - 0.5) < 0.18;
         const ring = r > 4.5 && r < 5.5;
         if (c.night) return spoke || ring ? null : r < 4 ? 'pink2' : 'ochre2';
         if (spoke || ring || r > 8) return lv(R.honeyLit, c.level);
         return r < 4 ? 'plum1' : lv(R.dark, c.level);
       }
-      if (Math.abs(dx) < 4 && c.z < 14 - (dx * dx) / 4) return c.night ? 'ochre1' : lv(R.dark, c.level);
+      if (Math.abs(dx) < 4 && c.z < 14 - (dx * dx) / 4)
+        return c.night ? 'ochre1' : lv(R.dark, c.level);
     }
     return g(c);
   };
@@ -449,7 +557,8 @@ function abbey(): Build {
         if (c.night) return mull ? null : 'ochre2';
         return mull ? lv(st, c.level) : lv(R.dark, c.level);
       }
-      if (Math.abs(dx) < 3.5 && c.z < 18 - (dx * dx) / 3) return c.night ? 'ochre1' : lv(R.dark, c.level);
+      if (Math.abs(dx) < 3.5 && c.z < 18 - (dx * dx) / 3)
+        return c.night ? 'ochre1' : lv(R.dark, c.level);
     }
     return g(c);
   };
@@ -474,7 +583,12 @@ function nelson(): Build {
   });
   s.box(0.3, 1.7, 0.3, 1.7, 22, 25, plain(g, { rim: true }));
   // Landseer's lions at the corners (bronze, couchant → reuse the standing lion low).
-  const lion = grid(LION, { o: 'ink', k: 'ink', d: 'gray1', m: 'earth0', l: 'earth1', h: 'earth2' }, {}, 'landseer');
+  const lion = grid(
+    LION,
+    { o: 'ink', k: 'ink', d: 'gray1', m: 'earth0', l: 'earth1', h: 'earth2' },
+    {},
+    'landseer',
+  );
   s.sprite(lion, 12, 14, 0.4, 1.75, 4);
   s.sprite(lion, 12, 14, 1.75, 1.75, 4);
   // The column.
@@ -509,8 +623,22 @@ function londonEye(frame: number): Build {
   ];
   // A-frame legs behind the wheel (lower u + v = farther).
   for (const off of [-0.03, 0, 0.03]) {
-    s.line([[0.4 + off, 2.2 - off, 1], [C[0] - 0.3, C[1] - 0.3, zc]], off === 0 ? 'white' : 'gray6', { bias: 0.8 });
-    s.line([[2.2 + off, 0.4 - off, 1], [C[0] - 0.3, C[1] - 0.3, zc]], off === 0 ? 'gray6' : 'gray5', { bias: 0.8 });
+    s.line(
+      [
+        [0.4 + off, 2.2 - off, 1],
+        [C[0] - 0.3, C[1] - 0.3, zc],
+      ],
+      off === 0 ? 'white' : 'gray6',
+      { bias: 0.8 },
+    );
+    s.line(
+      [
+        [2.2 + off, 0.4 - off, 1],
+        [C[0] - 0.3, C[1] - 0.3, zc],
+      ],
+      off === 0 ? 'gray6' : 'gray5',
+      { bias: 0.8 },
+    );
   }
   // Rim (double ring), spokes, capsules.
   const rot = (frame / n) * ((2 * Math.PI) / 32);
@@ -567,7 +695,7 @@ function buckingham(): Build {
   const p = R.portland;
   const wall = classicalWall({ ramp: p, pitch: 8, off: 3, rows: [36, 24, 12], top: 44, base: 14 });
   s.box(0.3, 9.7, 0.4, 3.6, 1, 44, wall);
-  s.hip(0.5, 9.5, 0.6, 3.4, 44, 50, 0.8, roofMat(R.slateLit, undefined, 3));
+  s.hip(0.5, 9.5, 0.6, 3.4, 44, 49, 0.8, roofMat(R.slate, undefined, 3));
   const bal: Material = (c) => (c.night ? null : c.edge ? p[0] : lv(p, c.level));
   s.box(0.3, 9.7, 3.45, 3.6, 44, 48, bal, { cut: balustradeCut(44, 48) });
   s.box(9.55, 9.7, 0.4, 3.6, 44, 48, bal, { cut: balustradeCut(44, 48) });
@@ -579,22 +707,48 @@ function buckingham(): Build {
     column(s, { u: 4.0 + k * 0.4, v: 3.85, z0: 14, z1: 40, r: 0.1, ramp: p });
   }
   s.box(3.75, 6.25, 3.6, 4.0, 40, 45, plain(p, { rim: true }));
-  s.gable(3.75, 6.25, 3.6, 4.0, 45, 54, 'v', (c) => (c.side === 'left' ? (c.night ? null : c.edge ? p[0] : lv(p, c.level)) : roofMat(R.slateLit)(c)));
+  s.gable(3.75, 6.25, 3.6, 4.0, 45, 54, 'v', (c) =>
+    c.side === 'left' ? (c.night ? null : c.edge ? p[0] : lv(p, c.level)) : roofMat(R.slateLit)(c),
+  );
   // The balcony.
   s.box(4.3, 5.7, 3.9, 4.1, 14, 15, plain(p, { rim: true }));
-  s.line([[4.3, 4.1, 17], [5.7, 4.1, 17]], 'ink');
+  s.line(
+    [
+      [4.3, 4.1, 17],
+      [5.7, 4.1, 17],
+    ],
+    'ink',
+  );
   // Railings + gilded gates along the front, guards in sentry boxes.
   for (let u = 0.2; u < 9.9; u += 0.125) {
     const gate = Math.abs(u - 5.0) < 0.6 || Math.abs(u - 2.0) < 0.3 || Math.abs(u - 8.0) < 0.3;
-    s.line([[u, 4.85, 1], [u, 4.85, gate ? 9 : 6]], gate ? 'ochre2' : 'ink');
+    s.line(
+      [
+        [u, 4.85, 1],
+        [u, 4.85, gate ? 9 : 6],
+      ],
+      gate ? 'ochre2' : 'ink',
+    );
   }
-  s.line([[0.2, 4.85, 6], [9.9, 4.85, 6]], 'ink');
+  s.line(
+    [
+      [0.2, 4.85, 6],
+      [9.9, 4.85, 6],
+    ],
+    'ink',
+  );
   for (const u of [3.4, 6.6]) {
     s.box(u - 0.2, u + 0.2, 4.2, 4.6, 1, 14, plain(R.portland));
     s.gable(u - 0.24, u + 0.24, 4.16, 4.64, 14, 18, 'v', plain(R.slate));
     s.sprite(guard(), 1, 9, u, 4.68, 1);
   }
-  s.line([[5.0, 2.0, 50], [5.0, 2.0, 82]], 'gray2');
+  s.line(
+    [
+      [5.0, 2.0, 50],
+      [5.0, 2.0, 82],
+    ],
+    'gray2',
+  );
   return { scene: s, overlays: [{ sprite: 'lm.flag.uk', u: 5.0, v: 2.0, z: 82, flag: true }] };
 }
 
@@ -628,7 +782,8 @@ function obelisk(): Build {
     if (c.night) return null;
     if (c.edge) return R.pinkGranite[0];
     const col = mod(c.fx, 4);
-    const glyph = col !== 0 && hash(Math.floor(c.fx / 4), Math.floor(c.fz / 3), 3) < 0.55 && mod(c.fz, 3) !== 0;
+    const glyph =
+      col !== 0 && hash(Math.floor(c.fx / 4), Math.floor(c.fz / 3), 3) < 0.55 && mod(c.fz, 3) !== 0;
     return lv(R.pinkGranite, c.level - (glyph ? 1 : 0));
   };
   s.prismN(1.0, 1.0, 0.25, 0.17, 25, 112, 4, hier);
@@ -699,7 +854,10 @@ function eiffel(): Build {
   plate(s, 6, 6, (c) => {
     if (c.night) return null;
     if (c.side !== 'top') return lv(R.gravel, c.level - 1);
-    const lawn = Math.abs(c.u - 3) > 1.6 && Math.abs(c.v - 3) > 1.6 ? false : Math.abs(c.u - 3) < 1.2 && Math.abs(c.v - 3) < 1.2;
+    const lawn =
+      Math.abs(c.u - 3) > 1.6 && Math.abs(c.v - 3) > 1.6
+        ? false
+        : Math.abs(c.u - 3) < 1.2 && Math.abs(c.v - 3) < 1.2;
     if (lawn) return lv(R.grass, c.level - 1);
     return lv(R.gravel, c.level - (hash(c.px >> 1, c.py) < 0.1 ? 1 : 0));
   });
@@ -734,9 +892,21 @@ function eiffel(): Build {
       { nu: 0, nv: 1, nz: -(kv + kh), c: bv + h0 },
       { nu: 0, nv: -1, nz: kv - kh, c: -(bv - h0) },
     ];
-    s.poly(pl, [Math.min(bu, tu) - h0, Math.max(bu, tu) + h0, Math.min(bv, tv) - h0, Math.max(bv, tv) + h0, 0, zP1], iron, {
-      cut: lattice(11),
-    });
+    s.poly(
+      pl,
+      [
+        Math.min(bu, tu) - h0,
+        Math.max(bu, tu) + h0,
+        Math.min(bv, tv) - h0,
+        Math.max(bv, tv) + h0,
+        0,
+        zP1,
+      ],
+      iron,
+      {
+        cut: lattice(11),
+      },
+    );
     // Masonry pier.
     s.box(bu - 0.7, bu + 0.7, bv - 0.7, bv + 0.7, 1, 4, plain(R.lime));
   }
@@ -759,7 +929,8 @@ function eiffel(): Build {
   const deck: Material = (c) => {
     if (c.night) return c.side !== 'top' && mod(c.fx, 3) === 0 ? 'ochre3' : null;
     if (c.edge) return R.eiffel[0];
-    if (c.side !== 'top') return mod(c.fx, 3) === 0 ? lv(R.eiffel, c.level + 1) : lv(R.eiffel, c.level - 1);
+    if (c.side !== 'top')
+      return mod(c.fx, 3) === 0 ? lv(R.eiffel, c.level + 1) : lv(R.eiffel, c.level - 1);
     return lv(R.eiffel, c.level);
   };
   s.box(1.6, 4.4, 1.6, 4.4, zP1, zP1 + 8, deck);
@@ -771,7 +942,14 @@ function eiffel(): Build {
   s.prismN(3, 3, 0.18, 0.12, 260, 300, 4, iron);
   s.box(2.82, 3.18, 2.82, 3.18, 300, 308, deck);
   s.prismN(3, 3, 0.12, 0.04, 308, 318, 4, iron);
-  s.line([[3, 3, 318], [3, 3, 336]], 'gray3', { emit: 'ochre4' });
+  s.line(
+    [
+      [3, 3, 318],
+      [3, 3, 336],
+    ],
+    'gray3',
+    { emit: 'ochre4' },
+  );
   return { scene: s, overlays: [] };
 }
 
@@ -791,15 +969,33 @@ function invalides(): Build {
   // Two-tier portico on the +v face.
   s.box(3.0, 5.0, 6.0, 6.35, 1, 6, plain(L));
   stairs(s, 3.0, 5.0, 6.8, 6.35, 1, 6, 2, stepMat(L));
-  for (let k = 0; k < 6; k++) column(s, { u: 3.2 + k * 0.32, v: 6.2, z0: 6, z1: 28, r: 0.09, ramp: R.limePale, order: 'doric' });
+  for (let k = 0; k < 6; k++)
+    column(s, {
+      u: 3.2 + k * 0.32,
+      v: 6.2,
+      z0: 6,
+      z1: 28,
+      r: 0.09,
+      ramp: R.limePale,
+      order: 'doric',
+    });
   s.box(3.0, 5.0, 6.0, 6.32, 28, 32, plain(L, { rim: true }));
-  for (let k = 0; k < 4; k++) column(s, { u: 3.45 + k * 0.37, v: 6.15, z0: 32, z1: 50, r: 0.08, ramp: R.limePale });
+  for (let k = 0; k < 4; k++)
+    column(s, { u: 3.45 + k * 0.37, v: 6.15, z0: 32, z1: 50, r: 0.08, ramp: R.limePale });
   s.box(3.2, 4.8, 6.0, 6.28, 50, 54, plain(L, { rim: true }));
-  s.gable(3.15, 4.85, 6.0, 6.3, 54, 62, 'v', (c) => (c.side === 'left' ? (c.night ? null : c.edge ? L[0] : lv(L, c.level - (c.rim ? 0 : 1))) : roofMat(R.slateLit)(c)));
+  s.gable(3.15, 4.85, 6.0, 6.3, 54, 62, 'v', (c) =>
+    c.side === 'left'
+      ? c.night
+        ? null
+        : c.edge
+          ? L[0]
+          : lv(L, c.level - (c.rim ? 0 : 1))
+      : roofMat(R.slateLit)(c),
+  );
   // Drum with paired columns and windows.
   const drum: Material = (c) => {
     const a = Math.atan2(c.v - 4, c.u - 4);
-    const k = mod(a * 20 / Math.PI, 2);
+    const k = mod((a * 20) / Math.PI, 2);
     const colp = k < 0.5;
     const win = k > 0.9 && k < 1.6 && c.fz > 64 && c.fz < 80;
     if (c.night) return win ? 'ochre2' : null;
@@ -820,7 +1016,7 @@ function invalides(): Build {
     }
     if (c.edge) return 'earth1';
     const a = Math.atan2(c.v - 4, c.u - 4);
-    const r = mod(a * 8 / Math.PI + 0.5, 1);
+    const r = mod((a * 8) / Math.PI + 0.5, 1);
     const rib = Math.abs(r - 0.5) < 0.12;
     if (rib) return lv(R.gold, c.level + 1);
     const trophy = Math.abs(r - 0.5) > 0.32 && mod(c.fz, 10) > 3 && mod(c.fz, 10) < 8;
@@ -830,7 +1026,13 @@ function invalides(): Build {
   s.ell(4, 4, 94, 1.12, 1.12, 50, dome, { zMin: 94 });
   s.cyl(4, 4, 0.25, 140, 152, plain(R.gold, { rim: true }));
   s.cone(4, 4, 0.22, 0.0, 152, 174, plain(R.gold, { rim: true }));
-  s.line([[4, 4, 174], [4, 4, 180]], 'ochre3');
+  s.line(
+    [
+      [4, 4, 174],
+      [4, 4, 180],
+    ],
+    'ochre3',
+  );
   // Corner chapels.
   for (const [u, v] of [
     [2.3, 5.7],
@@ -882,34 +1084,40 @@ function orsay(): Build {
   s.vaultU(1.4, 8.6, 2.45, 1.6, 47, 22, vault);
   s.box(1.3, 8.7, 0.6, 1.0, 47, 50, plain(L));
   // End pavilions with the great clocks on the river (+v) face.
-  const clockAt = (cx: number): Material => (c) => {
-    if (c.side === 'left') {
-      const dx = c.fx + 0.5 - cx * 16;
-      const dz = c.z - 52;
-      const r = Math.hypot(dx, dz);
-      if (r < 7) {
-        const ang = Math.atan2(dz, dx);
-        const hand = (Math.abs(ang - Math.PI / 2) < 0.12 && r < 6) || (Math.abs(ang - 0.3) < 0.15 && r < 4);
-        if (c.night) return hand ? 'ink' : 'ochre4';
-        if (hand) return 'ink';
-        if (r > 5.6) return lv(R.gold, c.level);
-        return c.level >= 3 ? 'white' : 'stone4';
+  const clockAt =
+    (cx: number): Material =>
+    (c) => {
+      if (c.side === 'left') {
+        const dx = c.fx + 0.5 - cx * 16;
+        const dz = c.z - 52;
+        const r = Math.hypot(dx, dz);
+        if (r < 7) {
+          const ang = Math.atan2(dz, dx);
+          const hand =
+            (Math.abs(ang - Math.PI / 2) < 0.12 && r < 6) || (Math.abs(ang - 0.3) < 0.15 && r < 4);
+          if (c.night) return hand ? 'ink' : 'ochre4';
+          if (hand) return 'ink';
+          if (r > 5.6) return lv(R.gold, c.level);
+          return c.level >= 3 ? 'white' : 'stone4';
+        }
+        if (r < 8.5) return c.night ? null : lv(R.gold, c.level - 1);
       }
-      if (r < 8.5) return c.night ? null : lv(R.gold, c.level - 1);
-    }
-    return wall(c);
-  };
+      return wall(c);
+    };
   for (const u0 of [0.3, 8.6]) {
     s.box(u0, u0 + 1.1, 0.5, 4.5, 1, 64, clockAt(u0 + 0.55));
     s.hip(u0 + 0.05, u0 + 1.05, 0.55, 4.45, 64, 78, 0.45, roofMat(R.zinc, undefined, 4));
-    s.line([[u0 + 0.55, 2.5, 78], [u0 + 0.55, 2.5, 84]], 'ochre2');
+    s.line(
+      [
+        [u0 + 0.55, 2.5, 78],
+        [u0 + 0.55, 2.5, 84],
+      ],
+      'ochre2',
+    );
   }
   // Statues on the parapet.
   const st = marbleStatue('standing', false, true);
   for (const u of [3.0, 5.0, 7.0]) s.sprite(st, 4, 19, u, 4.2, 48);
-  // Inscription.
-  const t = textGrid('MUSEE D ORSAY');
-  void t;
   return { scene: s, overlays: [] };
 }
 
@@ -917,7 +1125,7 @@ export const SECONDARY: Readonly<Record<LandmarkId, SecondaryArt>> = {
   cibeles: { top: 40, frames: 4, fps: 6, build: cibeles },
   neptuno: { top: 48, frames: 4, fps: 6, build: neptuno },
   metropolis: { top: 132, frames: 1, fps: 0, build: metropolis },
-  puertaAlcala: { top: 72, frames: 1, fps: 0, build: puertaAlcala },
+  puertaAlcala: { top: 82, frames: 1, fps: 0, build: puertaAlcala },
   palacioComunicaciones: { top: 180, frames: 1, fps: 0, build: palacioComunicaciones },
   cervantes: { top: 36, frames: 1, fps: 0, build: cervantes },
   abbey: { top: 120, frames: 1, fps: 0, build: abbey },
@@ -939,13 +1147,21 @@ export function registerSecondary(
   for (const id of Object.keys(SECONDARY) as LandmarkId[]) {
     const art = SECONDARY[id];
     const def = LANDMARKS[id];
-    const cv = { w: def.w, d: def.d, top: art.top, left: 2 + (art.side ?? 0), right: 2 + (art.side ?? 0) };
+    const cv = {
+      w: def.w,
+      d: def.d,
+      top: art.top,
+      left: 2 + (art.side ?? 0),
+      right: 2 + (art.side ?? 0),
+    };
     const frames = [];
     let first: Build | null = null;
     let night = null;
     for (let f = 0; f < art.frames; f++) {
       const b = art.build(f);
-      const out = b.scene.render(cv, { cacheKey: art.frames > 1 && id !== 'londonEye' ? `lm.${id}` : undefined });
+      const out = b.scene.render(cv, {
+        cacheKey: art.frames > 1 && id !== 'londonEye' ? `lm.${id}` : undefined,
+      });
       frames.push(out.img);
       if (f === 0) {
         first = b;
@@ -953,10 +1169,27 @@ export function registerSecondary(
       }
     }
     const name = `lm.${id}`;
-    reg.add(name, { group: 'landmarks', frames, fps: art.fps, anchor: night!.anchor, tags: ['landmark', def.city] });
-    reg.add(`${name}.night`, { group: 'landmarks', frames: night!.night, anchor: night!.anchor, tags: ['night'] });
+    reg.add(name, {
+      group: 'landmarks',
+      frames,
+      fps: art.fps,
+      anchor: night!.anchor,
+      tags: ['landmark', def.city],
+    });
+    reg.add(`${name}.night`, {
+      group: 'landmarks',
+      frames: night!.night,
+      anchor: night!.anchor,
+      tags: ['night'],
+    });
     const sh = first!.scene.groundShadow(cv, SHADOW_ALPHA, SHADOW, () => true);
-    reg.add(`${name}.shadow`, { group: 'landmarks', frames: sh.img, anchor: sh.anchor, hasShadow: true, tags: ['shadow'] });
+    reg.add(`${name}.shadow`, {
+      group: 'landmarks',
+      frames: sh.img,
+      anchor: sh.anchor,
+      hasShadow: true,
+      tags: ['shadow'],
+    });
     overlays.set(
       name,
       first!.overlays.map((o: Overlay) => {
@@ -966,6 +1199,3 @@ export function registerSecondary(
     );
   }
 }
-
-// Silence unused-import lint for helpers kept for future landmark tweaks.
-void lancet;

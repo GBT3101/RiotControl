@@ -323,7 +323,13 @@ function intersect(
 
 const NRM: [number, number, number] = [0, 0, 0];
 
-function normalAt(p: Prim, face: number, u: number, v: number, z: number): [number, number, number] {
+function normalAt(
+  p: Prim,
+  face: number,
+  u: number,
+  v: number,
+  z: number,
+): [number, number, number] {
   let nu: number;
   let nv: number;
   let nz: number;
@@ -480,7 +486,15 @@ export class Scene {
   }
 
   /** Vertical cylinder. */
-  cyl(uc: number, vc: number, r: number, z0: number, z1: number, mat: Material, o?: PrimOpts): Prim {
+  cyl(
+    uc: number,
+    vc: number,
+    r: number,
+    z0: number,
+    z1: number,
+    mat: Material,
+    o?: PrimOpts,
+  ): Prim {
     return this.add(
       [
         { nu: 0, nv: 0, nz: -1, c: -z0 },
@@ -945,7 +959,8 @@ export class Scene {
       const ia1 = Math.floor((bx[1] - a0) / cell);
       const ib0 = Math.floor((bx[2] - b0) / cell);
       const ib1 = Math.floor((bx[3] - b0) / cell);
-      for (let ib = ib0; ib <= ib1; ib++) for (let ia = ia0; ia <= ia1; ia++) cells[ib * nw + ia]!.push(k);
+      for (let ib = ib0; ib <= ib1; ib++)
+        for (let ia = ia0; ia <= ia1; ia++) cells[ib * nw + ia]!.push(k);
     });
     g = { a0, b0, cell, nw, nh, cells, su, sv };
     this.grids.set(S, g);

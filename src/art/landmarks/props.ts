@@ -32,7 +32,12 @@ export function bronzeLion(toppled: boolean, headless = false): PixelBuffer {
 }
 
 export function lamp(broken: boolean): { img: PixelBuffer; night: PixelBuffer } {
-  const img = grid(LAMP, { o: 'ink', y: broken ? 'gray1' : 'stone5', Y: broken ? 'ink' : 'white' }, {}, 'lamp');
+  const img = grid(
+    LAMP,
+    { o: 'ink', y: broken ? 'gray1' : 'stone5', Y: broken ? 'ink' : 'white' },
+    {},
+    'lamp',
+  );
   const night = grid(LAMP_NIGHT, { Y: 'ochre3', W: 'ochre4' }, {}, 'lampNight');
   return { img, night };
 }
@@ -41,12 +46,19 @@ const MARBLE = { o: 'gray3', d: 'gray5', m: 'gray6', l: 'gray7', h: 'white' };
 const STONE_STATUE = { o: 'stone0', d: 'stone1', m: 'stone2', l: 'stone3', h: 'stone5' };
 
 /** Marble statue; `toppled` lies on its back (rows reversed + rotated feel). */
-export function marbleStatue(kind: 'seated' | 'standing', toppled = false, stone = false): PixelBuffer {
+export function marbleStatue(
+  kind: 'seated' | 'standing',
+  toppled = false,
+  stone = false,
+): PixelBuffer {
   const src = kind === 'seated' ? STATUE_SEATED : STATUE_STANDING;
   const keys = stone ? STONE_STATUE : MARBLE;
   if (!toppled) return grid(src, keys, {}, `statue.${kind}`);
   // Lying on the ground: transpose the grid (figure falls toward the viewer-left).
-  const rows = src.trim().split('\n').map((r) => r.trim());
+  const rows = src
+    .trim()
+    .split('\n')
+    .map((r) => r.trim());
   const h = rows.length;
   const w = rows[0]!.length;
   const out: string[] = [];
@@ -59,7 +71,15 @@ export function marbleStatue(kind: 'seated' | 'standing', toppled = false, stone
 }
 
 const GOLD = { o: 'earth1', k: 'earth0', d: 'ochre1', m: 'ochre1', l: 'ochre2', h: 'ochre3' };
-const BRONZE_FIG = { o: 'ink', k: 'ink', d: 'earth0', m: 'earth1', l: 'earth2', h: 'earth3', r: 'crim2' };
+const BRONZE_FIG = {
+  o: 'ink',
+  k: 'ink',
+  d: 'earth0',
+  m: 'earth1',
+  l: 'earth2',
+  h: 'earth3',
+  r: 'crim2',
+};
 const GREEN_BRONZE = { o: 'green0', k: 'ink', d: 'teal1', m: 'green2', l: 'green3', h: 'teal2' };
 
 export type FigMaterial = 'marble' | 'gold' | 'bronze' | 'verdigris' | 'stone';

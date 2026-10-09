@@ -56,12 +56,21 @@ export function buildWestminster(state: DamageState): Build {
     1.3,
   );
   const scorch = scorchZones(
-    state === 3 ? [[10.5, 2.4, 0.8]] : state >= 4 ? [[10.2, 2.4, 1.4], [4.8, 2.0, 1.0], [12.8, 3.6, 0.7]] : [],
+    state === 3
+      ? [[10.5, 2.4, 0.8]]
+      : state >= 4
+        ? [
+            [10.2, 2.4, 1.4],
+            [4.8, 2.0, 1.0],
+            [12.8, 3.6, 0.7],
+          ]
+        : [],
   );
   const roof = roofMat(R.iron, scorch);
   const roofCut =
     state >= 4
-      ? (u: number, v: number): boolean => scorch(u, v) === 2 && hash(Math.floor(u * 3), Math.floor(v * 3)) < 0.7
+      ? (u: number, v: number): boolean =>
+          scorch(u, v) === 2 && hash(Math.floor(u * 3), Math.floor(v * 3)) < 0.7
       : undefined;
   if (state >= 3) ov.push({ sprite: 'lm.fx.smoke', u: 10.5, v: 2.4, z: 60 });
   if (state >= 4) {
@@ -80,7 +89,8 @@ export function buildWestminster(state: DamageState): Build {
       const st = windowStatus(state, b * 13 + 5, seed);
       if (st === 'burning' || st === 'gutted') {
         burnt.push({ side: 'left', fx, zTop: 34 });
-        if (st === 'burning' && b % 2 === 0) ov.push({ sprite: 'lm.fx.fire.s', u: fx / 16, v: 4.4, z: 26 });
+        if (st === 'burning' && b % 2 === 0)
+          ov.push({ sprite: 'lm.fx.fire.s', u: fx / 16, v: 4.4, z: 26 });
       }
     }
   }
@@ -91,7 +101,8 @@ export function buildWestminster(state: DamageState): Build {
     if (c.side !== 'top') return lv(R.granite, c.level - 1);
     const lawn = c.v > 4.9 && c.v < 5.8 && ((c.u > 2.2 && c.u < 6.6) || (c.u > 9.6 && c.u < 13.6));
     if (lawn) {
-      if (state >= 2 && hash(Math.floor(c.u * 6), Math.floor(c.v * 6)) < 0.25 * (state - 1)) return lv(R.gravel, c.level - 1);
+      if (state >= 2 && hash(Math.floor(c.u * 6), Math.floor(c.v * 6)) < 0.25 * (state - 1))
+        return lv(R.gravel, c.level - 1);
       return lv(R.grass, c.level - (mod(c.px + c.py, 7) === 0 ? 1 : 0));
     }
     const ju = mod(c.u * 4, 1) < 0.07;
@@ -201,7 +212,8 @@ export function buildWestminster(state: DamageState): Build {
         if (st === 'burning' || st === 'gutted') return 'ink';
         return lv(R.dark, c.level);
       }
-      if (Math.abs(dx) < 12.5 && c.z > 17 && c.z < archTop + 2) return c.night ? null : lv(H, c.level + 1);
+      if (Math.abs(dx) < 12.5 && c.z > 17 && c.z < archTop + 2)
+        return c.night ? null : lv(H, c.level + 1);
       if (!c.night) {
         const d = decalAt(decals, c);
         if (d) return d;
@@ -251,7 +263,14 @@ export function buildWestminster(state: DamageState): Build {
     if (u + v < 8.1 + 2.4 - 0.2) continue;
     s.prismN(u, v, 0.06, 0.0, 88, 98, 4, pin);
   }
-  if (state < 4) s.line([[8.1, 2.4, 134], [8.1, 2.4, 139]], 'ochre2');
+  if (state < 4)
+    s.line(
+      [
+        [8.1, 2.4, 134],
+        [8.1, 2.4, 139],
+      ],
+      'ochre2',
+    );
 
   // --- Victoria Tower (far end) --------------------------------------------------------------
   const vtWall = gothicWall({
@@ -286,13 +305,22 @@ export function buildWestminster(state: DamageState): Build {
     ],
     'gray2',
   );
-  ov.push({ sprite: state >= 2 ? 'lm.flag.uk.torn' : 'lm.flag.uk', u: 12.8, v: 1.4, z: vtPole, flag: true });
+  ov.push({
+    sprite: state >= 2 ? 'lm.flag.uk.torn' : 'lm.flag.uk',
+    u: 12.8,
+    v: 1.4,
+    z: vtPole,
+    flag: true,
+  });
 
   // --- Elizabeth Tower -----------------------------------------------------------------------
   const B = BIG_BEN;
   const towerShaft: Material = (c) => {
     if (c.side === 'top') return c.night ? null : lv(H, c.level);
-    if (c.night) return mod(c.fx, 4) === 2 && mod(c.fz, 14) > 4 && mod(c.fz, 14) < 10 && c.fz > 20 ? 'ochre1' : null;
+    if (c.night)
+      return mod(c.fx, 4) === 2 && mod(c.fz, 14) > 4 && mod(c.fz, 14) < 10 && c.fz > 20
+        ? 'ochre1'
+        : null;
     const d = decalAt(decals, c);
     if (d) return d;
     if (c.edge) return H[0];
@@ -303,7 +331,8 @@ export function buildWestminster(state: DamageState): Build {
     if (local <= 1 || local >= span - 1) return lv(R.honeyLit, c.level + (local <= 1 ? 1 : 0));
     if (mod(z, 14) === 0) return lv(H, c.level - 1);
     if (mod(z, 14) === 1) return lv(R.honeyLit, c.level);
-    if (mod(local, 4) === 2 && mod(z, 14) > 4 && mod(z, 14) < 10 && z > 20) return lv(R.dark, c.level);
+    if (mod(local, 4) === 2 && mod(z, 14) > 4 && mod(z, 14) < 10 && z > 20)
+      return lv(R.dark, c.level);
     if (mod(local, 4) === 0) return lv(H, c.level - 1);
     return lv(H, c.level);
   };
@@ -315,7 +344,8 @@ export function buildWestminster(state: DamageState): Build {
   const belfry: Material = (c) => {
     if (c.side === 'top') return c.night ? null : lv(H, c.level);
     const local = c.side === 'left' ? c.fx - Math.floor(B.u0 * 16) : c.fx - Math.floor(B.v0 * 16);
-    const opening = mod(local - 2, 6) < 3 && c.fz > 145 && c.fz < 153 - (mod(local - 2, 6) === 1 ? 0 : 1);
+    const opening =
+      mod(local - 2, 6) < 3 && c.fz > 145 && c.fz < 153 - (mod(local - 2, 6) === 1 ? 0 : 1);
     if (c.night) return opening ? 'ochre1' : null;
     if (c.edge) return H[0];
     if (opening) return lv(R.dark, c.level - 1);
@@ -370,8 +400,18 @@ export function buildWestminster(state: DamageState): Build {
 
   // Clock hands overlays (dial centres).
   const cz = B.clockZ;
-  ov.push({ sprite: state >= 4 ? '' : 'lm.capitol.london.hands.l', u: (B.u0 + B.u1) / 2, v: B.v1 + 0.1, z: cz });
-  ov.push({ sprite: state >= 4 ? '' : 'lm.capitol.london.hands.r', u: B.u1 + 0.1, v: (B.v0 + B.v1) / 2, z: cz });
+  ov.push({
+    sprite: state >= 4 ? '' : 'lm.capitol.london.hands.l',
+    u: (B.u0 + B.u1) / 2,
+    v: B.v1 + 0.1,
+    z: cz,
+  });
+  ov.push({
+    sprite: state >= 4 ? '' : 'lm.capitol.london.hands.r',
+    u: B.u1 + 0.1,
+    v: (B.v0 + B.v1) / 2,
+    z: cz,
+  });
 
   // Railings along the square.
   for (let u = 0.2; u < 13.9; u += 0.125) {

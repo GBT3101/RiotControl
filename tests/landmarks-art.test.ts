@@ -45,12 +45,15 @@ describe('M3b capitols', () => {
         const ov = landmarkOverlays(`lm.capitol.${city}.${s}`);
         for (const o of ov) expect(reg.has(o.sprite), o.sprite).toBe(true);
         const names = ov.map((o) => o.sprite);
-        if (s === 0) expect(names.some((n) => n.startsWith('lm.flag.') && !n.endsWith('.torn'))).toBe(true);
+        if (s === 0)
+          expect(names.some((n) => n.startsWith('lm.flag.') && !n.endsWith('.torn'))).toBe(true);
         if (s >= 2) expect(names.some((n) => n.endsWith('.torn'))).toBe(true);
         if (s >= 3) expect(names.some((n) => n.startsWith('lm.fx.'))).toBe(true);
       }
     }
-    expect(landmarkOverlays('lm.capitol.london.0').map((o) => o.sprite)).toContain('lm.capitol.london.hands.l');
+    expect(landmarkOverlays('lm.capitol.london.0').map((o) => o.sprite)).toContain(
+      'lm.capitol.london.hands.l',
+    );
     expect(reg.get('lm.capitol.london.hands.l').frames.length).toBeGreaterThanOrEqual(12);
   });
 });

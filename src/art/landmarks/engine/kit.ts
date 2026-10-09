@@ -4,7 +4,17 @@
  */
 import type { SwatchName } from '../../palette';
 import { keyGrid, type KeyGrid } from '../../lib/grid';
-import { R, hash, lv, mod, plain, type Module, type Ramp5, sampleModule, moduleColour } from './materials';
+import {
+  R,
+  hash,
+  lv,
+  mod,
+  plain,
+  type Module,
+  type Ramp5,
+  sampleModule,
+  moduleColour,
+} from './materials';
 import type { Material, Scene, ShadeCtx } from './scene';
 
 // ---------------------------------------------------------------------------------------------
@@ -75,7 +85,13 @@ export function paintWindow(
  * Soot plume above a burnt opening: a flame-shaped dark stain rising `hgt` px above zTop,
  * centred on column cx. Returns a char swatch or undefined.
  */
-export function soot(c: ShadeCtx, cx: number, zTop: number, halfW: number, hgt: number): string | undefined {
+export function soot(
+  c: ShadeCtx,
+  cx: number,
+  zTop: number,
+  halfW: number,
+  hgt: number,
+): string | undefined {
   const dz = c.fz - zTop;
   if (dz < 0 || dz > hgt) return undefined;
   const wob = Math.round(Math.sin((dz + cx) * 0.7) * 1.2);
@@ -262,7 +278,11 @@ export function roundStone(r: Ramp5, opts: { night?: SwatchName } = {}): Materia
     if (c.night) {
       // Floodlit from below: the lit flank of each column glows warm.
       if (opts.night) return opts.night;
-      return c.side === 'curve' && c.lambert > 0.35 && c.z < 60 ? (c.lambert > 0.55 ? 'stone4' : 'stone2') : null;
+      return c.side === 'curve' && c.lambert > 0.35 && c.z < 60
+        ? c.lambert > 0.55
+          ? 'stone4'
+          : 'stone2'
+        : null;
     }
     if (c.edge) return r[0];
     if (c.side === 'curve' && !c.shadow && c.lambert > 0.6) return r[4];
@@ -353,7 +373,11 @@ export function stepMat(r: Ramp5, decals: readonly Decal[] = []): Material {
 }
 
 /** Pierced balustrade material + cut: balusters every `pitch` px between z0+1 and z1-2. */
-export function balustradeCut(z0: number, z1: number, pitch = 3): (u: number, v: number, z: number, f: number) => boolean {
+export function balustradeCut(
+  z0: number,
+  z1: number,
+  pitch = 3,
+): (u: number, v: number, z: number, f: number) => boolean {
   return (u, v, z, f) => {
     if (f < 0 || z <= z0 + 1.5 || z >= z1 - 2) return false;
     const n = f === 0 || f === 1 ? Math.floor(v * 16) : Math.floor(u * 16);
@@ -362,7 +386,14 @@ export function balustradeCut(z0: number, z1: number, pitch = 3): (u: number, v:
 }
 
 /** Thin vertical pole (1 px) from z0 to z1 at (u, v). */
-export function pole(s: Scene, u: number, v: number, z0: number, z1: number, colour = 'gray2'): void {
+export function pole(
+  s: Scene,
+  u: number,
+  v: number,
+  z0: number,
+  z1: number,
+  colour = 'gray2',
+): void {
   s.line(
     [
       [u, v, z0],
@@ -462,7 +493,11 @@ export function gothicWall(g: GothicSpec): Material {
         const row = g.rows[ri]!;
         const w = row.w ?? 3;
         const c0 = c.fx - bay + Math.floor((g.pitch + 2 - w) / 2);
-        const st = windowStatus(g.state, bayIx * 7 + ri + (side === 'right' ? 900 : 0) + c.prim.aabb[0] * 50, g.seed);
+        const st = windowStatus(
+          g.state,
+          bayIx * 7 + ri + (side === 'right' ? 900 : 0) + c.prim.aabb[0] * 50,
+          g.seed,
+        );
         const p = paintWindow(lancet(w, row.h, r), c, c0, row.zTop, st);
         if (p !== undefined) return p;
       }
@@ -520,7 +555,9 @@ export function roofMat(
 }
 
 /** Scorch-zone helper: list of [u, v, radius]. 2 = charred core, 1 = ember rim. */
-export function scorchZones(burns: ReadonlyArray<readonly [number, number, number]>): (u: number, v: number) => 0 | 1 | 2 {
+export function scorchZones(
+  burns: ReadonlyArray<readonly [number, number, number]>,
+): (u: number, v: number) => 0 | 1 | 2 {
   return (u, v) => {
     for (const [bu, bv, br] of burns) {
       const a = Math.atan2(v - bv, u - bu);
@@ -605,19 +642,34 @@ export function banner(
     if (c.night) return null;
     const mx = c.fx - c0;
     const my = zText - c.fz;
-    if (mx >= 0 && my >= 0 && mx < g.w && my < g.h && g.rows[my]![mx] === 't') return state >= 3 && hash(c.fx, 1) < 0.3 ? 'ink' : 'crim1';
+    if (mx >= 0 && my >= 0 && mx < g.w && my < g.h && g.rows[my]![mx] === 't')
+      return state >= 3 && hash(c.fx, 1) < 0.3 ? 'ink' : 'crim1';
     if (c.edge) return 'gray5';
     if (state >= 3 && hash(c.fx >> 1, c.fz >> 1, 4) < 0.18) return lv(R.char, c.level);
     return c.fz >= zTop - 1 ? 'gray6' : c.level >= 3 ? 'white' : 'gray7';
   };
   const cut = (u: number, _v: number, z: number): boolean => {
-    const rag = Math.round(Math.sin(u * 37) * 1.2 + Math.sin(u * 13) * 1.0) + (state >= 3 ? Math.round(hash(Math.floor(u * 16), 2) * 4) : 0);
+    const rag =
+      Math.round(Math.sin(u * 37) * 1.2 + Math.sin(u * 13) * 1.0) +
+      (state >= 3 ? Math.round(hash(Math.floor(u * 16), 2) * 4) : 0);
     return z < zTop - h + 1 + rag;
   };
   s.box(u0, u1, v - 0.03, v, zTop - h - 4, zTop, mat, { cut, tag: 'banner', cast: false });
   // Ropes at the corners.
-  s.line([[u0, v, zTop], [u0, v, zTop + 2]], 'stone2');
-  s.line([[u1, v, zTop], [u1, v, zTop + 2]], 'stone2');
+  s.line(
+    [
+      [u0, v, zTop],
+      [u0, v, zTop + 2],
+    ],
+    'stone2',
+  );
+  s.line(
+    [
+      [u1, v, zTop],
+      [u1, v, zTop + 2],
+    ],
+    'stone2',
+  );
 }
 
 /** Scatter rubble: bricks, cobbles, bottles and placards in a u/v rectangle at height z. */
@@ -647,6 +699,9 @@ export function rubble(
     const kind = Math.floor(hash(seed, k, 3) * kinds.length);
     const sz = 0.05 + hash(seed, k, 4) * 0.06;
     const hgt = 1 + Math.floor(hash(seed, k, 5) * 2);
-    s.box(u - sz, u + sz, v - sz * 0.7, v + sz * 0.7, z, z + hgt, kinds[kind]!, { cast: false, tag: 'rubble' });
+    s.box(u - sz, u + sz, v - sz * 0.7, v + sz * 0.7, z, z + hgt, kinds[kind]!, {
+      cast: false,
+      tag: 'rubble',
+    });
   }
 }
