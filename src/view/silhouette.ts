@@ -5,7 +5,9 @@
  * instead each frame is copied once into a small silhouette atlas as pure white (opaque pixels
  * only — the semi-transparent cast shadow is dropped): a dim 1-px rim and no fill, so
  * `sprite.tint = colour` gives an exact team-colour x-ray outline. Pages are 1024² shelves
- * filled on demand; textures keep the frame's anchor.
+ * filled on demand; textures keep the frame's anchor. M14 — a flush uploads only the rows
+ * written since the last flush (`BufferImageSource.update(start, end)` → `texSubImage2D`), not
+ * the whole 4 MB page.
  *
  * M13a — ghosts are a hint, not a second crowd: `GhostGate` decides which hidden allies get
  * one (selected, in combat, or near the camera focus; at most one per screen cell, capped),
@@ -25,7 +27,9 @@ interface Page {
   x: number;
   y: number;
   rowH: number;
-  dirty: boolean;
+  /** Dirty row span [dirtyY0, dirtyY1) written since the last flush (empty when y0 ≥ y1). */
+  dirtyY0: number;
+  dirtyY1: number;
 }
 
 const pages: Page[] = [];
@@ -43,7 +47,7 @@ function newPage(): Page {
     autoGenerateMipmaps: false,
     label: `silhouettes#${pages.length}`,
   });
-  const p = { source, data, x: 0, y: 0, rowH: 0, dirty: false };
+  const p = { source, data, x: 0, y: 0, rowH: 0, dirtyY0: PAGE, dirtyY1: 0 };
   pages.push(p);
   return p;
 }
@@ -93,7 +97,8 @@ export function silhouetteOf(tex: Texture): Texture | null {
           d[o + 3] = edge ? RIM_ALPHA : FILL_ALPHA;
         }
       }
-      a.p.dirty = true;
+      a.p.dirtyY0 = Math.min(a.p.dirtyY0, a.y);
+      a.p.dirtyY1 = Math.max(a.p.dirtyY1, a.y + h);
       out = new Texture({
         source: a.p.source,
         frame: new Rectangle(a.x, a.y, w, h),
@@ -106,12 +111,14 @@ export function silhouetteOf(tex: Texture): Texture | null {
   return out;
 }
 
-/** Upload silhouette pages written this frame (call once per frame). */
+/** Upload the rows of silhouette pages written this frame (call once per frame). */
 export function flushSilhouettes(): void {
   for (const p of pages) {
-    if (!p.dirty) continue;
-    p.dirty = false;
-    p.source.update();
+    if (p.dirtyY0 >= p.dirtyY1) continue;
+    // Texel range of whole rows: one texSubImage2D of PAGE × (rows written) texels.
+    p.source.update(p.dirtyY0 * PAGE, p.dirtyY1 * PAGE);
+    p.dirtyY0 = PAGE;
+    p.dirtyY1 = 0;
   }
 }
 

@@ -143,6 +143,19 @@ function climbScene(w: World): { i: number; j: number } | null {
   return { i: pick.i + (pick.w >> 1), j: pick.j + pick.d + 1 };
 }
 
+/** No building / landmark in the 5 tile rows in front of (screen-below) the tile. */
+function openFront(w: World, q: { i: number; j: number }): boolean {
+  for (let k = 1; k <= 5; k++) {
+    for (let s = -2; s <= 2; s++) {
+      const i = q.i + k + s;
+      const j = q.j + k - s;
+      if (i < 0 || j < 0 || i >= w.map.w || j >= w.map.h) return false;
+      if (!w.nav.walk[j * w.map.w + i]) return false;
+    }
+  }
+  return true;
+}
+
 function gasScene(w: World): { i: number; j: number } | null {
   w.economy.level = 3;
   w.economy.hate = 9999;
@@ -155,25 +168,30 @@ function gasScene(w: World): { i: number; j: number } | null {
     const d = nav.dist[p.j * mw + p.i]!;
     return d >= 6 && d <= 16 && roadsNear(w, p.i, p.j, 4).length >= 40;
   });
-  for (const p of roads) {
-    const d0 = nav.dist[p.j * mw + p.i]!;
-    const up = roadsNear(w, p.i, p.j, 6).filter((q) => {
-      const d = nav.dist[q.j * mw + q.i]!;
-      return d > d0 + 3 && d < d0 + 7;
-    });
-    if (up.length < 6) continue;
-    const u = w.deploy('gas', p.i, p.j);
-    if (!u) continue;
-    u.charge = (u.def.ability?.charge ?? 10) - 0.2;
-    for (let k = 0; k < 48; k++) {
-      const q = up[k % up.length]!;
-      tough(
-        w,
-        w.spawnProtester(k % 2 ? PT.student : PT.woke, q.i + 0.3 + (k % 3) * 0.2, q.j + 0.4),
-        150,
-      );
+  // Strict pass first (crowd in the open with nothing in front), then any open road.
+  for (const strict of [true, false]) {
+    for (const p of roads) {
+      const d0 = nav.dist[p.j * mw + p.i]!;
+      const up = roadsNear(w, p.i, p.j, 6).filter((q) => {
+        const d = nav.dist[q.j * mw + q.i]!;
+        // M14: the crowd (and so the cloud) stands in the open, not tucked behind a block.
+        if (d <= d0 + 3 || d >= d0 + 7) return false;
+        return !strict || (roadsNear(w, q.i, q.j, 3).length >= 30 && openFront(w, q));
+      });
+      if (up.length < (strict ? 4 : 6)) continue;
+      const u = w.deploy('gas', p.i, p.j);
+      if (!u) continue;
+      u.charge = (u.def.ability?.charge ?? 10) - 0.2;
+      for (let k = 0; k < 48; k++) {
+        const q = up[k % up.length]!;
+        tough(
+          w,
+          w.spawnProtester(k % 2 ? PT.student : PT.woke, q.i + 0.3 + (k % 3) * 0.2, q.j + 0.4),
+          150,
+        );
+      }
+      return { i: p.i - 2, j: p.j - 2 };
     }
-    return { i: p.i - 2, j: p.j - 2 };
   }
   return null;
 }

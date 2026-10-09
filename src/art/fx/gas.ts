@@ -19,6 +19,14 @@ import { buf, has, prng, px } from './draw';
 
 /** Gas ramp: belly, deep, body, light, glint. */
 export const GAS_RAMP = ['olive2', 'green3', 'green4', 'lime', 'stone5'] as const;
+/**
+ * M14 — the puff body used the grass/foliage ramp (green4 body, lime rim, green3 belly), so an
+ * in-game cloud read as a hedge. Gas is now a pale, sickly yellow-green with a cream-lit
+ * crown: nothing else in a city is that colour.
+ */
+const BODY = 'lime';
+const LIT = 'stone5';
+const SHADE = 'green4';
 
 /** Flattened billow (ellipse) relative to the puff centre. */
 interface Billow {
@@ -61,7 +69,7 @@ const WISPS: readonly (readonly (readonly string[])[])[] = [
     ['.L', 'LG'],
   ],
 ];
-const WISP_KEYS: Record<string, string> = { L: 'lime', G: 'green4' };
+const WISP_KEYS: Record<string, string> = { L: 'stone5', G: 'lime' };
 
 interface Tear {
   k: number;
@@ -250,19 +258,19 @@ function paintGas(
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       if (!on(x, y)) continue;
-      let ref = 'green4';
+      let ref = BODY;
       const up = !on(x, y - 1);
       const left = !on(x - 1, y);
       const down = !on(x, y + 1);
       if (isHole(x, y - 1))
-        ref = 'lime'; // lit far wall of a tear
+        ref = LIT; // lit far wall of a tear
       else if (isHole(x, y + 1))
-        ref = 'green3'; // shaded near wall
-      else if (down) ref = 'green3';
-      else if (up || left) ref = 'lime';
+        ref = SHADE; // shaded near wall
+      else if (down) ref = SHADE;
+      else if (up || left) ref = LIT;
       else if (!on(x, y - 2) || (!on(x - 1, y - 1) && !on(x - 2, y)))
-        ref = 'lime'; // 2-px crown rim
-      else if (!on(x, y - 3) && !on(x - 1, y - 2)) ref = 'lime'; // thicker on the sunny side
+        ref = LIT; // 2-px crown rim
+      else if (!on(x, y - 3) && !on(x - 1, y - 2)) ref = LIT; // thicker on the sunny side
       px(b, x, y, ref);
     }
   }
@@ -280,7 +288,7 @@ function paintGas(
         // Only where the billow's rim lies inside the body (it overlaps a back billow).
         if (!on(x - 1, y - 1) || !on(x, y - 1) || !on(x - 1, y) || !on(x + 1, y + 1)) continue;
         if (inB(x - 1, y - 1, bl)) continue;
-        px(b, x, y, 'lime');
+        px(b, x, y, LIT);
       }
     }
   });
@@ -401,7 +409,7 @@ const TRAIL = `
   ..........  ..........  ..........  ..........`;
 
 function trailFrames(): PixelBuffer[] {
-  const K: Record<string, string> = { L: 'lime', G: 'green4', D: 'green3' };
+  const K: Record<string, string> = { L: 'stone5', G: 'lime', D: 'green4' };
   const rows = TRAIL.split('\n')
     .map((r) => r.trim())
     .filter((r) => r.length > 0);

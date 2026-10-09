@@ -385,7 +385,9 @@ export function createGame(
     const n = Math.round(params.skip / world.dt);
     for (let k = 0; k < n && world.phase === 'playing'; k++) {
       bot?.update();
-      if (params.scene === 'gas' && k === 45) world.useAllAbilities();
+      // Gas scene: throw 1 s before the end of the skip, so the cloud is fresh on the first
+      // frame whatever ?t is (it lasts 6 s; add ?freeze to hold it for screenshots).
+      if (params.scene === 'gas' && k === Math.max(0, n - 30)) world.useAllAbilities();
       world.step();
       if ((k & 63) === 0) world.events.clear();
     }

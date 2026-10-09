@@ -42,6 +42,15 @@ interface ProjEnt {
   seen: boolean;
 }
 
+/**
+ * Tear-gas puffs: GPU alpha (the atlas stays palette-pure) and depth lift in world px. M14 —
+ * gas used to sort at its anchor (behind every protester standing in it, so an in-game cloud
+ * read as a few pale bushes at the crowd's edges); now it sorts ~1 tile row forward and is
+ * thinner and more numerous (one layered mass), so the crowd reads through a green haze.
+ */
+const GAS_ALPHA = 0.7;
+const GAS_LIFT = 16;
+
 interface Puff {
   sprite: Sprite;
   dx: number;
@@ -361,8 +370,10 @@ export class CombatView {
         // Puff timing follows the area's own age (correct after a time-skip / when paused).
         const born = now - (a.dur - a.ttl);
         if (a.kind === 'gas') {
-          const n = Math.max(6, Math.min(12, Math.round(a.r * 4)));
-          for (const pl of gasCloudLayout(a.id * 7 + 3, n, rx)) {
+          // M14: more, tighter puffs — overlapping layers merge into one cloud (alpha builds
+          // up where they stack) instead of a scatter of separate shrub-like blobs.
+          const n = Math.max(8, Math.min(14, Math.round(a.r * 5)));
+          for (const pl of gasCloudLayout(a.id * 7 + 3, n, Math.round(a.r * 18))) {
             const s = this.take();
             this.layers.entities.addChild(s);
             ae.puffs.push({
@@ -432,7 +443,7 @@ export class CombatView {
             fi = clip.frameAt(age + pf.dx * 0.01);
           }
           s.tint = this.gasTint;
-          s.alpha = 0.8; // M13b: softer with the see-through gas puffs (M13a)
+          s.alpha = GAS_ALPHA;
         } else {
           clip = art.anim(`fx.fire.patch.${pf.variant}`);
           fi = clip.frameAt(now - pf.start);
@@ -441,7 +452,9 @@ export class CombatView {
         }
         setTex(s, clip.frames[fi]!);
         s.position.set(x, y);
-        s.zIndex = depthKey(x, y) + (ae.kind === 'gas' ? 8 : 0);
+        // Gas sorts a little in front of its anchor: it envelops the people standing in it
+        // instead of hiding behind the crowd it was thrown at (M14).
+        s.zIndex = ae.kind === 'gas' ? depthKey(x, y + GAS_LIFT) + 8 : depthKey(x, y);
       }
       if (ae.light) {
         const lc = art.anim('fx.light.fire');
