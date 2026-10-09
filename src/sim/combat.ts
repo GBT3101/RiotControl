@@ -13,9 +13,14 @@ import type { ActorKind } from './events';
 import { facing4, US, type Unit } from './units';
 import type { World } from './world';
 
+const NDMG = DAMAGE_TYPES.length;
+
 // ── Protesters ──────────────────────────────────────────────────────────────────────────
 
-/** Damage a protester. Returns true if it died. `by` = unit id of the source or -1. */
+/**
+ * Damage a protester (per-type resistances applied). Returns true if it died. `by` = unit id of
+ * the source or -1.
+ */
 export function hurtProtester(
   w: World,
   s: number,
@@ -26,7 +31,7 @@ export function hurtProtester(
 ): boolean {
   const c = w.crowd;
   if (!c.alive[s] || amount <= 0) return false;
-  const hp = c.hp[s]! - amount;
+  const hp = c.hp[s]! - amount * w.resist[c.type[s]! * NDMG + dmg]!;
   c.hp[s] = hp;
   if (hp > 0) return false;
   killProtester(w, s, dmg, lethal, by);

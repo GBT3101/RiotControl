@@ -1,7 +1,8 @@
 /**
  * Deployment validation & execution (PLAN §1.3 placement rules, §1.7 deploy flow).
  *
- * - road: PLACEABLE_ROAD ground, no blockade, no ground unit on the tile.
+ * - road: PLACEABLE_ROAD ground (or the Capitol steps, except blockades), no blockade, no
+ *   ground unit on the tile.
  * - blockade: road rule; snaps across the road width (up to `maxTiles` tiles centred on the
  *   picked tile, along the axis where the road is narrower).
  * - rooftop: a building with `rooftop: true` and no rooftop unit yet (one per building; the
@@ -67,10 +68,11 @@ export function groundUnitOnTile(w: World, t: number): boolean {
   return false;
 }
 
-function freeRoad(w: World, i: number, j: number): boolean {
+function freeRoad(w: World, i: number, j: number, steps = false): boolean {
   if (!w.nav.inBounds(i, j)) return false;
   const t = j * w.map.w + i;
-  return w.nav.road[t] === 1 && w.nav.blockade[t]! < 0 && !groundUnitOnTile(w, t);
+  const ground = w.nav.road[t] === 1 || (steps && w.nav.steps[t] === 1);
+  return ground && w.nav.blockade[t]! < 0 && !groundUnitOnTile(w, t);
 }
 
 /** Blockade tiles for a pick at (i, j): across the narrower road axis, up to `max` tiles. */
@@ -123,8 +125,13 @@ export function checkDeploy(w: World, unit: UnitId, i: number, j: number): Deplo
   let x = i + 0.5;
   let y = j + 0.5;
   if (def.placement === 'road') {
-    if (w.nav.road[t] !== 1) return fail(unit, 'notRoad', i, j);
-    if (!freeRoad(w, i, j)) return fail(unit, 'occupied', i, j);
+    // Ground units may also hold the Capitol steps (the last line); blockades may not (they
+    // would wall off the crowd's goal).
+    const steps = unit !== 'blockade';
+    if (w.nav.road[t] !== 1 && !(steps && w.nav.steps[t] === 1)) {
+      return fail(unit, 'notRoad', i, j);
+    }
+    if (!freeRoad(w, i, j, steps)) return fail(unit, 'occupied', i, j);
     if (unit === 'blockade') {
       tiles = blockadeTiles(w, i, j, def.maxTiles);
       x = 0;

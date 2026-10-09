@@ -2,14 +2,15 @@
  * Wave director (PLAN §1.5): prep phase → waves → breathers → …
  *
  * - Wave size from (wave index, level, elapsed time) — `data/balance.waveSize`.
- * - Composition: unlocked protester types weighted toward the newest ones.
+ * - Composition: unlocked protester types weighted toward the newest ones; a type that joins
+ *   mid-run ramps in over a few waves (`introStart`/`introStep`); old types fade (`ageFade`).
  * - Spawn districts unlock by `SpawnDistrict.unlockWave`; protesters exit building doors in
  *   groups (one door per group), throttled per door, per tick and by the quality tier's
  *   concurrency cap (the queue waits while the crowd is at the cap).
  * - Breta: 1% roll per spawn group (max one alive) — she leads the group with 6–10 paparazzi.
  * - Breathers (12–20 s) end automatically; `callNextWaveEarly()` pays Hate = remaining / 2.
  */
-import { BALANCE, breatherSeconds, waveSize } from '../data/balance';
+import { BALANCE, breatherSeconds, spawnSeconds, waveSize } from '../data/balance';
 import { protesterUnlockLevel, unlockedProtesters } from '../data/levels';
 import { PT, protesterDef } from '../data/protesters';
 import { gainHate } from './economy';
@@ -53,6 +54,8 @@ export class Director {
   private readonly districtWave: number[];
   private types: number[] = [];
   private weights: number[] = [];
+  /** Protester type → wave in which it first joined the mix (intro ramp). */
+  private readonly joined = new Map<number, number>();
   /** Spawns blocked by the concurrency cap this tick (diagnostics). */
   capped = false;
 
@@ -121,10 +124,18 @@ export class Director {
     const lvl = w.economy.level;
     const ids = unlockedProtesters(lvl);
     this.types = ids.map((id) => PT[id]);
+    const wv = BALANCE.waves;
     this.weights = ids.map((id) => {
+      const t = PT[id];
+      if (!this.joined.has(t)) this.joined.set(t, this.wave);
+      const since = this.wave - this.joined.get(t)!;
+      // Types joining mid-run start as a trickle and ramp up (time to answer the threat).
+      const ramp =
+        this.joined.get(t) === 1 ? 1 : Math.min(1, wv.introStart + wv.introStep * since);
       const ul = protesterUnlockLevel(id);
-      const boost = ul >= 0 && ul >= lvl - BALANCE.waves.newestWindow && ul > 0;
-      return protesterDef(id).weight * (boost ? BALANCE.waves.newestBoost : 1);
+      const boost = ul >= 0 && ul >= lvl - wv.newestWindow && ul > 0;
+      const fade = 1 / (1 + wv.ageFade * Math.max(0, lvl - Math.max(0, ul) - wv.ageGrace));
+      return protesterDef(id).weight * ramp * fade * (boost ? wv.newestBoost : 1);
     });
     w.stats.wave = this.wave;
     w.events.push('waveStart', { wave: this.wave, size: this.waveSize });
@@ -163,9 +174,10 @@ export class Director {
         }
       }
       if (em) {
-        this.openGroup(w, em, scale);
+        const size = this.openGroup(w, em, scale);
+        // Spread the wave's groups over its spawn window (a stream, not a burst).
         const [lo, hi] = wv.groupInterval;
-        this.groupT = w.rng.range(lo, hi) / Math.max(1, this.waveSize / 200);
+        this.groupT = w.rng.range(lo, hi) * size * (spawnSeconds(this.waveSize) / this.waveSize);
       }
     }
     // Emit.
@@ -198,12 +210,13 @@ export class Director {
     }
   }
 
-  private openGroup(w: World, em: Emitter, scale: number): void {
+  /** Opens a door group; returns its size. */
+  private openGroup(w: World, em: Emitter, scale: number): number {
     const rng = w.rng;
     const districts = this.activeDistricts(this.wave);
     if (districts.length === 0) {
       this.toSpawn = 0;
-      return;
+      return 0;
     }
     const d = rng.pick(districts);
     const door = rng.pick(this.districtDoors[d]!);
@@ -224,6 +237,7 @@ export class Director {
       em.breta = true;
       em.paparazzi = rng.int(br.paparazzi[0], br.paparazzi[1]);
     }
+    return size;
   }
 
   private emitOne(w: World, em: Emitter): void {

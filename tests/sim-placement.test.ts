@@ -7,7 +7,10 @@ describe('placement validation', () => {
     expect(w.canDeploy('riot', 6, 8)).toMatchObject({ ok: true, cost: 5 });
     expect(w.canDeploy('riot', 4, 8).ok).toBe(true); // sidewalk is road
     expect(w.canDeploy('riot', 1, 8).reason).toBe('notRoad'); // lot
-    expect(w.canDeploy('riot', 7, 15).reason).toBe('notRoad'); // steps
+    expect(w.canDeploy('riot', 7, 15).ok).toBe(true); // Capitol steps: the last line (M12)
+    w.economy.level = 2;
+    expect(w.canDeploy('blockade', 7, 15).reason).toBe('notRoad'); // …but never walled off
+    w.economy.level = 0;
     expect(w.canDeploy('riot', 99, 8).reason).toBe('bounds');
     expect(w.canDeploy('sniper', 12, 6).reason).toBe('locked');
     const u = w.deploy('riot', 6, 8)!;

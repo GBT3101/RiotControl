@@ -32,6 +32,7 @@ import { createStats, type StatsLedger } from './stats';
 import { updateCrowd } from './steering';
 import { UnitPool, type Unit } from './units';
 import { DMG } from '../data/damage';
+import { protesterResistTable } from '../data/protesters';
 
 export type GamePhase = 'playing' | 'victory' | 'defeat';
 
@@ -66,6 +67,8 @@ export class World {
   readonly director: Director;
   readonly events = new EventBuffer();
   readonly stats: StatsLedger = createStats();
+  /** Protester damage multipliers (`type × DAMAGE_TYPES.length + DamageId`), from data. */
+  readonly resist: Float32Array = protesterResistTable();
 
   /** Per tile: pool slot of the stationary ground unit standing on it, -1. */
   readonly unitTile: Int16Array;

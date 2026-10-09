@@ -82,8 +82,10 @@ export class Areas {
           const st = c.state[s]!;
           if (st === PS.ON_ROOF || st === PS.CLIMBING || st === PS.CLIMB_DOWN) continue;
           if (a.kind === 'gas') {
+            // Stun on entering the cloud only (not refreshed every pulse): a stagger, then
+            // they cough their way through at reduced speed (M12 — stun-lock was overpowered).
+            if (a.stun > 0 && c.gasT[s]! <= 0) c.stun[s] = Math.max(c.stun[s]!, a.stun);
             c.gasT[s] = Math.max(c.gasT[s]!, 1);
-            if (a.stun > 0) c.stun[s] = Math.max(c.stun[s]!, a.stun);
           } else {
             c.burnT[s] = Math.max(c.burnT[s]!, 1);
           }

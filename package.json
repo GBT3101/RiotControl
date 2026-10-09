@@ -17,7 +17,8 @@
     "gallery": "vite --open /gallery.html",
     "sprites": "node tools/export-sprites.mjs",
     "check": "npm run typecheck && npm run lint && npm test && npm run build",
-    "smoke": "node tools/smoke.mjs"
+    "smoke": "node tools/smoke.mjs",
+    "playtest": "node tools/playtest.mjs"
   },
   "dependencies": {
     "pixi.js": "^8.22.0"

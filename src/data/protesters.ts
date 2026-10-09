@@ -5,7 +5,7 @@
  * DPS delivered in hits every `interval` seconds (hit damage = dps × interval).
  * `capitolDps` = Integrity HP removed per second while attacking the Capitol steps.
  */
-import type { DamageType } from './damage';
+import { DAMAGE_TYPES, type DamageType } from './damage';
 
 export const PROTESTER_IDS = [
   'student',
@@ -82,6 +82,12 @@ export interface ProtesterDef {
   capitolDps: number;
   /** Diverts to climb unguarded rooftops hosting snipers. */
   climbs: boolean;
+  /**
+   * Fraction of incoming damage shrugged off per damage type (0.5 → takes 50%). Late-tier
+   * protesters resist non-lethal tools (rubber, gas, batons), so the Ministry must escalate
+   * to real weapons — the escalation spiral (M12). Missing types take full damage.
+   */
+  resist?: Partial<Record<DamageType, number>>;
   loadouts: LoadoutDef[];
   /** Explodes on contact with ground units (Prophets). */
   explode?: {
@@ -143,7 +149,7 @@ export const PROTESTERS: readonly ProtesterDef[] = [
     hate: 1,
     capitolDps: 2,
     climbs: true,
-    loadouts: [kit(melee(3), null)],
+    loadouts: [kit(melee(4), null)],
     weight: 7,
     chosen: ['capitolDps 2'],
   },
@@ -173,18 +179,19 @@ export const PROTESTERS: readonly ProtesterDef[] = [
     hate: 1,
     capitolDps: 4,
     climbs: true,
+    resist: { rubber: 0.25, gas: 0.3 },
     loadouts: [
       kit(melee(8), {
         weapon: 'molotov',
         delivery: 'ballistic',
-        damage: 25,
-        cooldown: 6,
+        damage: 18,
+        cooldown: 8,
         range: 4,
         dmgType: 'fire',
         lethal: true,
         aoeRadius: 1.2,
         projectileSpeed: 6,
-        fire: { radius: 1.2, duration: 4, dps: 8 },
+        fire: { radius: 1.2, duration: 4, dps: 5 },
       }),
     ],
     weight: 5,
@@ -201,12 +208,13 @@ export const PROTESTERS: readonly ProtesterDef[] = [
     hate: 1,
     capitolDps: 3,
     climbs: false,
+    resist: { rubber: 0.3 },
     loadouts: [
       kit(null, {
         weapon: 'pistol',
         delivery: 'hitscan',
-        damage: 12,
-        cooldown: 1.5,
+        damage: 10,
+        cooldown: 1.8,
         range: 6,
         dmgType: 'bullet',
         lethal: true,
@@ -226,15 +234,16 @@ export const PROTESTERS: readonly ProtesterDef[] = [
     hate: 1,
     capitolDps: 5,
     climbs: false,
+    resist: { rubber: 0.5, gas: 0.4, melee: 0.2 },
     loadouts: [
-      kit(melee(12), null, 'machete', 5),
+      kit(melee(10), null, 'machete', 5),
       kit(
         null,
         {
           weapon: 'rifle',
           delivery: 'hitscan',
-          damage: 10,
-          cooldown: 1.2,
+          damage: 8,
+          cooldown: 1.5,
           range: 7,
           dmgType: 'bullet',
           lethal: true,
@@ -247,8 +256,8 @@ export const PROTESTERS: readonly ProtesterDef[] = [
         {
           weapon: 'bazooka',
           delivery: 'ballistic',
-          damage: 80,
-          cooldown: 8,
+          damage: 60,
+          cooldown: 10,
           range: 7,
           dmgType: 'explosion',
           lethal: true,
@@ -274,6 +283,7 @@ export const PROTESTERS: readonly ProtesterDef[] = [
     hate: 1,
     capitolDps: 0,
     climbs: false,
+    resist: { rubber: 0.6, gas: 0.6 },
     loadouts: [kit(null, null)],
     explode: { damage: 150, radius: 2, vsTankFraction: 0.5, crowdFactor: 0.5, capitolDamage: 40 },
     weight: 3,
@@ -314,3 +324,16 @@ export const PROTESTERS: readonly ProtesterDef[] = [
 ];
 
 export const protesterDef = (id: ProtesterId): ProtesterDef => PROTESTERS[PT[id]]!;
+
+/** Damage multipliers indexed `type × DAMAGE_TYPES.length + DamageId` (1 = full damage). */
+export function protesterResistTable(): Float32Array {
+  const n = DAMAGE_TYPES.length;
+  const t = new Float32Array(PROTESTERS.length * n).fill(1);
+  for (const p of PROTESTERS) {
+    DAMAGE_TYPES.forEach((d, i) => {
+      const r = p.resist?.[d];
+      if (r !== undefined) t[p.index * n + i] = Math.max(0, 1 - r);
+    });
+  }
+  return t;
+}

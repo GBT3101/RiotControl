@@ -64,7 +64,7 @@ export const BALANCE = {
 
   // ── Capitol ───────────────────────────────────────────────────────────────────────────
   /** Integrity HP (UI shows %). */
-  capitolHp: 5000,
+  capitolHp: 18000,
   /** Protesters within this flow distance (tiles) of the steps attack the Capitol. */
   capitolReach: 1.2,
   /** Integrity fractions below which the Capitol enters damage states 1..5 (graffiti → collapsing). */
@@ -75,8 +75,8 @@ export const BALANCE = {
   // ── Climbing / rooftops (PLAN §1.4) ───────────────────────────────────────────────────
   climbDetectRadius: 3,
   guardRadius: 2.5,
-  climbSecondsPerStorey: 0.8,
-  maxClimbersPerRoof: 6,
+  climbSecondsPerStorey: 1.5,
+  maxClimbersPerRoof: 2,
   climbGiveUp: 6,
 
   // ── Bodies ───────────────────────────────────────────────────────────────────────────
@@ -91,22 +91,27 @@ export const BALANCE = {
     /** Wave 1 size. */
     base: 30,
     /** Growth per wave. */
-    growth: 1.25,
+    growth: 1.11,
     /** +fraction per player level. */
-    perLevel: 0.12,
-    /** +fraction per elapsed minute of the run. */
+    perLevel: 0.03,
+    /** +fraction per elapsed minute of the run… */
     perMinute: 0.01,
-    maxSize: 6000,
+    /** …plus this × minutes² (the late-game surge: big hordes after ~25 min). */
+    perMinute2: 0.0007,
+    maxSize: 3500,
     groupSize: [6, 24] as [number, number],
     /** Seconds between emissions from one door group. */
     emitInterval: 0.15,
     /** Concurrent door groups emitting. */
-    maxEmitters: 8,
+    maxEmitters: 12,
     maxSpawnsPerTick: 8,
-    /** Seconds between new door groups opening. */
-    groupInterval: [0.6, 1.8] as [number, number],
+    /** Jitter on the nominal gap between door groups (gap = group size × spawn window / wave size). */
+    groupInterval: [0.6, 1.4] as [number, number],
+    /** Spawn window (s) of a wave: `base + perSqrt × √size`, capped — waves stream in, they
+     *  don't burst (≈19 s for wave 1, ≈36 s for 500, 40 s cap from ~680). */
+    spawnWindow: { base: 14, perSqrt: 1.0, max: 40 },
     /** Breather between waves (s); shrinks from max toward min as waves advance. */
-    breather: [12, 20] as [number, number],
+    breather: [16, 24] as [number, number],
     /** Call-early bonus Hate = seconds remaining × this. */
     callEarlyFactor: 0.5,
     /** Wave ends once spawning finished and alive ≤ this fraction of its size… */
@@ -114,8 +119,15 @@ export const BALANCE = {
     /** …or this many seconds after spawning finished. */
     endTimeout: 45,
     /** Weight multiplier for types unlocked at the current/previous level. */
-    newestBoost: 2.5,
+    newestBoost: 1.6,
     newestWindow: 1,
+    /** A type joining mid-run enters at this weight fraction, +`introStep` per wave (≤ 1). */
+    introStart: 0.3,
+    introStep: 0.25,
+    /** Older types fade from the mix: weight ÷ (1 + ageFade × levels beyond `ageGrace` since
+     *  the type unlocked) — late crowds lean toward the newest, toughest types. */
+    ageFade: 0,
+    ageGrace: 3,
     breta: { chance: 0.01, paparazzi: [6, 10] as [number, number] },
   },
 
@@ -132,8 +144,14 @@ export function waveSize(wave: number, level: number, elapsed: number): number {
     w.base *
     Math.pow(w.growth, Math.max(0, wave - 1)) *
     (1 + w.perLevel * level) *
-    (1 + w.perMinute * (elapsed / 60));
+    (1 + w.perMinute * (elapsed / 60) + w.perMinute2 * (elapsed / 60) ** 2);
   return Math.min(w.maxSize, Math.round(size));
+}
+
+/** Seconds over which a wave of `size` protesters is released. */
+export function spawnSeconds(size: number): number {
+  const sw = BALANCE.waves.spawnWindow;
+  return Math.min(sw.max, sw.base + sw.perSqrt * Math.sqrt(Math.max(0, size)));
 }
 
 /** Breather length (s) after `wave`. */
