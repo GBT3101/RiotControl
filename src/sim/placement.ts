@@ -7,10 +7,12 @@
  *   picked tile, along the axis where the road is narrower).
  * - rooftop: a building with `rooftop: true` and no rooftop unit yet (one per building; the
  *   Sniper Brigade is a squad of 3 on one roof).
+ * - road or rooftop (`UnitDef.altPlacement`, Soldiers): the picked tile decides — a building
+ *   tile takes the rooftop rule, anything else the road rule.
  * - air: anywhere on the map.
  */
 import { BALANCE } from '../data/balance';
-import { UNITS, type UnitId } from '../data/units';
+import { UNITS, deploysOnRoofs, type Placement, type UnitId } from '../data/units';
 import type { TilePos } from '../maps/contract';
 import { PS } from './crowd';
 import { spendHate } from './economy';
@@ -27,7 +29,7 @@ export interface DeployCheck {
   cost: number;
   /** Tiles the unit would occupy (ghost preview; blockades span up to 3). */
   tiles: TilePos[];
-  /** Rooftop target building index, -1. */
+  /** Rooftop target building index, -1 (≥ 0 on a valid or taken roof: the unit would stand on it). */
   building: number;
   /** Where the unit would stand (continuous tiles). */
   x: number;
@@ -114,17 +116,28 @@ export function blockadeTiles(w: World, i: number, j: number, max: number): Tile
   return tiles;
 }
 
+/**
+ * Which placement rule a pick at tile t follows: the unit's own, or — for a unit that may also
+ * go on roofs (Soldiers) — the rooftop rule whenever the tile belongs to a building.
+ */
+export function placementAt(w: World, unit: UnitId, t: number): Placement {
+  const def = UNITS[unit];
+  if (def.altPlacement && deploysOnRoofs(def) && w.map.building[t]! >= 0) return 'rooftop';
+  return def.placement;
+}
+
 export function checkDeploy(w: World, unit: UnitId, i: number, j: number): DeployCheck {
   const def = UNITS[unit];
   if (w.phase !== 'playing') return fail(unit, 'phase', i, j);
   if (def.level > w.economy.level) return fail(unit, 'locked', i, j);
   if (!w.nav.inBounds(i, j)) return fail(unit, 'bounds', i, j);
   const t = j * w.map.w + i;
+  const mode = placementAt(w, unit, t);
   let tiles: TilePos[] = [{ i, j }];
   let building = -1;
   let x = i + 0.5;
   let y = j + 0.5;
-  if (def.placement === 'road') {
+  if (mode === 'road') {
     // Ground units may also hold the Capitol steps (the last line); blockades may not (they
     // would wall off the crowd's goal).
     const steps = unit !== 'blockade';
@@ -143,7 +156,7 @@ export function checkDeploy(w: World, unit: UnitId, i: number, j: number): Deplo
       x /= tiles.length;
       y /= tiles.length;
     }
-  } else if (def.placement === 'rooftop') {
+  } else if (mode === 'rooftop') {
     building = w.map.building[t]!;
     const b = building >= 0 ? w.map.buildings[building] : undefined;
     if (!b || !b.rooftop) return fail(unit, 'notRooftop', i, j);
@@ -183,16 +196,16 @@ export function deployUnit(w: World, unit: UnitId, i: number, j: number): Unit |
       w.nav.setBlockade(bt, u.slot);
       evictFromTile(w, bt);
     }
-  } else if (def.placement === 'road') {
-    u.tile = t;
-    w.unitTile[t] = u.slot;
-    w.nav.addUnitCost(t, BALANCE.unitTileCost);
-  } else if (def.placement === 'rooftop') {
+  } else if (chk.building >= 0) {
     const b = w.map.buildings[chk.building]!;
     u.building = chk.building;
     u.z = b.storeys;
     w.roofUnit[chk.building] = u.slot;
     w.refreshRoofList();
+  } else if (def.placement === 'road') {
+    u.tile = t;
+    w.unitTile[t] = u.slot;
+    w.nav.addUnitCost(t, BALANCE.unitTileCost);
   } else {
     u.z = HELI_ALTITUDE;
   }

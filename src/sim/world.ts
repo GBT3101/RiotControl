@@ -5,8 +5,8 @@
  * loop's business (`core/loop.FixedStepLoop` calls `step()`).
  *
  * Step order: prev positions → director (spawns) → flow field (throttled) → spatial hash +
- * unit grid → roof guards → outnumbering (mob.ts) → units → crowd → projectiles → areas →
- * bodies → Capitol.
+ * unit grid → roof guards → outnumbering (mob.ts) → units → aggro grid (prey.ts) → crowd →
+ * projectiles → areas → bodies → Capitol.
  */
 import { BALANCE, type QualityTier } from '../data/balance';
 import { WIN_LEGITIMACY } from '../data/levels';
@@ -26,6 +26,7 @@ import { hashWorld } from './hash';
 import { updateMob } from './mob';
 import { Nav } from './nav';
 import { checkDeploy, deployUnit, type DeployCheck } from './placement';
+import { PreyGrid } from './prey';
 import { Projectiles } from './projectiles';
 import { buildRallyField, type RallyField } from './rally';
 import { SpatialHash } from './spatialHash';
@@ -90,6 +91,8 @@ export class World {
   /** Lazily built rally fields per spawn district. */
   private readonly rallyFields: (RallyField | null)[];
 
+  /** Coarse grid of the units the crowd goes after (aggro, rebuilt every step). */
+  readonly prey: PreyGrid;
   /** Ground-unit grid (counting sort per tick): units overlapping each tile. */
   ugStart: Int32Array;
   ugItems: Int32Array = new Int32Array(256);
@@ -107,6 +110,7 @@ export class World {
     this.unitTile = new Int16Array(tiles).fill(-1);
     this.ugStart = new Int32Array(tiles + 1);
     this.ugCursor = new Int32Array(tiles + 1);
+    this.prey = new PreyGrid(map.w, map.h);
     const nb = map.buildings.length;
     this.roofUnit = new Int16Array(nb).fill(-1);
     this.roofGuarded = new Uint8Array(nb);
@@ -143,6 +147,7 @@ export class World {
     if (this.phase !== 'playing') return;
     this.updateUnits(dt);
     if (this.phase !== 'playing') return;
+    this.prey.rebuild(this.units.active);
     updateCrowd(this, dt);
     this.projectiles.update(this, dt);
     this.areas.update(this, dt);

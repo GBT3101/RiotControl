@@ -1,7 +1,8 @@
 /**
  * Crowd update (the hot loop): status effects, throttled decisions, per-state behaviour,
  * then local steering — flow field + separation through the spatial hash + wall avoidance +
- * unit/blockade contact — and animation hints.
+ * unit/blockade contact — and animation hints. Hunters (`PS.HUNT`, behaviours/protester/hunt.ts)
+ * engage their unit on contact like marchers do.
  *
  * No allocation per protester: all scratch lives in module-level variables / typed arrays.
  */
@@ -18,6 +19,7 @@ import {
   explodeProphet,
   followDesire,
   gatherDesire,
+  huntDesire,
   marchDesire,
   rallyDesire,
   PROTESTER_BEHAVIOURS,
@@ -158,6 +160,9 @@ export function updateCrowd(w: World, dt: number): void {
       case PS.ENGAGED:
         engagedDesire(w, s);
         break;
+      case PS.HUNT:
+        huntDesire(w, s);
+        break;
       case PS.CAPITOL:
         capAttackers++;
         capitolDesire(w, s);
@@ -254,7 +259,10 @@ export function updateCrowd(w: World, dt: number): void {
       if (ni < 0 || nj < 0 || ni >= mw || nj >= mh || solid[nj * mw + ni]) {
         if (ni >= 0 && nj >= 0 && ni < mw && nj < mh) {
           const bslot = nav.blockade[nj * mw + ni]!;
-          if (bslot >= 0 && (st === PS.MARCH || st === PS.FOLLOW || st === PS.RALLY)) {
+          if (
+            bslot >= 0 &&
+            (st === PS.MARCH || st === PS.FOLLOW || st === PS.RALLY || st === PS.HUNT)
+          ) {
             const bu = units[bslot];
             if (bu && bu.alive) {
               if (P_HAS_CONTACT[type]) {
@@ -321,7 +329,7 @@ export function updateCrowd(w: World, dt: number): void {
           }
         }
         if (
-          (st === PS.MARCH || st === PS.FOLLOW || st === PS.RALLY) &&
+          (st === PS.MARCH || st === PS.FOLLOW || st === PS.RALLY || st === PS.HUNT) &&
           !u.moving &&
           u.holders.length > 0
         ) {

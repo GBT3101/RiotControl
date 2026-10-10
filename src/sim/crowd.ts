@@ -33,6 +33,8 @@ export const PS = {
   RALLY: 9,
   /** Gathering at the rally point (chanting) before the march. */
   GATHER: 10,
+  /** Going after a ground unit in aggro range (target: `tgtUnit`/`tgtGen`), Capitol on hold. */
+  HUNT: 11,
 } as const;
 export type ProtesterState = (typeof PS)[keyof typeof PS];
 
@@ -104,7 +106,7 @@ export class Crowd {
   readonly burnT: Float32Array;
   /** Unit pool slot holding this protester in melee (or blockade being pressed), -1. */
   readonly engUnit: Int16Array;
-  /** Ranged target unit slot + generation. */
+  /** Hunted unit (PS.HUNT): pool slot + generation, -1. */
   readonly tgtUnit: Int16Array;
   readonly tgtGen: Uint16Array;
   /** Building being climbed / occupied roof, -1. */

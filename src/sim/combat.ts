@@ -381,7 +381,7 @@ function targetWeight(s: number): number {
   if (st === PS.CAPITOL) return 0.6;
   // Cover shoots climbers on their way; the target itself does not single them out.
   if (st === PS.TO_CLIMB) return c.bld[s] === tRoof ? 1 : 0.6;
-  if (st === PS.ENGAGED) return 0.8;
+  if (st === PS.ENGAGED || st === PS.HUNT) return 0.8;
   if (t === PT.breta) return 0.9;
   return 1;
 }

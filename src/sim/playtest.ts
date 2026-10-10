@@ -41,6 +41,8 @@ export interface PlaytestResult extends PlaytestJob {
   /** Outnumbering knockdowns and climbs started (playtest round). */
   rammed: number;
   climbs: number;
+  /** Protesters that went after a unit in aggro range. */
+  hunts: number;
   trace: BalanceTrace;
 }
 
@@ -75,6 +77,7 @@ export function runPlaytest(job: PlaytestJob): PlaytestResult {
     breta: [s.bretaSpawned, s.bretaDowned],
     rammed: s.officersRammed,
     climbs: s.climbsStarted,
+    hunts: s.huntsStarted,
     trace: r.trace,
   };
 }

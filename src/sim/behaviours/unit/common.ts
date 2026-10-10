@@ -33,13 +33,14 @@ const recruitBuf = new Int32Array(64);
  */
 export function recruit(w: World, u: Unit): void {
   const slots = u.holders.length;
-  if (slots === 0 || u.nHolders >= slots || u.moving || ((w.tick + u.id) & 3) !== 0) return;
+  if (slots === 0 || u.nHolders >= slots || u.moving || u.building >= 0) return;
+  if (((w.tick + u.id) & 3) !== 0) return;
   const c = w.crowd;
   const n = w.hash.query(c, u.x, u.y, u.def.radius + BALANCE.engageRadius, recruitBuf);
   for (let k = 0; k < n && u.nHolders < slots; k++) {
     const s = recruitBuf[k]!;
     const st = c.state[s]!;
-    if (st !== PS.MARCH && st !== PS.FOLLOW && st !== PS.RALLY) continue;
+    if (st !== PS.MARCH && st !== PS.FOLLOW && st !== PS.RALLY && st !== PS.HUNT) continue;
     engage(w, s, u);
   }
 }

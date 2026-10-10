@@ -5,6 +5,7 @@
  */
 import { PROTESTERS, type ProtesterDef } from '../../../data/protesters';
 import type { ProtesterBehaviour } from '../types';
+import { aggro } from './hunt';
 import { climber, paparazzi, prophet, rangedAttacker } from './specials';
 
 export function behavioursFor(def: ProtesterDef): ProtesterBehaviour[] {
@@ -13,6 +14,9 @@ export function behavioursFor(def: ProtesterDef): ProtesterBehaviour[] {
   if (def.climbs) list.push(climber);
   if (def.flash) list.push(paparazzi);
   if (def.explode) list.push(prophet);
+  // Everyone goes after units in reach, except Breta (she only came to be photographed).
+  // After the climber, so a climb diversion wins its roll first.
+  if (!def.bounty) list.push(aggro);
   return list;
 }
 
@@ -29,6 +33,7 @@ export {
   gatherDesire,
   CAPITOL_HIT_INTERVAL,
 } from './generic';
+export { aggro, endHunt, huntDesire, huntTarget } from './hunt';
 export {
   climbUpdate,
   explodeProphet,

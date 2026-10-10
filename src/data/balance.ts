@@ -106,6 +106,26 @@ export const BALANCE = {
     ramStun: 1.2,
   },
 
+  // ── Aggro (owner: "protesters should prioritise soldiers or cops in range over the Capitol")
+  /**
+   * A protester marching, rallying or rioting on the steps that has a ground unit within
+   * `radius` tiles, with a clear straight walk to it, breaks off and goes after it (`PS.HUNT`)
+   * until it is dead or beyond `leash`. Choice score = dist² × (`fullPenalty` when its melee
+   * slots are taken) × (1 + `crowdPenalty` × its outnumbering odds), so the crowd spreads over
+   * nearby units instead of all piling on one. Melee-less shooters stop at `standOff` × their
+   * weapon range and shoot. Re-checked on the staggered think ticks; blockades and rooftop
+   * units are not prey (blockades are fought on contact, roofs are climbed).
+   */
+  aggro: {
+    radius: 4.5,
+    leash: 6.5,
+    fullPenalty: 3,
+    crowdPenalty: 0.3,
+    /** A new prey must score below this fraction of the current one to switch. */
+    hysteresis: 0.6,
+    standOff: 0.85,
+  },
+
   // ── Climbing / rooftops (PLAN §1.4) ───────────────────────────────────────────────────
   /** Base reach (tiles from the footprint) at which a passing climber notices a rooftop unit. */
   climbDetectRadius: 4,

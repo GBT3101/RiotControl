@@ -1,6 +1,7 @@
 /**
  * Generic unit behaviours: melee fighter (Riot Control), ranged shooter (Armed Cops,
- * Soldiers), rooftop shooter (Rubber Sniper, Sniper Brigade), blockade.
+ * Soldiers), rooftop shooter (Rubber Sniper, Sniper Brigade, and Soldiers deployed on a roof),
+ * blockade.
  */
 import { BALANCE } from '../../../data/balance';
 import { DMG } from '../../../data/damage';
@@ -21,10 +22,18 @@ export const meleeFighter: UnitBehaviour = {
   },
 };
 
-/** Static ground shooter: hitscan with pierce / burst / spread from data. */
+/**
+ * Static ground shooter: hitscan with pierce / burst / spread from data. Deployed on a roof
+ * (Soldiers' `altPlacement`) it fights exactly like a rooftop shooter: same weapon and range
+ * (height grants snipers nothing either), no melee slots, point-blank defence against climbers.
+ */
 export const rangedShooter: UnitBehaviour = {
   id: 'ranged',
   update(w, u, dt) {
+    if (u.building >= 0) {
+      rooftopShooter.update(w, u, dt);
+      return;
+    }
     validateHolders(w, u);
     recruit(w, u);
     rangedFire(w, u, dt);

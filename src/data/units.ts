@@ -26,6 +26,16 @@ export type UnitId = (typeof UNIT_IDS)[number];
 /** Where a unit may be deployed. */
 export type Placement = 'road' | 'rooftop' | 'air';
 
+/** Can this unit type be deployed on a roof (its main or alternative placement)? */
+export function deploysOnRoofs(def: UnitDef): boolean {
+  return def.placement === 'rooftop' || def.altPlacement === 'rooftop';
+}
+
+/** Can this unit type be deployed on a road tile (its main or alternative placement)? */
+export function deploysOnRoads(def: UnitDef): boolean {
+  return def.placement === 'road' || def.altPlacement === 'road';
+}
+
 /** Weapon identity — drives FX/SFX in the view (`fired.weapon`). */
 export type WeaponKind =
   | 'none'
@@ -121,6 +131,11 @@ export interface UnitDef {
   /** Legitimacy granted on death. */
   legit: number;
   placement: Placement;
+  /**
+   * A second place the player may deploy it (Soldiers: a road tile *or* a deployable roof). An
+   * instance's actual spot is `Unit.building` (≥ 0 = standing on that roof).
+   */
+  altPlacement?: Placement;
   /** HP (per squad member for squads). `Infinity` = cannot be harmed. */
   hp: number;
   /** Collision radius (tiles) for ground units. */
@@ -385,7 +400,9 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     level: 6,
     cost: 50,
     legit: 40,
+    // Owner request: "Soldiers can also be put on rooftops like the snipers or on the ground."
     placement: 'road',
+    altPlacement: 'rooftop',
     hp: 140,
     radius: 0.32,
     speed: 0,

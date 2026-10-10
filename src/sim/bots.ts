@@ -559,6 +559,19 @@ export class Bot {
           near: { types: ['riot', 'mounted'], r: 2 },
           rotate,
         });
+      case 'soldier': {
+        // Road or rooftop (owner request): about one Soldier in three goes on a roof that
+        // overlooks the approaches (balanced: only guarded ones, like its snipers).
+        const total = this.count('soldier');
+        const onRoofs = this.w.units.active.filter(
+          (u) => u.alive && u.type === 'soldier' && u.building >= 0,
+        ).length;
+        if (onRoofs < Math.ceil(total / 3)) {
+          const u = this.placeRoof('soldier', this.kind === 'balanced', 20);
+          if (u) return u;
+        }
+        return this.placeRoad('soldier', { minD: 2, maxD: 9, spacing: 2, rotate });
+      }
       case 'heli': {
         const cap = this.w.map.capitol;
         return this.deploy('heli', cap.i + (cap.w >> 1), cap.j + cap.d + 2);
@@ -661,7 +674,7 @@ export class Bot {
     }
   }
 
-  /** Place a planned unit (snipers only on guarded roofs). */
+  /** Place a planned unit (snipers only on guarded roofs; Soldiers road or rooftop). */
   private buyPlanned(type: UnitId): Unit | null {
     return UNITS[type].placement === 'rooftop'
       ? this.placeRoof(type, type === 'sniper')

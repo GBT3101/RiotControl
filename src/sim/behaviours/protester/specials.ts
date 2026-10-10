@@ -8,6 +8,7 @@ import { DMG } from '../../../data/damage';
 import { PROTESTERS, PT } from '../../../data/protesters';
 import { blast, hurtUnit, killProtester } from '../../combat';
 import { PANIM, PS } from '../../crowd';
+import { clearWalk } from '../../prey';
 import { TEAM_PROTESTERS } from '../../projectiles';
 import { facing4, type Unit } from '../../units';
 import type { World } from '../../world';
@@ -56,7 +57,14 @@ export const rangedAttacker: ProtesterBehaviour = {
     const c = w.crowd;
     if (c.cd2[s]! > 0 || c.stun[s]! > 0 || c.actT[s]! > 0) return;
     const st = c.state[s]!;
-    if (st !== PS.MARCH && st !== PS.ENGAGED && st !== PS.CAPITOL && st !== PS.FOLLOW) return;
+    if (
+      st !== PS.MARCH &&
+      st !== PS.ENGAGED &&
+      st !== PS.CAPITOL &&
+      st !== PS.FOLLOW &&
+      st !== PS.HUNT
+    )
+      return;
     const def = PROTESTERS[c.type[s]!]!;
     const r = def.loadouts[c.loadout[s]!]!.ranged;
     if (!r) return;
@@ -148,17 +156,6 @@ export const rangedAttacker: ProtesterBehaviour = {
 /** Total climb time for building b. */
 function climbTime(w: World, b: number): number {
   return w.map.buildings[b]!.storeys * BALANCE.climbSecondsPerStorey;
-}
-
-/** No solid tile on the straight walk from (x0, y0) to (x1, y1) (samples every ¼ tile). */
-function clearWalk(w: World, x0: number, y0: number, x1: number, y1: number): boolean {
-  const dx = x1 - x0;
-  const dy = y1 - y0;
-  const n = Math.ceil(Math.sqrt(dx * dx + dy * dy) * 4);
-  for (let k = 1; k < n; k++) {
-    if (w.nav.isSolidAt(x0 + (dx * k) / n, y0 + (dy * k) / n)) return false;
-  }
-  return true;
 }
 
 /**
