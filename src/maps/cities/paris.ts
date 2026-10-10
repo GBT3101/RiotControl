@@ -504,7 +504,9 @@ export const paris: Blueprint = {
       name: 'Montparnasse',
       unlockWave: 1,
       area: [27, 64, 56, 71],
-      rally: [45, 66],
+      // Rue de Sèvres west of Matignon: the march turns up Rue de Bourgogne (E6: with the exact
+      // costed flow, a rally further east went round by Saint-Germain through cut lanes).
+      rally: [36, 68],
     },
     { id: 'grenelle', name: 'Grenelle', unlockWave: 2, area: [0, 59, 24, 71], rally: [14, 65] },
     {
@@ -514,7 +516,9 @@ export const paris: Blueprint = {
       area: [58, 0, 71, 15],
       rally: [66, 4],
     },
-    { id: 'batignolles', name: 'Batignolles', unlockWave: 4, area: [0, 0, 27, 6], rally: [14, 2] },
+    // Batignolles gathers at the Madeleine and marches down Rue Royale to the Pont de la Concorde
+    // (E6: from a rally further west the exact flow takes the Pont Alexandre III).
+    { id: 'batignolles', name: 'Batignolles', unlockWave: 4, area: [0, 0, 27, 6], rally: [35, 1] },
     { id: 'trocadero', name: 'Trocadéro', unlockWave: 6, area: [0, 11, 12, 31], rally: [4, 15] },
   ],
 

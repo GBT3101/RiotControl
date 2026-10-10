@@ -308,11 +308,38 @@ describe('map API helpers', () => {
 });
 
 describe('seed robustness', () => {
-  it.each(PLAYABLE_CITIES)('%s validates for seeds 1..12', (city) => {
+  it.each(PLAYABLE_CITIES)('%s validates for seeds 0..12', (city) => {
     const bp = BLUEPRINTS[city]!;
-    for (let seed = 1; seed <= 12; seed++) {
+    for (let seed = 0; seed <= 12; seed++) {
       const errors = validateMap(rasterize(bp, seed), bp).filter((x) => x.level === 'error');
       expect(errors, `seed ${seed}`).toEqual([]);
     }
   });
+});
+
+describe('costed flow field (E6 fix)', () => {
+  it('expands tiles whose cost rounds down in float32 (cobble, grass, parkPath, steps)', () => {
+    // A 1-wide corridor: steps target ← cobble ← grass ← parkPath ← asphalt.
+    const order = ['asphalt', 'cobble', 'grass', 'parkPath', 'steps', 'cobble', 'asphalt'];
+    const map = loadMap('madrid');
+    const w = order.length;
+    const ground = Uint8Array.from(order.map((g) => GROUNDS.indexOf(g as never)));
+    const tiny = { ...map, w, h: 1, ground } as MapData;
+    const f = distanceField(tiny, [{ i: 0, j: 0 }], { costs: true });
+    for (let i = 0; i < w; i++) expect(Number.isFinite(f[i]!), `tile ${i}`).toBe(true);
+    expect(f[w - 1]).toBeCloseTo(1.1 + 1.6 + 1.2 + 1.3 + 1.1 + 1, 4);
+  });
+
+  it.each(PLAYABLE_CITIES)(
+    '%s: every tile the steps reach by steps is reached with costs',
+    (city) => {
+      const map = loadMap(city);
+      const plain = distanceField(map, map.capitol.steps, { costs: false });
+      const costed = distanceField(map, map.capitol.steps, { costs: true });
+      let lost = 0;
+      for (let k = 0; k < plain.length; k++)
+        if (Number.isFinite(plain[k]!) && !Number.isFinite(costed[k]!)) lost++;
+      expect(lost).toBe(0);
+    },
+  );
 });
