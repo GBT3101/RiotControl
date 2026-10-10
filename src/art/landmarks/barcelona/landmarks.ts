@@ -24,7 +24,8 @@ const panot: Material = (c) => {
   const a = mod(c.u * 4, 1);
   const b = mod(c.v * 4, 1);
   if (a < 0.07 || b < 0.12) return lv(['stone0', 'gray3', 'gray4', 'gray5', 'gray6'], c.level - 1);
-  const tab = (a > 0.2 && a < 0.45) !== (b > 0.25 && b < 0.5) && ((a > 0.2 && a < 0.8) && (b > 0.25 && b < 0.85));
+  const tab =
+    (a > 0.2 && a < 0.45) !== (b > 0.25 && b < 0.5) && a > 0.2 && a < 0.8 && b > 0.25 && b < 0.85;
   return lv(['stone0', 'gray4', 'gray5', 'gray6', 'gray7'], c.level - (tab ? 1 : 0));
 };
 
@@ -131,7 +132,9 @@ function cascada(frame: number): Build {
     const outer = u0 < 2 ? u0 : u1 - 0.55;
     s.box(outer, outer + 0.55, 0.95, 1.25, 1, 18, st);
     stairs(s, outer, outer + 0.55, 1.75, 1.25, 1, 18, 6, stepMat(SAND));
-    s.ell(u0 < 2 ? u0 + 0.12 : u1 - 0.12, 0.9, 36, 0.09, 0.09, 3, plain(R.gold, { rim: true }), { zMin: 33 });
+    s.ell(u0 < 2 ? u0 + 0.12 : u1 - 0.12, 0.9, 36, 0.09, 0.09, 3, plain(R.gold, { rim: true }), {
+      zMin: 33,
+    });
   }
   // Central triumphal arch with paired columns and the Venus grotto.
   const arch: Material = (c) => {
@@ -150,7 +153,8 @@ function cascada(frame: number): Build {
     return lv(SAND, c.level);
   };
   s.box(1.75, 3.25, 0.2, 1.0, 1, 54, arch);
-  for (const u of [1.85, 2.1, 2.9, 3.15]) column(s, { u, v: 1.05, z0: 16, z1: 46, r: 0.07, ramp: SAND });
+  for (const u of [1.85, 2.1, 2.9, 3.15])
+    column(s, { u, v: 1.05, z0: 16, z1: 46, r: 0.07, ramp: SAND });
   s.box(1.7, 3.3, 0.9, 1.15, 46, 50, plain(SAND, { rim: true }));
   // Aedicule + the gilded quadriga of Aurora.
   s.box(2.15, 2.85, 0.4, 0.95, 54, 62, st);
@@ -174,12 +178,14 @@ function cascada(frame: number): Build {
     s.hip(u0, u1, v0, v1, 1, z, 0.2, rock);
   }
   // Water steps: three falls into the pond, animated sheets.
-  const sheet = (z0: number): Material => (c) => {
-    const on = mod(c.fz - z0 + frame * 2 + (c.side === 'left' ? 0 : 1), 4);
-    if (c.night) return on === 0 ? 'teal1' : null;
-    if (c.side === 'top') return lv(R.water, 3);
-    return on === 0 ? 'white' : on === 1 ? 'sky' : lv(R.water, 3);
-  };
+  const sheet =
+    (z0: number): Material =>
+    (c) => {
+      const on = mod(c.fz - z0 + frame * 2 + (c.side === 'left' ? 0 : 1), 4);
+      if (c.night) return on === 0 ? 'teal1' : null;
+      if (c.side === 'top') return lv(R.water, 3);
+      return on === 0 ? 'white' : on === 1 ? 'sky' : lv(R.water, 3);
+    };
   for (const [k, z] of [
     [0, 16],
     [1, 11],
@@ -228,7 +234,7 @@ function columbus(): Build {
     if (c.night) return null;
     if (c.edge) return SAND[0];
     const a = Math.atan2(c.v - C, c.u - C);
-    const fig = mod(a * 4 / Math.PI, 1) < 0.35 && c.fz > 37 && c.fz < 46;
+    const fig = mod((a * 4) / Math.PI, 1) < 0.35 && c.fz > 37 && c.fz < 46;
     return fig ? lv(R.bronze, c.level + 1) : lv(SAND, c.level);
   });
   s.cyl(C, C, 0.32, 48, 54, plain(S.ironGreen, { rim: true }));
@@ -266,7 +272,7 @@ function bellTower(s: Scene, u: number, v: number, h: number, stone: Ramp5, seed
     if (c.night) return null;
     if (c.edge) return stone[0];
     const a = Math.atan2(c.v - v, c.u - u);
-    const k = mod(a * 3 / Math.PI + c.z * 0.06, 1);
+    const k = mod((a * 3) / Math.PI + c.z * 0.06, 1);
     if (c.fz > 30 && c.fz < zTop - 8 && k < 0.22 && mod(c.fz, 4) !== 0) return lv(stone, 0);
     if (c.side === 'curve' && !c.shadow && c.lambert > 0.6) return stone[4];
     return lv(stone, c.level - (mod(c.fz, 9) === 0 ? 1 : 0));
@@ -278,7 +284,8 @@ function bellTower(s: Scene, u: number, v: number, h: number, stone: Ramp5, seed
     if (c.night) return hash(c.px, c.py) < 0.3 ? 'ochre3' : null;
     if (c.edge) return 'rust0';
     const ch = mod(Math.floor(c.fz / 2) + Math.floor(Math.atan2(c.v - v, c.u - u) * 3), 3);
-    const col: Ramp5 = ch === 0 ? ['rust0', 'rust1', 'crim1', 'crim2', 'rust4'] : ch === 1 ? R.gold : R.marble;
+    const col: Ramp5 =
+      ch === 0 ? ['rust0', 'rust1', 'crim1', 'crim2', 'rust4'] : ch === 1 ? R.gold : R.marble;
     return lv(col, c.level + (c.rim ? 1 : 0));
   };
   s.prismN(u, v, 0.1, 0.1, zTop, zTop + 6, 6, mitre, { rot: seed });
@@ -291,14 +298,23 @@ function sagradaFamilia(): Build {
   plate(s, 7, 5, (c) => {
     if (c.night) return null;
     if (c.side !== 'top') return lv(R.gravel, c.level - 1);
-    if (c.u > 6.2) return lv(['gray2', 'gray3', 'gray4', 'gray5', 'gray6'], c.level - (hash(c.px >> 1, c.py) < 0.2 ? 1 : 0));
+    if (c.u > 6.2)
+      return lv(
+        ['gray2', 'gray3', 'gray4', 'gray5', 'gray6'],
+        c.level - (hash(c.px >> 1, c.py) < 0.2 ? 1 : 0),
+      );
     return panot(c);
   });
   const NEW = SAND;
   const OLD = S.sandOld;
   // Nave + aisles with tall windows.
   const nave: Material = (c) => {
-    if (c.night) return c.side === 'left' && mod(c.fx, 10) > 3 && mod(c.fx, 10) < 7 && c.fz > 12 && c.fz < 36 ? (hash(c.fx, c.fz) < 0.5 ? 'pink2' : 'ochre2') : null;
+    if (c.night)
+      return c.side === 'left' && mod(c.fx, 10) > 3 && mod(c.fx, 10) < 7 && c.fz > 12 && c.fz < 36
+        ? hash(c.fx, c.fz) < 0.5
+          ? 'pink2'
+          : 'ochre2'
+        : null;
     if (c.edge) return NEW[0];
     if (c.side === 'top') return lv(NEW, c.level);
     const loc = mod(c.fx, 10);
@@ -335,7 +351,8 @@ function sagradaFamilia(): Build {
       // Three portals with dripping, organic carving.
       const loc = mod(c.fx - 8, 10);
       const dx = loc - 5;
-      if (Math.abs(dx) < 2.5 && c.z > 2 && (c.z < 14 || Math.hypot(dx, c.z - 14) < 2.5)) return 'ink';
+      if (Math.abs(dx) < 2.5 && c.z > 2 && (c.z < 14 || Math.hypot(dx, c.z - 14) < 2.5))
+        return 'ink';
       const drip = hash(c.fx, Math.floor(c.fz / 3), 7);
       if (c.fz > 18) return lv(OLD, c.level - (drip < 0.3 ? 1 : 0) + (drip > 0.85 ? 1 : 0));
     }
@@ -361,15 +378,19 @@ function sagradaFamilia(): Build {
   bellTower(s, 4.1, 0.6, 112, NEW, 0.9);
   bellTower(s, 4.55, 0.6, 104, NEW, 1.2);
   // Central towers: Jesus (cross), the four Evangelists, Mary (star).
-  const central = (h: number): Material => (c) => {
-    if (c.night) return mod(c.fx, 4) === 1 && c.fz > h - 40 && c.fz < h - 10 ? 'ochre2' : null;
-    if (c.edge) return NEW[0];
-    if (c.side === 'top') return lv(NEW, c.level);
-    if (mod(c.fx, 4) === 1 && c.fz > 60 && c.fz < h - 6 && mod(c.fz, 10) > 2) return lv(R.dark, c.level);
-    return lv(NEW, c.level + (mod(c.fx, 4) === 3 ? 1 : 0));
-  };
+  const central =
+    (h: number): Material =>
+    (c) => {
+      if (c.night) return mod(c.fx, 4) === 1 && c.fz > h - 40 && c.fz < h - 10 ? 'ochre2' : null;
+      if (c.edge) return NEW[0];
+      if (c.side === 'top') return lv(NEW, c.level);
+      if (mod(c.fx, 4) === 1 && c.fz > 60 && c.fz < h - 6 && mod(c.fz, 10) > 2)
+        return lv(R.dark, c.level);
+      return lv(NEW, c.level + (mod(c.fx, 4) === 3 ? 1 : 0));
+    };
   s.prismN(3.7, 2.5, 0.5, 0.2, 46, 166, 8, central(166), { rot: Math.PI / 8 });
-  const glass: Material = (c) => (c.night ? 'sky' : c.edge ? 'zinc1' : lv(R.whiteSteel, c.level + 1));
+  const glass: Material = (c) =>
+    c.night ? 'sky' : c.edge ? 'zinc1' : lv(R.whiteSteel, c.level + 1);
   s.box(3.66, 3.74, 2.46, 2.54, 166, 182, glass);
   s.box(3.6, 3.8, 2.47, 2.53, 175, 178, glass);
   s.box(3.67, 3.73, 2.4, 2.6, 175, 178, glass);
@@ -403,14 +424,17 @@ function sagradaFamilia(): Build {
     for (const v of [3.55, 1.45]) {
       s.prismN(u, v, 0.07, 0.0, 46, 60, 4, plain(NEW, { rim: true }));
       const col = FRUIT[(k + (v > 2 ? 0 : 3)) % FRUIT.length]!;
-      s.ell(u, v, 62, 0.07, 0.07, 3, (c) => (c.night ? null : c.edge ? 'ink' : c.level >= 3 ? col : lv(R.gold, 1)));
+      s.ell(u, v, 62, 0.07, 0.07, 3, (c) =>
+        c.night ? null : c.edge ? 'ink' : c.level >= 3 ? col : lv(R.gold, 1),
+      );
     }
   }
   // The unfinished Glory end: bare concrete, scaffolding, two tower cranes.
   const raw: Material = (c) => {
     if (c.night) return null;
     if (c.edge) return 'gray1';
-    if (mod(c.fx, 6) === 0 || mod(c.fz, 8) === 0) return lv(['ink', 'gray1', 'gray2', 'gray3', 'gray4'], c.level);
+    if (mod(c.fx, 6) === 0 || mod(c.fz, 8) === 0)
+      return lv(['ink', 'gray1', 'gray2', 'gray3', 'gray4'], c.level);
     return lv(['gray1', 'gray3', 'gray4', 'gray5', 'gray6'], c.level);
   };
   s.box(6.2, 6.6, 1.0, 4.0, 1, 40, raw);
@@ -516,8 +540,24 @@ function crane(s: Scene, u: number, v: number, h: number, dir: 1 | -1): void {
     ],
     'gray4',
   );
-  s.box(u - dir * 0.95 - 0.08, u - dir * 0.95 + 0.08, v + dir * 0.23 - 0.08, v + dir * 0.23 + 0.08, h - 6, h, plain(['ink', 'gray2', 'gray3', 'gray4', 'gray5']));
-  s.box(u - 0.08, u + 0.08, v - 0.08, v + 0.08, h - 5, h, plain(['rust0', 'rust1', 'crim1', 'crim2', 'rust4']));
+  s.box(
+    u - dir * 0.95 - 0.08,
+    u - dir * 0.95 + 0.08,
+    v + dir * 0.23 - 0.08,
+    v + dir * 0.23 + 0.08,
+    h - 6,
+    h,
+    plain(['ink', 'gray2', 'gray3', 'gray4', 'gray5']),
+  );
+  s.box(
+    u - 0.08,
+    u + 0.08,
+    v - 0.08,
+    v + 0.08,
+    h - 5,
+    h,
+    plain(['rust0', 'rust1', 'crim1', 'crim2', 'rust4']),
+  );
   const hu = u + dir * L * 0.6;
   const hv = v - dir * L * 0.15;
   s.line(

@@ -152,6 +152,30 @@ const SPECS: Partial<
     d: 6,
     landmarks: [{ id: 'nationalMonument', i: 10, j: 4 }],
   },
+  rome: {
+    city: 'rome',
+    w: 9,
+    d: 6,
+    landmarks: [
+      { id: 'pantheon', i: 1, j: 8 },
+      { id: 'trevi', i: 10, j: 6 },
+    ],
+  },
+  barcelona: {
+    city: 'barcelona',
+    w: 9,
+    d: 6,
+    landmarks: [
+      { id: 'arcTriomf', i: 1, j: 8 },
+      { id: 'columbus', i: 11, j: 6 },
+    ],
+  },
+  milan: {
+    city: 'milan',
+    w: 9,
+    d: 6,
+    landmarks: [{ id: 'laScala', i: 10, j: 6 }],
+  },
 };
 
 describe('M3b previews', () => {

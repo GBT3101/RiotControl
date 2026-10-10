@@ -49,7 +49,8 @@ export const sampietrini: Material = (c) => {
   if (c.edge) return S.basalt[0];
   const a = Math.floor((c.u + c.v) * 9);
   const b = Math.floor((c.u - c.v) * 9 + (mod(a, 2) ? 0.5 : 0));
-  const joint = mod((c.u + c.v) * 9, 1) < 0.18 || mod((c.u - c.v) * 9 + (mod(a, 2) ? 0.5 : 0), 1) < 0.12;
+  const joint =
+    mod((c.u + c.v) * 9, 1) < 0.18 || mod((c.u - c.v) * 9 + (mod(a, 2) ? 0.5 : 0), 1) < 0.12;
   if (joint) return lv(S.basalt, c.level - 1);
   return lv(S.basalt, c.level - (hash(a, b) < 0.25 ? 1 : 0));
 };
@@ -69,7 +70,10 @@ export function slabs(r: Ramp5 = R.paving, n = 3): Material {
 export const saulo: Material = (c) => {
   if (c.night) return null;
   if (c.side !== 'top') return lv(R.gravel, c.level - 1);
-  return lv(['stone1', 'stone2', 'stone3', 'stone4', 'stone4'], c.level - (hash(c.px, c.py >> 1) < 0.1 ? 1 : 0));
+  return lv(
+    ['stone1', 'stone2', 'stone3', 'stone4', 'stone4'],
+    c.level - (hash(c.px, c.py >> 1) < 0.1 ? 1 : 0),
+  );
 };
 
 export const lawn: Material = (c) => {
@@ -84,7 +88,10 @@ export const lawn: Material = (c) => {
  * Terracotta coppi roof: channels of curved tiles running down the slope (darker joints every
  * 3 px across the slope), faint courses; scorch zones char it (states 3–4).
  */
-export function coppi(r: Ramp5 = S.terracotta, scorch?: (u: number, v: number) => 0 | 1 | 2): Material {
+export function coppi(
+  r: Ramp5 = S.terracotta,
+  scorch?: (u: number, v: number) => 0 | 1 | 2,
+): Material {
   return (c) => {
     if (c.side === 'back') return c.night ? 'ochre2' : hash(c.px, c.py) < 0.5 ? 'ochre3' : 'rust3';
     if (c.night) return null;
@@ -186,7 +193,13 @@ export interface Hole {
 }
 
 /** Is face point (fx, z) inside a ragged hole (grown by `grow` px for the brick rim)? */
-export function inHole(holes: readonly Hole[], side: 'left' | 'right', fx: number, z: number, grow = 0): boolean {
+export function inHole(
+  holes: readonly Hole[],
+  side: 'left' | 'right',
+  fx: number,
+  z: number,
+  grow = 0,
+): boolean {
   return holes.some((h) => {
     if (h.side !== side) return false;
     const dx = fx - h.fx;
@@ -198,14 +211,21 @@ export function inHole(holes: readonly Hole[], side: 'left' | 'right', fx: numbe
 }
 
 /** Ragged brick rim around a hole (undefined outside). */
-export function holeRim(holes: readonly Hole[], c: ShadeCtx, side: 'left' | 'right', brick: Ramp5 = R.brick): string | null | undefined {
+export function holeRim(
+  holes: readonly Hole[],
+  c: ShadeCtx,
+  side: 'left' | 'right',
+  brick: Ramp5 = R.brick,
+): string | null | undefined {
   if (!holes.length || !inHole(holes, side, c.fx, c.fz, 2)) return undefined;
   if (c.night) return null;
   return lv(brick, c.level - (hash(c.fx, c.fz) < 0.4 ? 1 : 0));
 }
 
 /** Cut for a box whose front (+v, plane 3) and side (+u, plane 1) faces carry holes. */
-export function holeCut(holes: readonly Hole[]): ((u: number, v: number, z: number, f: number) => boolean) | undefined {
+export function holeCut(
+  holes: readonly Hole[],
+): ((u: number, v: number, z: number, f: number) => boolean) | undefined {
   if (!holes.length) return undefined;
   return (u, v, z, f) => {
     if (f === 3) return inHole(holes, 'left', Math.floor(u * 16), Math.floor(z));
@@ -333,7 +353,8 @@ export function winPediment(kind: 'tri' | 'seg' | 'flat', r: Ramp5, h = 10): Mod
 export function winArch(r: Ramp5, h = 7, bars = false): Module {
   return cached(`arch:${r.join()}:${h}:${bars}`, () => {
     const rows = ['...K...', '..FKF..', '.FgggF.', 'FggGggF'];
-    for (let y = 0; y < h; y++) rows.push(bars ? (y === 2 ? 'FkkkkkF' : 'FgkgkgF') : y === 2 ? 'FmmmmmF' : 'FgggmgF');
+    for (let y = 0; y < h; y++)
+      rows.push(bars ? (y === 2 ? 'FkkkkkF' : 'FgkgkgF') : y === 2 ? 'FmmmmmF' : 'FgggmgF');
     rows.push('sssssss');
     return mod_(
       rows.join('\n'),
@@ -358,12 +379,17 @@ export function winSquare(r: Ramp5, w = 5, h = 4): Module {
     for (let y = 0; y < h; y++) {
       let row = '';
       for (let x = 0; x < w; x++)
-        row += y === 0 || y === h - 1 || x === 0 || x === w - 1 ? 'F' : x === 1 && y === 1 ? 'G' : 'g';
+        row +=
+          y === 0 || y === h - 1 || x === 0 || x === w - 1 ? 'F' : x === 1 && y === 1 ? 'G' : 'g';
       rows.push(row);
     }
-    return mod_(rows.join('\n'), { F: { r, d: 1 }, g: R.dark, G: { r: R.glass, d: 0 } }, {
-      g: 'ochre1',
-      G: 'ochre2',
-    });
+    return mod_(
+      rows.join('\n'),
+      { F: { r, d: 1 }, g: R.dark, G: { r: R.glass, d: 0 } },
+      {
+        g: 'ochre1',
+        G: 'ochre2',
+      },
+    );
   });
 }

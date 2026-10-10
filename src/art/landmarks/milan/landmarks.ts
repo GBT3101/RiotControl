@@ -6,7 +6,16 @@
  * (toward the Duomo), its cross arm opens on +v; La Scala and the Castello face +v.
  */
 import { Scene, type Material, type PrimOpts } from '../engine/scene';
-import { R, hash, lv, mod, plain, type Ramp5 } from '../engine/materials';
+import {
+  R,
+  hash,
+  lv,
+  mod,
+  moduleColour,
+  plain,
+  sampleModule,
+  type Ramp5,
+} from '../engine/materials';
 import { balustradeCut, column, gothicWall, stairs, stepMat } from '../engine/kit';
 import type { Build } from '../types';
 import type { LandmarkId } from '../../../maps/contract';
@@ -45,7 +54,8 @@ function vaultV(
 
 /** A marble pinnacle (guglia): square shaft, crocketed spire, a statue dot on top. */
 function guglia(s: Scene, u: number, v: number, z0: number, h: number, r = 0.07): void {
-  const shaft: Material = (c) => (c.night ? null : c.edge ? M[0] : lv(M, c.level + (c.rim ? 1 : 0)));
+  const shaft: Material = (c) =>
+    c.night ? null : c.edge ? M[0] : lv(M, c.level + (c.rim ? 1 : 0));
   const spire: Material = (c) => {
     if (c.night) return null;
     if (c.edge) return M[0];
@@ -70,8 +80,11 @@ function guglia(s: Scene, u: number, v: number, z0: number, h: number, r = 0.07)
 function duomo(): Build {
   const s = new Scene();
   plate(s, 10, 6, pave);
-  const wall = (rows: Array<{ zTop: number; h: number; w?: number }>, top: number, seed: number): Material =>
-    gothicWall({ ramp: M, pitch: 10, off: 4, rows, top, state: 0, seed, decals: [] });
+  const wall = (
+    rows: Array<{ zTop: number; h: number; w?: number }>,
+    top: number,
+    seed: number,
+  ): Material => gothicWall({ ramp: M, pitch: 10, off: 4, rows, top, state: 0, seed, decals: [] });
   // Outer aisles, inner aisles, nave (stepped section), low marble roofs.
   s.box(1.3, 9.6, 0.6, 5.4, 1, 34, wall([{ zTop: 28, h: 18, w: 5 }], 34, 1), { tag: 'aisle' });
   s.box(1.3, 9.6, 1.4, 4.6, 34, 46, wall([{ zTop: 44, h: 7 }], 46, 2));
@@ -86,7 +99,9 @@ function duomo(): Build {
   s.box(3.4, 4.6, 0.3, 5.7, 1, 46, wall([{ zTop: 40, h: 26, w: 5 }], 46, 4));
   s.gable(3.4, 4.6, 0.3, 5.7, 46, 54, 'v', roof);
   // Polygonal apse (−u end) with its three great windows.
-  s.prismN(1.5, 3.0, 1.15, 1.15, 1, 46, 8, wall([{ zTop: 40, h: 30, w: 5 }], 46, 5), { rot: Math.PI / 8 });
+  s.prismN(1.5, 3.0, 1.15, 1.15, 1, 46, 8, wall([{ zTop: 40, h: 30, w: 5 }], 46, 5), {
+    rot: Math.PI / 8,
+  });
   s.prismN(1.5, 3.0, 1.15, 0.6, 46, 54, 8, roof, { rot: Math.PI / 8 });
 
   // West front (+u): stepped "hut" profile, buttress piers, five portals, pointed windows.
@@ -101,8 +116,10 @@ function duomo(): Build {
       const big = p === 48;
       const hw = big ? 4.5 : 3;
       const ht = big ? 22 : 16;
-      if (Math.abs(dx) < hw && z > 1 && z < ht) return c.night ? 'ochre1' : z > ht - 4 ? lv(M, c.level + 1) : lv(R.bronze, 2);
-      if (Math.abs(dx) < hw + 1.5 && z > 1 && z < ht + 3) return c.night ? null : lv(M, c.level + 1);
+      if (Math.abs(dx) < hw && z > 1 && z < ht)
+        return c.night ? 'ochre1' : z > ht - 4 ? lv(M, c.level + 1) : lv(R.bronze, 2);
+      if (Math.abs(dx) < hw + 1.5 && z > 1 && z < ht + 3)
+        return c.night ? null : lv(M, c.level + 1);
     }
     // Windows: baroque rectangles low, Gothic lancets high, the great central window.
     for (const p of [16, 30, 66, 80]) {
@@ -229,16 +246,8 @@ function galleria(): Build {
       [winP, 42, c0],
       [winS, 50, c0 + 2],
     ] as const) {
-      const mx = c.fx - x0;
-      const my = zTop - c.fz;
-      if (mx >= 0 && my >= 0 && mx < m.g.w && my < m.g.h) {
-        const k = m.g.rows[my]![mx]!;
-        if (k !== '.') {
-          if (c.night) return m.night?.[k] ?? null;
-          const spec = m.keys[k]!;
-          return typeof spec === 'string' ? spec : Array.isArray(spec) ? lv(spec as Ramp5, c.level) : lv((spec as { r: Ramp5 }).r, c.level + (spec as { d: number }).d);
-        }
-      }
+      const k = sampleModule(m, c, x0, zTop);
+      if (k !== null) return moduleColour(m, k, c);
     }
     if (c.night) return null;
     if (c.edge) return GAL[0];
@@ -266,20 +275,34 @@ function galleria(): Build {
     if (rib || mod(c.fz, 5) === 0) return lv(R.metal, c.level);
     return lv(R.glassSky, c.level);
   };
-  s.box(0.2, 7.6, 2.05, 2.95, 1, 56, (c) => (c.night ? (c.z < 30 ? 'ochre2' : null) : c.z < 6 ? lv(R.paving, 1) : 'ink'));
-  s.box(3.55, 4.45, 0.2, 4.8, 1, 56, (c) => (c.night ? (c.z < 30 ? 'ochre2' : null) : c.z < 6 ? lv(R.paving, 1) : 'ink'));
+  s.box(0.2, 7.6, 2.05, 2.95, 1, 56, (c) =>
+    c.night ? (c.z < 30 ? 'ochre2' : null) : c.z < 6 ? lv(R.paving, 1) : 'ink',
+  );
+  s.box(3.55, 4.45, 0.2, 4.8, 1, 56, (c) =>
+    c.night ? (c.z < 30 ? 'ochre2' : null) : c.z < 6 ? lv(R.paving, 1) : 'ink',
+  );
   s.vaultU(0.2, 7.6, 2.5, 0.45, 56, 13, vault);
   vaultV(s, 0.2, 4.8, 4.0, 0.45, 56, 13, vault);
   // The octagon: drum and glass dome with the iron crown.
-  s.prismN(4.0, 2.5, 0.75, 0.75, 56, 66, 8, (c) => {
-    if (c.night) return mod(c.fx, 4) === 0 ? null : 'ochre2';
-    if (c.edge) return GAL[0];
-    if (c.fz >= 64) return lv(GAL, c.level + 1);
-    return mod(c.fx, 4) === 0 ? lv(GAL, c.level) : lv(R.glassSky, c.level - 1);
-  }, { rot: Math.PI / 8 });
+  s.prismN(
+    4.0,
+    2.5,
+    0.75,
+    0.75,
+    56,
+    66,
+    8,
+    (c) => {
+      if (c.night) return mod(c.fx, 4) === 0 ? null : 'ochre2';
+      if (c.edge) return GAL[0];
+      if (c.fz >= 64) return lv(GAL, c.level + 1);
+      return mod(c.fx, 4) === 0 ? lv(GAL, c.level) : lv(R.glassSky, c.level - 1);
+    },
+    { rot: Math.PI / 8 },
+  );
   const dome: Material = (c) => {
     const a = Math.atan2(c.v - 2.5, c.u - 4.0);
-    const rib = Math.abs(mod(a * 8 / Math.PI + 0.5, 1) - 0.5) < 0.12;
+    const rib = Math.abs(mod((a * 8) / Math.PI + 0.5, 1) - 0.5) < 0.12;
     if (c.night) return rib ? null : 'ochre3';
     if (c.edge) return 'zinc0';
     if (rib || mod(c.fz, 5) === 0) return lv(R.metal, c.level);
@@ -295,7 +318,9 @@ function galleria(): Build {
     if (Math.abs(dx) < 7 && z > 1 && (z < 40 || Math.hypot(dx, z - 40) < 7)) {
       if (z > 40 || z > 32) {
         // Glazed lunette.
-        const spoke = mod(Math.round(Math.atan2(z - 40, dx) * 4), 2) === 0 || mod(Math.round(Math.hypot(dx, z - 40)), 3) === 0;
+        const spoke =
+          mod(Math.round(Math.atan2(z - 40, dx) * 4), 2) === 0 ||
+          mod(Math.round(Math.hypot(dx, z - 40)), 3) === 0;
         if (c.night) return spoke ? null : 'ochre3';
         return spoke ? lv(R.metal, c.level + 1) : lv(R.glassSky, c.level);
       }
@@ -303,14 +328,16 @@ function galleria(): Build {
     }
     if (c.night) return null;
     if (c.edge) return GAL[0];
-    if (Math.abs(dx) < 8.5 && z > 1 && (z < 40 || Math.hypot(dx, z - 40) < 8.5)) return lv(GAL, c.level + 1);
+    if (Math.abs(dx) < 8.5 && z > 1 && (z < 40 || Math.hypot(dx, z - 40) < 8.5))
+      return lv(GAL, c.level + 1);
     if (z >= 70) return lv(GAL, c.level + 1);
     if (z >= 58 && z <= 66) return mod(c.fx, 2) ? lv(GAL, c.level - 1) : lv(GAL, c.level);
     if (z === 57) return lv(GAL, c.level - 2);
     return lv(GAL, c.level);
   };
   s.box(7.6, 7.95, 1.25, 3.75, 1, 72, arch);
-  for (const v of [1.55, 1.85, 3.15, 3.45]) column(s, { u: 8.0, v, z0: 1, z1: 56, r: 0.08, ramp: GAL });
+  for (const v of [1.55, 1.85, 3.15, 3.45])
+    column(s, { u: 8.0, v, z0: 1, z1: 56, r: 0.08, ramp: GAL });
   // The cross-arm entrance on +v.
   s.box(3.45, 4.55, 4.8, 4.9, 1, 64, (c) => {
     if (c.side !== 'left') return c.night ? null : lv(GAL, c.level);
@@ -345,20 +372,13 @@ function laScala(): Build {
       [wP, 40, fx - bay + 1],
       [wQ, 48, fx - bay + 3],
     ] as const) {
-      const mx = fx - x0;
-      const my = zTop - z;
-      if (mx >= 0 && my >= 0 && mx < m.g.w && my < m.g.h) {
-        const k = m.g.rows[my]![mx]!;
-        if (k !== '.') {
-          if (c.night) return m.night?.[k] ?? null;
-          const spec = m.keys[k]!;
-          return typeof spec === 'string' ? spec : Array.isArray(spec) ? lv(spec as Ramp5, c.level) : lv((spec as { r: Ramp5 }).r, c.level + (spec as { d: number }).d);
-        }
-      }
+      const k = sampleModule(m, c, x0, zTop);
+      if (k !== null) return moduleColour(m, k, c);
     }
     if (z < 20 && z > 2) {
       const dx = bay - 5;
-      if (Math.abs(dx) < 2.5 && (z < 13 || Math.hypot(dx, z - 13) < 2.5)) return c.night ? 'ochre1' : lv(R.dark, c.level);
+      if (Math.abs(dx) < 2.5 && (z < 13 || Math.hypot(dx, z - 13) < 2.5))
+        return c.night ? 'ochre1' : lv(R.dark, c.level);
     }
     if (c.night) return null;
     if (c.edge) return SC[0];
@@ -385,7 +405,13 @@ function laScala(): Build {
   const porch: Material = (c) => {
     if (c.side === 'left') {
       const dx = mod(c.fx - 30, 10) - 5;
-      if (c.fx > 30 && c.fx < 66 && Math.abs(dx) < 3.2 && c.fz > 1 && (c.fz < 12 || Math.hypot(dx, c.fz - 12) < 3.2))
+      if (
+        c.fx > 30 &&
+        c.fx < 66 &&
+        Math.abs(dx) < 3.2 &&
+        c.fz > 1 &&
+        (c.fz < 12 || Math.hypot(dx, c.fz - 12) < 3.2)
+      )
         return c.night ? 'ochre2' : c.fz < 4 ? lv(R.paving, 1) : lv(R.dark, c.level + 1);
     }
     if (c.side === 'right') {
@@ -401,7 +427,8 @@ function laScala(): Build {
   };
   s.box(1.85, 4.15, 3.9, 4.6, 1, 20, porch);
   s.box(1.85, 4.15, 4.5, 4.6, 20, 24, plain(SC), { cut: balustradeCut(20, 24) });
-  for (const u of [2.0, 2.25, 3.75, 4.0]) column(s, { u, v: 4.0, z0: 21, z1: 44, r: 0.08, ramp: SC });
+  for (const u of [2.0, 2.25, 3.75, 4.0])
+    column(s, { u, v: 4.0, z0: 21, z1: 44, r: 0.08, ramp: SC });
   s.box(1.85, 4.15, 3.75, 4.12, 44, 50, plain(SC, { rim: true }));
   s.gable(1.85, 4.15, 3.75, 4.12, 50, 58, 'v', (c) => {
     if (c.night) return null;
@@ -427,7 +454,10 @@ const BRK = S.redBrick;
 const STONE: Ramp5 = ['stone0', 'gray4', 'stone2', 'stone3', 'stone4'];
 
 /** Ghibelline swallowtail merlons on top of a wall ending at zTop (cut on the faces). */
-function merlons(zTop: number, axis: 'u' | 'v'): (u: number, v: number, z: number, f: number) => boolean {
+function merlons(
+  zTop: number,
+  axis: 'u' | 'v',
+): (u: number, v: number, z: number, f: number) => boolean {
   return (u, v, z, f) => {
     if (z <= zTop - 7 || f < 0 || f > 5 || f === 4) return false;
     const x = (f === 0 || f === 1 ? v : f === 5 ? (axis === 'u' ? u : v) : u) * 16;
@@ -492,7 +522,11 @@ function castello(): Build {
   const torrione: Material = (c) => {
     if (c.night) return null;
     if (c.edge) return STONE[0];
-    if (c.side === 'top') return lv(['ink', 'gray2', 'gray3', 'gray4', 'gray4'], c.level - (hash(c.px >> 1, c.py) < 0.2 ? 1 : 0));
+    if (c.side === 'top')
+      return lv(
+        ['ink', 'gray2', 'gray3', 'gray4', 'gray4'],
+        c.level - (hash(c.px >> 1, c.py) < 0.2 ? 1 : 0),
+      );
     const z = c.fz;
     if (z >= 40) {
       if (z >= 43 && z < 47) return mod(c.sx, 3) === 0 ? lv(BRK, c.level + 1) : lv(BRK, 0);
@@ -509,10 +543,12 @@ function castello(): Build {
       cut: (uu, vv, z, f) => {
         if (z <= 44 || f !== -1) return false;
         const a = Math.atan2(vv - 6.9, uu - u);
-        return mod(a * 30 / Math.PI, 1) > 0.65 && z > 47;
+        return mod((a * 30) / Math.PI, 1) > 0.65 && z > 47;
       },
     });
-    s.cyl(u, 6.9, 1.06, 36, 43, (c) => (c.night ? null : c.edge ? BRK[0] : mod(c.sx, 3) === 0 ? lv(BRK, c.level + 1) : lv(BRK, 0)));
+    s.cyl(u, 6.9, 1.06, 36, 43, (c) =>
+      c.night ? null : c.edge ? BRK[0] : mod(c.sx, 3) === 0 ? lv(BRK, c.level + 1) : lv(BRK, 0),
+    );
   }
 
   // The Filarete tower over the main gate.
@@ -522,20 +558,26 @@ function castello(): Build {
     if (c.side === 'left') {
       const dx = c.fx + 0.5 - 80;
       // Gate.
-      if (Math.abs(dx) < 4 && z > 1 && (z < 14 || Math.hypot(dx, z - 14) < 4)) return c.night ? 'ochre1' : 'ink';
-      if (Math.abs(dx) < 5.5 && z > 1 && (z < 14 || Math.hypot(dx, z - 14) < 5.5)) return c.night ? null : lv(STONE, c.level + 1);
+      if (Math.abs(dx) < 4 && z > 1 && (z < 14 || Math.hypot(dx, z - 14) < 4))
+        return c.night ? 'ochre1' : 'ink';
+      if (Math.abs(dx) < 5.5 && z > 1 && (z < 14 || Math.hypot(dx, z - 14) < 5.5))
+        return c.night ? null : lv(STONE, c.level + 1);
       // Niche with Saint Ambrose and the clock.
-      if (Math.abs(dx) < 2 && z > 30 && z < 40) return c.night ? null : z > 37 ? lv(STONE, 1) : lv(R.marble, c.level);
+      if (Math.abs(dx) < 2 && z > 30 && z < 40)
+        return c.night ? null : z > 37 ? lv(STONE, 1) : lv(R.marble, c.level);
       if (Math.hypot(dx, z - 60) < 4.5) {
         const r = Math.hypot(dx, z - 60);
         if (c.night) return r < 3.5 ? 'ochre4' : null;
         if (r > 3.5) return lv(R.gold, c.level);
         const ang = Math.atan2(z - 60, dx);
-        if ((Math.abs(ang - 1.57) < 0.25 && r < 3) || (Math.abs(ang - 0.4) < 0.3 && r < 2.2)) return 'ink';
+        if ((Math.abs(ang - 1.57) < 0.25 && r < 3) || (Math.abs(ang - 0.4) < 0.3 && r < 2.2))
+          return 'ink';
         return 'white';
       }
       // Paired windows in stone frames.
-      for (const wz of [48, 74]) if (Math.abs(Math.abs(dx) - 4) < 1.2 && z > wz - 6 && z < wz) return c.night ? 'ochre1' : lv(R.dark, c.level);
+      for (const wz of [48, 74])
+        if (Math.abs(Math.abs(dx) - 4) < 1.2 && z > wz - 6 && z < wz)
+          return c.night ? 'ochre1' : lv(R.dark, c.level);
     }
     if (c.night) return null;
     if (c.edge) return BRK[0];
@@ -556,7 +598,16 @@ function castello(): Build {
   s.box(4.55, 5.45, 6.35, 7.35, 70, 84, stage);
   s.prismN(5.0, 6.85, 0.36, 0.36, 84, 96, 8, stage, { rot: Math.PI / 8 });
   s.prismN(5.0, 6.85, 0.26, 0.26, 96, 104, 8, stage, { rot: Math.PI / 8 });
-  s.ell(5.0, 6.85, 104, 0.28, 0.28, 9, plain(['ink', 'gray2', 'zinc0', 'zinc1', 'zinc2'], { rim: true }), { zMin: 104 });
+  s.ell(
+    5.0,
+    6.85,
+    104,
+    0.28,
+    0.28,
+    9,
+    plain(['ink', 'gray2', 'zinc0', 'zinc1', 'zinc2'], { rim: true }),
+    { zMin: 104 },
+  );
   s.line(
     [
       [5.0, 6.85, 113],

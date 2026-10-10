@@ -109,11 +109,19 @@ export function buildMarino(state: DamageState): Build {
   });
   SIDE_BAYS.forEach((b, k) => {
     slots.push({ side: 'right', fx: b - 3, zTop: 16, m: winArch(D, 6, true), plane: 8.7 });
-    slots.push({ side: 'right', fx: b - 4, zTop: 40, m: winPediment(k % 2 ? 'seg' : 'tri', D, 10), plane: 8.7 });
+    slots.push({
+      side: 'right',
+      fx: b - 4,
+      zTop: 40,
+      m: winPediment(k % 2 ? 'seg' : 'tri', D, 10),
+      plane: 8.7,
+    });
     slots.push({ side: 'right', fx: b - 4, zTop: 53, m: winPediment('flat', D, 6), plane: 8.7 });
   });
   const mezz = winSquare(D, 5, 3);
-  for (const b of BAYS) if (!CENTRE.has(b)) slots.push({ side: 'left', fx: b - 2, zTop: 22, m: mezz, plane: frontV(b) });
+  for (const b of BAYS)
+    if (!CENTRE.has(b))
+      slots.push({ side: 'left', fx: b - 2, zTop: 22, m: mezz, plane: frontV(b) });
   const win = windows(slots, state, seed, ov, 3);
   const inside = interior(state);
 
@@ -164,7 +172,9 @@ export function buildMarino(state: DamageState): Build {
     // Coupled pilasters between the bays.
     const loc = side === 'left' ? c.fx : c.fx + 2;
     const bays = side === 'left' ? BAYS : SIDE_BAYS;
-    const dist = Math.min(...bays.map((b) => Math.min(Math.abs(loc - (b - 6.5)), Math.abs(loc - (b + 6.5)))));
+    const dist = Math.min(
+      ...bays.map((b) => Math.min(Math.abs(loc - (b - 6.5)), Math.abs(loc - (b + 6.5)))),
+    );
     if (dist >= 1 && dist <= 2.5) return lv(D, c.level + (dist > 2 && loc < 72 ? 1 : 0));
     // Garland panels under the upper windows.
     if (z >= 44 && z <= 45 && bays.some((b) => Math.abs(c.fx - b) <= 3))
@@ -234,7 +244,16 @@ export function buildMarino(state: DamageState): Build {
   // Coupled half-columns on the centre's piano nobile, the portal balcony.
   const broken = state >= 4 ? new Map([[2, 32]]) : new Map<number, number>();
   [54.5, 57.5, 86.5, 89.5].forEach((fx, k) =>
-    column(s, { u: fx / 16, v: 4.2, z0: 26, z1: 42, r: 0.075, ramp: D, brokenAt: broken.get(k), tag: 'col' }),
+    column(s, {
+      u: fx / 16,
+      v: 4.2,
+      z0: 26,
+      z1: 42,
+      r: 0.075,
+      ramp: D,
+      brokenAt: broken.get(k),
+      tag: 'col',
+    }),
   );
   const slab: Material = (c) =>
     c.night ? null : c.edge ? D[0] : lv(D, c.level - (c.side !== 'top' ? 1 : 0));

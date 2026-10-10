@@ -39,7 +39,7 @@ function pantheon(): Build {
     if (z === 15 || z === 30 || z >= 41) return lv(T, c.level - (z === 15 ? 1 : 0));
     if (z === 14 || z === 29) return lv(BRICK, c.level - 1);
     const a = Math.atan2(c.v - C.v, c.u - C.u);
-    const k = mod(a * 6 / Math.PI, 1);
+    const k = mod((a * 6) / Math.PI, 1);
     // Relieving arches in the brickwork of the middle band.
     if (z > 18 && z < 27) {
       const dx = (k - 0.5) * 18;
@@ -51,8 +51,22 @@ function pantheon(): Build {
   // Stepped rings at the dome's foot.
   const ring = plain(T, { rim: true });
   s.cyl(C.u, C.v, 1.48, 42, 45, ring);
-  s.cyl(C.u, C.v, 1.4, 45, 48, plain(['stone0', 'gray3', 'gray4', 'gray5', 'gray6'], { rim: true }));
-  s.cyl(C.u, C.v, 1.32, 48, 51, plain(['stone0', 'gray3', 'gray4', 'gray5', 'gray6'], { rim: true }));
+  s.cyl(
+    C.u,
+    C.v,
+    1.4,
+    45,
+    48,
+    plain(['stone0', 'gray3', 'gray4', 'gray5', 'gray6'], { rim: true }),
+  );
+  s.cyl(
+    C.u,
+    C.v,
+    1.32,
+    48,
+    51,
+    plain(['stone0', 'gray3', 'gray4', 'gray5', 'gray6'], { rim: true }),
+  );
   // The dome with its oculus.
   const dome: Material = (c) => {
     const r = Math.hypot(c.u - C.u, c.v - C.v);
@@ -61,7 +75,7 @@ function pantheon(): Build {
     if (r < 0.24) return lv(T, c.level);
     if (c.edge) return LEAD[0];
     const a = Math.atan2(c.v - C.v, c.u - C.u);
-    const seam = Math.abs(mod(a * 16 / Math.PI, 1) - 0.5) < 0.1;
+    const seam = Math.abs(mod((a * 16) / Math.PI, 1) - 0.5) < 0.1;
     return lv(LEAD, c.level + (c.rim ? 1 : 0) - (seam ? 1 : 0));
   };
   s.ell(C.u, C.v, 50, 1.3, 1.3, 20, dome, { zMin: 50 });
@@ -85,7 +99,13 @@ function pantheon(): Build {
   };
   s.box(1.15, 3.85, 2.75, 3.25, 1, 48, block, { tag: 'block' });
   s.gable(1.15, 3.85, 2.75, 3.25, 48, 60, 'v', (c) =>
-    c.side === 'left' ? (c.night ? null : c.edge ? T[0] : lv(T, c.level - (c.rim ? 0 : 1))) : lv(LEAD, c.level),
+    c.side === 'left'
+      ? c.night
+        ? null
+        : c.edge
+          ? T[0]
+          : lv(T, c.level - (c.rim ? 0 : 1))
+      : lv(LEAD, c.level),
   );
 
   // Portico: podium, steps, eight granite columns, frieze with the inscription, pediment.
@@ -96,7 +116,14 @@ function pantheon(): Build {
     column(s, { u: 1.36 + k * 0.326, v: 3.6, z0: 4, z1: 34, r: 0.1, ramp: granite, tag: 'col' });
   }
   for (const u of [1.36, 3.64]) {
-    column(s, { u, v: 3.32, z0: 4, z1: 34, r: 0.1, ramp: ['ink', 'gray1', 'gray2', 'gray3', 'gray4'] });
+    column(s, {
+      u,
+      v: 3.32,
+      z0: 4,
+      z1: 34,
+      r: 0.1,
+      ramp: ['ink', 'gray1', 'gray2', 'gray3', 'gray4'],
+    });
   }
   const frieze: Material = (c) => {
     if (c.night) return null;
@@ -159,7 +186,14 @@ function trevi(frame: number): Build {
   const s = new Scene();
   plate(s, 4, 3, sampietrini);
   // Palazzo Poli: travertine palace face with three window storeys either side.
-  const palace = classicalWall({ ramp: T, pitch: 9, off: 3, rows: [44, 32, 21], top: 50, base: 12 });
+  const palace = classicalWall({
+    ramp: T,
+    pitch: 9,
+    off: 3,
+    rows: [44, 32, 21],
+    top: 50,
+    base: 12,
+  });
   s.box(0.05, 3.95, 0.05, 0.85, 1, 50, palace);
   s.box(0.05, 3.95, 0.79, 0.85, 50, 54, plain(T), { cut: balustradeCut(50, 54) });
   s.hip(0.1, 3.9, 0.08, 0.8, 50, 56, 0.35, coppi());
@@ -167,7 +201,9 @@ function trevi(frame: number): Build {
   const NX = 32;
   const arch: Material = (c) => {
     if (c.night)
-      return c.side === 'left' && Math.abs(c.fx + 0.5 - NX) < 6 && c.fz < 36 && c.fz > 13 ? 'ochre1' : null;
+      return c.side === 'left' && Math.abs(c.fx + 0.5 - NX) < 6 && c.fz < 36 && c.fz > 13
+        ? 'ochre1'
+        : null;
     if (c.edge) return T[0];
     if (c.side === 'top') return lv(T, c.level);
     const z = c.fz;
@@ -190,8 +226,10 @@ function trevi(frame: number): Build {
       // Side niches with the allegories, reliefs above.
       for (const nx of [21, 43]) {
         const ddx = c.fx + 0.5 - nx;
-        if (Math.abs(ddx) < 2.5 && z > 16 && (z < 26 || Math.hypot(ddx, z - 26) < 2.5)) return 'stone1';
-        if (Math.abs(ddx) < 3.5 && z > 32 && z < 40) return lv(T, c.level - (hash(c.fx, z) < 0.4 ? 1 : 0));
+        if (Math.abs(ddx) < 2.5 && z > 16 && (z < 26 || Math.hypot(ddx, z - 26) < 2.5))
+          return 'stone1';
+        if (Math.abs(ddx) < 3.5 && z > 32 && z < 40)
+          return lv(T, c.level - (hash(c.fx, z) < 0.4 ? 1 : 0));
       }
     }
     return lv(T, c.level);
@@ -212,9 +250,19 @@ function trevi(frame: number): Build {
 
   // The scogli (rocks), Oceanus and his sea-horses on top.
   for (const [u0, u1, v0, v1, z] of ROCKS) {
-    s.hip(u0, u1, v0, v1, 1, z, [Math.min(0.3, (u1 - u0) / 2.2), Math.min(0.25, (v1 - v0) / 2.2)], rockMat, {
-      tag: 'rock',
-    });
+    s.hip(
+      u0,
+      u1,
+      v0,
+      v1,
+      1,
+      z,
+      [Math.min(0.3, (u1 - u0) / 2.2), Math.min(0.25, (v1 - v0) / 2.2)],
+      rockMat,
+      {
+        tag: 'rock',
+      },
+    );
   }
   s.sprite(figure(OCEANUS, 'marble', 'oceanus'), 12, 17, 2.0, 1.3, 15, { bias: 0.4 });
 
@@ -288,7 +336,8 @@ function vittoriano(): Build {
   s.box(4.6, 5.4, 2.95, 3.45, 36, 48, (c) => {
     if (c.night) return null;
     if (c.edge) return B[0];
-    if (c.side !== 'top' && c.fz > 40 && c.fz < 45 && mod(c.fx, 8) > 1) return lv(R.bronze, c.level + (hash(c.fx, c.fz) < 0.4 ? 1 : 0));
+    if (c.side !== 'top' && c.fz > 40 && c.fz < 45 && mod(c.fx, 8) > 1)
+      return lv(R.bronze, c.level + (hash(c.fx, c.fz) < 0.4 ? 1 : 0));
     return lv(B, c.level);
   });
   s.box(4.55, 5.45, 2.9, 3.5, 48, 50, plain(B, { rim: true }));
@@ -302,7 +351,8 @@ function vittoriano(): Build {
 
   // Concave colonnade: back wall, sixteen columns on a curve, segmented entablature, attic.
   const back: Material = (c) => {
-    if (c.night) return c.side === 'left' && c.fz > 36 && c.fz < 66 && mod(c.fx, 8) < 4 ? 'ochre1' : null;
+    if (c.night)
+      return c.side === 'left' && c.fz > 36 && c.fz < 66 && mod(c.fx, 8) < 4 ? 'ochre1' : null;
     if (c.edge) return B[0];
     if (c.side === 'top') return lv(B, c.level);
     if (c.side === 'left') return lv(B, 1 - (mod(c.fx, 8) < 4 && c.fz > 36 && c.fz < 66 ? 1 : 0));
@@ -377,7 +427,8 @@ function vittoriano(): Build {
 const CO = { u: 5.0, v: 4.0, ru: 4.75, rv: 3.85 };
 const TIERS = [1, 24, 46, 68, 88];
 /** Arc-length (face px) along the ellipse at angle th. */
-const PERIM = Math.PI * (3 * (CO.ru + CO.rv) - Math.sqrt((3 * CO.ru + CO.rv) * (CO.ru + 3 * CO.rv))) * 16;
+const PERIM =
+  Math.PI * (3 * (CO.ru + CO.rv) - Math.sqrt((3 * CO.ru + CO.rv) * (CO.ru + 3 * CO.rv))) * 16;
 const ARCHES = 48;
 const PITCH = PERIM / ARCHES;
 
@@ -423,7 +474,8 @@ function arcade(c: ShadeCtx, ramp: Ramp5, tiers: number, inner = false): string 
     const dx = loc - PITCH / 2;
     const odd = mod(Math.floor(s / PITCH), 2) === 0;
     if (odd && Math.abs(dx) < 1.6 && z > zb + 6 && z < zb + 10) return c.night ? null : 'stone0';
-    if (z === zt - 5 && mod(Math.floor(loc), 3) === 0) return c.night ? null : lv(ramp, c.level - 2);
+    if (z === zt - 5 && mod(Math.floor(loc), 3) === 0)
+      return c.night ? null : lv(ramp, c.level - 2);
   }
   if (c.night) return null;
   if (c.edge) return ramp[0];
@@ -455,10 +507,12 @@ function colosseum(): Build {
       const a = arcade(c, ['stone0', 'stone0', 'stone1', 'stone2', 'stone2'], 4, true);
       return a ?? lv(TUFA, 1);
     }
-    if (c.side === 'top') return c.night ? null : lv(TV, c.level - (hash(c.px, c.py) < 0.3 ? 1 : 0));
+    if (c.side === 'top')
+      return c.night ? null : lv(TV, c.level - (hash(c.px, c.py) < 0.3 ? 1 : 0));
     // Broken ends: rough brick buttress faces.
     const th = theta(c.u, c.v);
-    if (outerTop(th) < 88 && c.fz > outerTop(th) - 6) return c.night ? null : lv(S.redBrick, c.level - 1);
+    if (outerTop(th) < 88 && c.fz > outerTop(th) - 6)
+      return c.night ? null : lv(S.redBrick, c.level - 1);
     return arcade(c, TV, 4) ?? lv(TV, c.level);
   };
   ellCyl(s, CO.u, CO.v, CO.ru, CO.rv, 1, 88, outer, {
@@ -470,12 +524,15 @@ function colosseum(): Build {
   });
   // Inner ring (second ambulatory wall), ragged top, seen where the outer ring is gone.
   const k2 = 0.86;
-  const innerTop = (u: number, v: number): number => 54 + Math.round(Math.sin(theta(u, v) * 40) * 2 + Math.cos(theta(u, v) * 17) * 3);
+  const innerTop = (u: number, v: number): number =>
+    54 + Math.round(Math.sin(theta(u, v) * 40) * 2 + Math.cos(theta(u, v) * 17) * 3);
   const inner: Material = (c) => {
     if (c.side === 'back') return c.night ? null : lv(TUFA, 1);
     if (c.side === 'top') return c.night ? null : lv(TV, c.level - 1);
     if (c.fz > innerTop(c.u, c.v) - 3) return c.night ? null : lv(S.redBrick, c.level);
-    return arcade(c, ['stone0', 'stone1', 'stone2', 'stone3', 'stone4'], 3, true) ?? lv(TV, c.level - 1);
+    return (
+      arcade(c, ['stone0', 'stone1', 'stone2', 'stone3', 'stone4'], 3, true) ?? lv(TV, c.level - 1)
+    );
   };
   ellCyl(s, CO.u, CO.v, CO.ru * k2, CO.rv * k2, 1, 58, inner, {
     cut: (u, v, z, f) => {
@@ -498,19 +555,20 @@ function colosseum(): Build {
       if (c.side === 'top') {
         // Ruined seating: brick stubs of radial walls between grassy patches.
         const th = theta(c.u, c.v);
-        const radial = mod(th * 30 / Math.PI, 1) < 0.18;
+        const radial = mod((th * 30) / Math.PI, 1) < 0.18;
         if (radial) return lv(S.redBrick, c.level - 1);
         return hash(Math.floor(th * 40), i, 5) < 0.3 ? lv(R.grass, c.level - 2) : lv(TUFA, c.level);
       }
       if (c.edge) return TUFA[0];
       // Riser: vault openings.
       const th = theta(c.u, c.v);
-      const loc = mod(th * 30 / Math.PI, 1);
+      const loc = mod((th * 30) / Math.PI, 1);
       if (loc > 0.35 && loc < 0.65 && mod(c.fz, 9) > 2) return 'earth0';
       return lv(S.redBrick, c.level - 1);
     };
     ellCyl(s, CO.u, CO.v, CO.ru * k, CO.rv * k, 1, z, mat, {
-      cut: (u, v, _z, f) => (f === 0 || f === 1) && ellR(u, v, CO.u, CO.v, CO.ru * k, CO.rv * k) < next / k,
+      cut: (u, v, _z, f) =>
+        (f === 0 || f === 1) && ellR(u, v, CO.u, CO.v, CO.ru * k, CO.rv * k) < next / k,
       tag: 'cavea',
     });
   });

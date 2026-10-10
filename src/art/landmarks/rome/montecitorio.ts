@@ -453,7 +453,7 @@ export function buildMontecitorio(state: DamageState): Build {
         if (c.night) return hands ? 'ink' : 'ochre4';
         if (hands) return 'ink';
         if (state >= 3 && c.fx > 72 && c.z > 73) return lv(R.char, c.level + 1);
-        const hour = mod((ang / (Math.PI / 6)) + 0.5, 1);
+        const hour = mod(ang / (Math.PI / 6) + 0.5, 1);
         if (r > 4.4 && Math.abs(hour - 0.5) < 0.18) return 'ink';
         return c.level >= 3 ? 'white' : 'stone4';
       }
@@ -556,7 +556,8 @@ export function buildMontecitorio(state: DamageState): Build {
   s.box(OB.u - 0.3, OB.u + 0.3, OB.v - 0.3, OB.v + 0.3, 3, 19, ped, { tag: 'ped' });
   s.box(OB.u - 0.34, OB.u + 0.34, OB.v - 0.34, OB.v + 0.34, 19, 22, plain(T, { rim: true }));
   const hier: Material = (c) => {
-    if (c.night) return c.lambert > 0.4 && c.z < 70 ? (c.lambert > 0.55 ? 'earth5' : 'earth4') : null;
+    if (c.night)
+      return c.lambert > 0.4 && c.z < 70 ? (c.lambert > 0.55 ? 'earth5' : 'earth4') : null;
     if (c.edge) return R.pinkGranite[0];
     const col = mod(c.fx, 4);
     const glyph =

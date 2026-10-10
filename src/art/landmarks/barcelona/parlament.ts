@@ -283,7 +283,8 @@ export function buildParlament(state: DamageState): Build {
   // --- Blocks ----------------------------------------------------------------------------------
   const cut = holeCut(holes);
   s.box(1.6, 7.4, 0.5, 3.9, 1, 48, wall('body', 48), { tag: 'body', cut });
-  for (const u0 of [0.4, 7.4]) s.box(u0, u0 + 1.2, 0.4, 4.1, 1, 52, wall('end', 52), { tag: 'end', cut });
+  for (const u0 of [0.4, 7.4])
+    s.box(u0, u0 + 1.2, 0.4, 4.1, 1, 52, wall('end', 52), { tag: 'end', cut });
   s.box(3.35, 5.65, 3.6, 4.25, 1, 50, wall('pav', 50), { tag: 'pav' });
 
   // Roofs: slate, hipped behind the balustrade; end pavilions a little higher.
@@ -294,7 +295,8 @@ export function buildParlament(state: DamageState): Build {
           scorch(u, v) === 2 && hash(Math.floor(u * 3), Math.floor(v * 3)) < 0.75
       : undefined;
   s.hip(1.7, 7.3, 0.6, 3.8, 48, 58, 1.1, roof, { cut: roofCut });
-  for (const u0 of [0.4, 7.4]) s.hip(u0 + 0.08, u0 + 1.12, 0.48, 4.02, 52, 62, 0.5, roof, { cut: roofCut });
+  for (const u0 of [0.4, 7.4])
+    s.hip(u0 + 0.08, u0 + 1.12, 0.48, 4.02, 52, 62, 0.5, roof, { cut: roofCut });
 
   // Balustrade with statues / urns along the main block.
   const bal: Material = (c) => (c.night ? null : c.edge ? T[0] : lv(T, c.level));
