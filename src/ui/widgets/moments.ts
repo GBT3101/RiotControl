@@ -21,7 +21,7 @@ import { LEVELS } from '../../data/levels';
 import { protesterDef, type ProtesterId } from '../../data/protesters';
 import { UNITS, type UnitId } from '../../data/units';
 import { HOTKEYS } from '../../game/controller';
-import { protesterFigure, scaleUp, unitPortrait } from '../art';
+import { protesterFigure, scaleUp, unitCardFigure } from '../art';
 import { ease, prog, stampDrop } from '../core/anim';
 import { capBlockH, clearSpot, textBelow, textBox, type Box, type TextBox } from '../core/boxes';
 import { makeInteractive } from '../core/node';
@@ -155,7 +155,7 @@ export function unlockDossier(
   drawText(b, FONTS.small, `FILE ${String(level).padStart(2, '0')}`, 14, oy - 7, 'earth2');
   stamp(b, panel('paper', lay.paper.w, lay.paper.h), lay.paper.x, lay.paper.y);
   const card = deployCard({
-    portrait: unitPortrait(unit),
+    figure: unitCardFigure(unit, 'card'),
     cost: UNITS[unit].cost,
     hotkey: HOTKEYS[unit],
     state: 'ready',

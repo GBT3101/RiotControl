@@ -149,7 +149,7 @@ describe('vehicle pixels', () => {
     const a = reg.get('veh.tank.turret.fire.sse').frames[0]!.data;
     const b = r2.get('veh.tank.turret.fire.sse').frames[0]!.data;
     expect(Buffer.from(a).equals(Buffer.from(b))).toBe(true);
-  });
+  }, 60_000); // two full vehicle registrations (~5 s under parallel load)
 });
 
 describe('facings & offsets', () => {

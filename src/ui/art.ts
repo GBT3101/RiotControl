@@ -1,15 +1,24 @@
 /**
  * UI-side pixel art compositions built from the M5 kit primitives and the worker-built atlas:
- * unit portraits / protester figures read back from the atlas, the compact deploy card for
- * phones (30×38), small panels and dividers. Palette-pure (RIOT-64 refs only).
+ * unit portraits, deploy-card figures and protester figures read back from the atlas, the
+ * compact deploy card for phones (30×38), small panels and dividers. Palette-pure (RIOT-64
+ * refs only).
  */
 import { buf, col, hline, px, rect, stamp, vline } from '../art/fx/draw';
 import { crop, opaqueBounds, type PixelBuffer } from '../art/lib/pixels';
 import { costStrip, lockLabel, type CardState } from '../art/uikit/cards';
+import {
+  CARD_FIGURES,
+  composeFigure,
+  drawFigureWindow,
+  type CardFigure,
+  type FigureSize,
+} from '../art/uikit/cardFigures';
 import { ICONS } from '../art/uikit/icons';
 import { FONTS, drawText, measureText } from '../art/uikit/text';
 import type { ProtesterId } from '../data/protesters';
 import type { UnitId } from '../data/units';
+import { art } from '../art/lib/atlas';
 import { atlasBuffer } from './core/tex';
 
 const PORTRAIT_NAME: Record<UnitId, string> = {
@@ -29,6 +38,25 @@ const PORTRAIT_NAME: Record<UnitId, string> = {
 /** 32×32 portrait of a unit (null until its art is loaded; vehicles arrive deferred). */
 export function unitPortrait(unit: UnitId): PixelBuffer | null {
   return atlasBuffer(PORTRAIT_NAME[unit]);
+}
+
+const figures = new Map<string, CardFigure>();
+
+/**
+ * Whole-unit deploy-card figure (idle SE frame(s) from the atlas, composed once and cached;
+ * null until the unit's art is loaded — vehicles arrive with the deferred art). The figure owns
+ * its pixels, so it outlives atlas page swaps (unit art is city-independent).
+ */
+export function unitCardFigure(unit: UnitId, size: FigureSize): CardFigure | null {
+  const key = `${unit}:${size}`;
+  const hit = figures.get(key);
+  if (hit) return hit;
+  const f = composeFigure(CARD_FIGURES[unit][size], (name, frame) => {
+    const b = atlasBuffer(name, frame);
+    return b ? { buf: b, anchor: art.anim(name).anchor } : null;
+  });
+  if (f) figures.set(key, f);
+  return f;
 }
 
 /** Art type of a sim protester id. */
@@ -146,11 +174,14 @@ export const COMPACT_W = 30;
 export const COMPACT_H = 38;
 
 /**
- * Compact deploy card for phones (30×38, card body 26×34 at (2,2)): portrait window showing the
- * head and shoulders, cost strip with the tiny Hate face; same four states as the kit card.
+ * Compact deploy card for phones (30×38, card body 26×34 at (2,2)): picture window showing the
+ * whole unit (`figure`, see art/uikit/cardFigures.ts) or, legacy, a portrait's head and
+ * shoulders; cost strip with the tiny Hate face; same four states as the kit card.
  */
 export function compactCard(spec: {
-  portrait: PixelBuffer | null;
+  portrait?: PixelBuffer | null;
+  /** Whole-unit figure; `null` = empty backdrop while the art loads. */
+  figure?: CardFigure | null;
   cost: number;
   state: CardState;
   level?: number;
@@ -181,15 +212,24 @@ export function compactCard(spec: {
   hline(b, x0, y0 + H, W, 'ink');
   vline(b, x0 - 1, y0, H, 'ink');
   vline(b, x0 + W, y0, H, 'ink');
-  // Portrait window.
-  const slot = { x: x0 + 2, y: y0 + 2, w: 21, h: 21 };
-  rect(b, slot.x, slot.y, slot.w, slot.h, locked ? 'gray1' : 'navy0');
-  hline(b, slot.x, slot.y, slot.w, 'ink');
-  vline(b, slot.x, slot.y, slot.h, 'ink');
-  hline(b, slot.x, slot.y + slot.h, slot.w, hi);
-  for (let x = slot.x + 4; x < slot.x + slot.w; x += 6)
-    vline(b, x, slot.y + 1, slot.h - 1, locked ? 'gray2' : 'navy1');
-  if (spec.portrait) {
+  // Picture window: the whole unit (figure, 22×22 interior) or the legacy head crop.
+  let slot = { x: x0 + 2, y: y0 + 2, w: 21, h: 21 };
+  if (spec.figure !== undefined) {
+    // No lit lower lip here: the row goes to the figure (infantry is 22 px tall).
+    slot = { x: x0 + 1, y: y0 + 1, w: 23, h: 23 };
+    hline(b, slot.x, slot.y, slot.w, 'ink');
+    vline(b, slot.x, slot.y, slot.h, 'ink');
+    const win = { x: slot.x + 1, y: slot.y + 1, w: slot.w - 1, h: slot.h - 1 };
+    drawFigureWindow(b, win, spec.figure, st, 'compact');
+  } else {
+    rect(b, slot.x, slot.y, slot.w, slot.h, locked ? 'gray1' : 'navy0');
+    hline(b, slot.x, slot.y, slot.w, 'ink');
+    vline(b, slot.x, slot.y, slot.h, 'ink');
+    hline(b, slot.x, slot.y + slot.h, slot.w, hi);
+    for (let x = slot.x + 4; x < slot.x + slot.w; x += 6)
+      vline(b, x, slot.y + 1, slot.h - 1, locked ? 'gray2' : 'navy1');
+  }
+  if (spec.figure === undefined && spec.portrait) {
     let p = spec.portrait;
     if (st === 'unaffordable') p = greyed(p);
     if (locked) p = silhouette(p, 'ink', 'gray2');

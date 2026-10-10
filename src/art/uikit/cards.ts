@@ -2,8 +2,9 @@
  * Deploy cards (unit bar) and HUD meters.
  *
  * deployCard({ portrait, cost, hotkey, state, level }) → 38×50 buffer (card 34×46 at (2,2);
- * 'selected' lifts it 2 px and adds a hi-vis glow). Portrait slot = 28×26 px at card (3,3):
- * portraits are bottom-centred (busts). States: ready | unaffordable | locked | selected.
+ * 'selected' lifts it 2 px and adds a hi-vis glow). With `figure` the picture window is 30×29
+ * at card (2,2) and shows the whole unit (cardFigures.ts); the legacy `portrait` slot is 28×26
+ * at card (3,3) with bottom-centred busts. States: ready | unaffordable | locked | selected.
  *
  * legitMeter(progress, level, w), integrityMeter(frac, w), abilityRing(step 0..10).
  */
@@ -12,6 +13,7 @@ import type { PixelBuffer } from '../lib/pixels';
 import { grid } from '../lib/grid';
 import { buf, col, hline, line, prng, px, rect, stamp, vline } from '../fx/draw';
 import { waxSeal } from '../fx/misc';
+import { drawFigureWindow, type CardFigure } from './cardFigures';
 import { ICONS } from './icons';
 import { FONTS, drawText, measureText } from './text';
 
@@ -130,7 +132,13 @@ export function lockLabel(level: number | undefined, maxW: number): string {
 }
 
 export interface CardSpec {
+  /** Legacy bust (bottom-centred in a 28×26 slot); ignored when `figure` is given. */
   portrait?: PixelBuffer | null;
+  /**
+   * Whole-unit figure (src/art/uikit/cardFigures.ts) in the full-width window; `null` = empty
+   * backdrop while the unit's art loads. Leave undefined for the legacy bust slot.
+   */
+  figure?: CardFigure | null;
   cost: number;
   hotkey?: string;
   state: CardState;
@@ -167,37 +175,49 @@ export function deployCard(spec: CardSpec): PixelBuffer {
   hline(b, x0, y0 + H + 1 - 1, W, 'ink');
   vline(b, x0 - 1, y0, H, 'ink');
   vline(b, x0 + W, y0, H, 'ink');
-  // Portrait slot (dark recess with an inner top shadow).
-  const sx = x0 + 3;
-  const sy = y0 + 3;
-  rect(b, sx, sy, 28, 26, st === 'locked' ? 'gray1' : 'navy0');
-  hline(b, sx, sy, 28, 'ink');
-  vline(b, sx, sy, 26, 'ink');
-  hline(b, sx, sy + 26, 28, hi);
-  // Faint ministry grid lines in the slot background.
-  for (let x = sx + 4; x < sx + 28; x += 6)
-    vline(b, x, sy + 1, 25, st === 'locked' ? 'gray2' : 'navy1');
-  let portrait = spec.portrait ?? OFFICER_BUST;
-  if (st === 'unaffordable') portrait = greyed(portrait);
-  if (st === 'locked') portrait = silhouetteOf(portrait, 'ink', 'gray2');
-  const px0 = sx + Math.floor((28 - portrait.w) / 2);
-  const py0 = sy + 26 - Math.min(26, portrait.h);
-  // Clip portrait to the slot.
-  for (let y = 0; y < portrait.h; y++) {
-    for (let x = 0; x < portrait.w; x++) {
-      const tx = px0 + x;
-      const ty = py0 + y;
-      if (tx < sx || ty < sy + 1 || tx >= sx + 28 || ty >= sy + 26) continue;
-      const i = (y * portrait.w + x) * 4;
-      if (portrait.data[i + 3] !== 255) continue;
-      b.data.set(portrait.data.subarray(i, i + 4), (ty * b.w + tx) * 4);
+  // Picture window (dark recess with an inner top/left shadow and a lit lower lip).
+  let sx = x0 + 3;
+  let sy = y0 + 3;
+  let slotCx = sx + 14;
+  if (spec.figure !== undefined) {
+    // Whole-unit figure: the window grows to the face's full width so the unit fits at 1×.
+    sx = x0 + 1;
+    sy = y0 + 1;
+    slotCx = sx + 16;
+    hline(b, sx, sy, 31, 'ink');
+    vline(b, sx, sy, 30, 'ink');
+    hline(b, sx, sy + 30, 31, hi);
+    drawFigureWindow(b, { x: sx + 1, y: sy + 1, w: 30, h: 29 }, spec.figure, st, 'card');
+  } else {
+    rect(b, sx, sy, 28, 26, st === 'locked' ? 'gray1' : 'navy0');
+    hline(b, sx, sy, 28, 'ink');
+    vline(b, sx, sy, 26, 'ink');
+    hline(b, sx, sy + 26, 28, hi);
+    // Faint ministry grid lines in the slot background.
+    for (let x = sx + 4; x < sx + 28; x += 6)
+      vline(b, x, sy + 1, 25, st === 'locked' ? 'gray2' : 'navy1');
+    let portrait = spec.portrait ?? OFFICER_BUST;
+    if (st === 'unaffordable') portrait = greyed(portrait);
+    if (st === 'locked') portrait = silhouetteOf(portrait, 'ink', 'gray2');
+    const px0 = sx + Math.floor((28 - portrait.w) / 2);
+    const py0 = sy + 26 - Math.min(26, portrait.h);
+    // Clip portrait to the slot.
+    for (let y = 0; y < portrait.h; y++) {
+      for (let x = 0; x < portrait.w; x++) {
+        const tx = px0 + x;
+        const ty = py0 + y;
+        if (tx < sx || ty < sy + 1 || tx >= sx + 28 || ty >= sy + 26) continue;
+        const i = (y * portrait.w + x) * 4;
+        if (portrait.data[i + 3] !== 255) continue;
+        b.data.set(portrait.data.subarray(i, i + 4), (ty * b.w + tx) * 4);
+      }
     }
   }
   // Cost strip.
   const cy = y0 + 32;
   if (st === 'locked') {
     const pl = ICONS.padlock();
-    stamp(b, pl, sx + 14 - Math.floor(pl.w / 2), sy + 7);
+    stamp(b, pl, slotCx - Math.floor(pl.w / 2), sy + 7);
     // "LVL n" red rubber stamp across the strip (shortened so it stays inside the card).
     const t = lockLabel(spec.level, W - 6);
     const m = measureText(FONTS.smallBold, t);

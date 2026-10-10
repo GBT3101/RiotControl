@@ -3,6 +3,7 @@
  * front three-quarter view and cropped tight around the crew/turret (cards frame them).
  */
 import type { SpriteRegistry } from '../lib/registry';
+import { registerCardFigures } from './cardFigures';
 import { crop, type PixelBuffer } from '../lib/pixels';
 import { heliBody } from './heli';
 import { HUMVEE_PIVOT, humveeHull, humveeTurret } from './humvee';
@@ -42,4 +43,6 @@ export function registerIcons(reg: SpriteRegistry): void {
     const m = heliBody(0, false);
     add('heli', portrait(m, { yaw: 67.5, pitch: 6 }, [2, 0, 0]));
   }
+  // Whole-vehicle deploy-card figures (`veh.<id>.card` / `.card.sm`).
+  registerCardFigures(reg);
 }

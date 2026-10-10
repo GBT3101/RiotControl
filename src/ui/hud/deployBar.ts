@@ -1,5 +1,5 @@
 /**
- * Deploy bar: one card per Ministry unit (all 11, in unlock order) with portrait, cost, hotkey
+ * Deploy bar: one card per Ministry unit (all 11, in unlock order) with its figure, cost, hotkey
  * and state (ready / unaffordable / locked "LVL n" silhouette / selected). Tap a card to enter
  * deploy mode (tap again or Esc to leave). Hover (desktop) or long-press (touch) shows the
  * index-card tooltip. On narrow screens the strip scrolls horizontally (drag or wheel) like a
@@ -11,7 +11,7 @@ import { panel } from '../../art/uikit/panels';
 import { UNITS, UNIT_ORDER, type UnitId } from '../../data/units';
 import type { DeployOption, GameController } from '../../game/controller';
 import { formatNumber } from '../records';
-import { compactCard, unitPortrait } from '../art';
+import { compactCard, unitCardFigure } from '../art';
 import { makeInteractive } from '../core/node';
 import { swapOwned, uiTex, destroyOwned } from '../core/tex';
 import { clampScroll, scrollToCard, type HudLayout } from '../layout';
@@ -140,12 +140,12 @@ export class DeployBar {
   }
 
   private cardTexture(o: DeployOption, st: CardState, compact: boolean): Texture {
-    const portrait = unitPortrait(o.unit);
-    const key = `card:${o.unit}:${st}:${compact}:${portrait ? 1 : 0}:${o.cost}`;
+    const figure = unitCardFigure(o.unit, compact ? 'compact' : 'card');
+    const key = `card:${o.unit}:${st}:${compact}:${figure ? 1 : 0}:${o.cost}`;
     return uiTex(key, () =>
       compact
-        ? compactCard({ portrait, cost: o.cost, state: st, level: o.level })
-        : deployCard({ portrait, cost: o.cost, hotkey: o.hotkey, state: st, level: o.level }),
+        ? compactCard({ figure, cost: o.cost, state: st, level: o.level })
+        : deployCard({ figure, cost: o.cost, hotkey: o.hotkey, state: st, level: o.level }),
     );
   }
 
