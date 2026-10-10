@@ -49,6 +49,8 @@ export const BOT_TUNING = {
    * `--set bot.spread=3` spreads officers out of each other's support (outnumbering A/B test).
    */
   spread: 1,
+  /** While saving for an expensive unit, keep cheap types filled to this fraction of the plan. */
+  cheapFill: 0.6,
 };
 
 const N8X = [1, -1, 0, 0, 1, 1, -1, -1];
@@ -527,6 +529,9 @@ export class Bot {
 
   private cheap(): void {
     this.gasAndCall(60);
+    // A few officers on the steps (playtest round: crowds walk 1.5× faster and slip past lines).
+    const home = 2 + (this.w.level >> 1);
+    if (this.countIn('riot', 0, 4.5) < home && this.canBuy('riot')) this.placeHome();
     const cheapest = UNIT_ORDER.filter((id) => UNITS[id].cost <= 10 && this.unlocked(id));
     for (let k = 0; k < 4; k++) {
       const type = cheapest[this.rot++ % cheapest.length]!;
@@ -569,10 +574,10 @@ export class Bot {
     const L = this.w.level;
     const wave = this.w.director.wave;
     const p: Partial<Record<UnitId, number>> = {
-      riot: Math.min(36, 6 + 2 * L + (wave >> 1)),
-      sniper: L >= 1 ? Math.min(10, 2 + L) : 0,
+      riot: Math.min(30, 6 + L + (wave >> 2)),
+      sniper: L >= 1 ? Math.min(16, 3 + 2 * L) : 0,
       blockade: L >= 2 ? Math.min(6, 2 + (L >> 1)) : 0,
-      gas: L >= 3 ? Math.min(8, 2 + (L >> 1)) : 0,
+      gas: L >= 3 ? Math.min(12, 2 + L) : 0,
       mounted: L >= 4 ? Math.min(4, 1 + (L >> 2)) : 0,
       armed: L >= 5 ? Math.min(8, L - 2) : 0,
       soldier: L >= 6 ? Math.min(8, L - 4) : 0,
@@ -608,13 +613,15 @@ export class Bot {
       if (!this.guarded(b) && this.canBuy('riot')) this.guardRoof(b);
     }
     const plan = this.plan(scale);
+    // Types with no free spot this decision (try the next deficit instead of stalling).
+    const blocked = new Set<UnitId>();
     for (let k = 0; k < 4; k++) {
       // Biggest relative deficit first; expensive units are saved for.
       let best: UnitId | null = null;
       let bestScore = 0;
       for (const id of UNIT_ORDER) {
         const want = plan[id] ?? 0;
-        if (want <= 0 || !this.unlocked(id)) continue;
+        if (want <= 0 || !this.unlocked(id) || blocked.has(id)) continue;
         const have = this.count(id);
         if (have >= want) continue;
         const score = (want - have) / want + (UNITS[id].cost >= 50 ? 0.3 : 0);
@@ -633,7 +640,9 @@ export class Bot {
         // Hate scarce, hoarding while the line thins out loses the Capitol).
         const cheapNeed = UNIT_ORDER.find(
           (id) =>
-            UNITS[id].cost <= 10 && this.count(id) < (plan[id] ?? 0) && this.canBuy(id),
+            UNITS[id].cost <= 10 &&
+            this.count(id) < (plan[id] ?? 0) * BOT_TUNING.cheapFill &&
+            this.canBuy(id),
         );
         if (cheapNeed) this.buyPlanned(cheapNeed);
         return;
@@ -644,8 +653,10 @@ export class Bot {
           // No guarded roof free: guard the best free one first.
           const r = this.intel.roofs.find((x) => w.roofUnit[x.b]! < 0);
           if (r) this.guardRoof(r.b);
+          return;
         }
-        return;
+        if (this.tokens < 1) return;
+        blocked.add(best);
       }
     }
   }

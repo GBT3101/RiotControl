@@ -85,6 +85,16 @@ export function meleeStrike(w: World, u: Unit, dt: number): void {
     dmgType: a.dmgType,
   });
   hurtProtester(w, t, a.damage, DMG[a.dmgType], a.lethal, u.id);
+  // Cleave: the swing also catches other protesters pressing into the unit's slots.
+  let more = (a.cleave ?? 1) - 1;
+  for (let k = 0; k < hs.length && more > 0; k++) {
+    const h = hs[k]!;
+    if (h === -1) continue;
+    const s = c.resolve(h);
+    if (s < 0 || s === t) continue;
+    hurtProtester(w, s, a.damage, DMG[a.dmgType], a.lethal, u.id);
+    more--;
+  }
   u.cd = a.cooldown;
   u.lastAttack = w.time;
   u.state = US.ATTACKING;

@@ -71,7 +71,7 @@ export const BALANCE = {
 
   // ── Capitol ───────────────────────────────────────────────────────────────────────────
   /** Integrity HP (UI shows %). */
-  capitolHp: 18000,
+  capitolHp: 25000,
   /** Protesters within this flow distance (tiles) of the steps attack the Capitol. */
   capitolReach: 1.2,
   /** Integrity fractions below which the Capitol enters damage states 1..5 (graffiti → collapsing). */
@@ -91,7 +91,7 @@ export const BALANCE = {
     radius: 1.2,
     supportRadius: 3,
     slope: 0.3,
-    minMult: 0.6,
+    minMult: 0.5,
     maxMult: 3.5,
     /** Recomputed every this many ticks. */
     everyTicks: 6,
@@ -149,7 +149,7 @@ export const BALANCE = {
     /** Wave 1 size. */
     base: 30,
     /** Growth per wave. */
-    growth: 1.11,
+    growth: 1.08,
     /** +fraction per player level. */
     perLevel: 0.03,
     /** +fraction per elapsed minute of the run… */
@@ -180,8 +180,8 @@ export const BALANCE = {
     newestBoost: 1.6,
     newestWindow: 1,
     /** A type joining mid-run enters at this weight fraction, +`introStep` per wave (≤ 1). */
-    introStart: 0.3,
-    introStep: 0.25,
+    introStart: 0.15,
+    introStep: 0.15,
     breta: { chance: 0.01, paparazzi: [6, 10] as [number, number] },
   },
 
