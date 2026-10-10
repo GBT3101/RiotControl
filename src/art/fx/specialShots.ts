@@ -57,7 +57,11 @@ export function gallopDust(): Framed {
       { x: ax - 8 - drift * 1.2, y: ay - 3 * s - f * 0.3, r: 3.6 * s, sy: 0.85 },
       { x: ax - 13 - drift * 1.4, y: ay - 2.4 * s - f * 0.5, r: 2.6 * s, sy: 0.8 },
       { x: ax + 1 - drift * 0.6, y: ay - 1.5 * s, r: 2 * s, sy: 0.8 },
-    ].map((l, i) => ({ ...l, y: l.y - (i % 2) * tear * 2, r: Math.max(0.8, l.r * (1 - tear * (i % 2 ? 0.5 : 0.3))) }));
+    ].map((l, i) => ({
+      ...l,
+      y: l.y - (i % 2) * tear * 2,
+      r: Math.max(0.8, l.r * (1 - tear * (i % 2 ? 0.5 : 0.3))),
+    }));
     paintLobes(b, lobes, {
       ramp: f < 4 ? DUST : DUST_DARK,
       outlineLit: 'stone1',
@@ -140,7 +144,12 @@ export function knockBurst(): Framed {
       const lobes: Lobe[] = [
         { x: ax + 3 + p * 9, y: ay - 2 - p, r: 2.8 + p * 1 - Math.max(0, p - 0.6) * 4, sy: 0.8 },
         { x: ax - 1 + p * 5, y: ay - 1.5, r: 2.2 + p * 0.6 - Math.max(0, p - 0.5) * 3, sy: 0.8 },
-        { x: ax + 7 + p * 12, y: ay - 1.5 - p * 1.5, r: 2 + p * 1.2 - Math.max(0, p - 0.7) * 5, sy: 0.85 },
+        {
+          x: ax + 7 + p * 12,
+          y: ay - 1.5 - p * 1.5,
+          r: 2 + p * 1.2 - Math.max(0, p - 0.7) * 5,
+          sy: 0.85,
+        },
       ].filter((l) => l.r >= 1);
       paintLobes(b, lobes, { ramp: DUST, outlineLit: 'stone1', creases: false });
     }
@@ -156,7 +165,14 @@ export function knockBurst(): Framed {
         for (let i = 0; i < len; i++) {
           const x = lead + i - (f === 3 ? 3 : 0);
           const y = ay + dy - Math.round(i * i * k * 0.18) + (dy === -5 ? 0 : 0);
-          const c = i > len - 3 ? (dim || f === 3 ? 'stone4' : 'white') : i > len * 0.4 ? 'stone4' : 'stone3';
+          const c =
+            i > len - 3
+              ? dim || f === 3
+                ? 'stone4'
+                : 'white'
+              : i > len * 0.4
+                ? 'stone4'
+                : 'stone3';
           px(b, x, y, c);
         }
       }
@@ -192,7 +208,16 @@ export function knockBurst(): Framed {
 /* ================================================================== rapid fire */
 
 /** Banded muzzle star along angle `a` (white core → ochre → rust rim), like particles.ts. */
-function muzzleStar(b: PixelBuffer, c: number, a: number, main: number, side: number, core: number, seed: number, hot: boolean): void {
+function muzzleStar(
+  b: PixelBuffer,
+  c: number,
+  a: number,
+  main: number,
+  side: number,
+  core: number,
+  seed: number,
+  hot: boolean,
+): void {
   const rnd = prng(seed);
   const spikes: Array<[number, number, number]> = [
     [0, main, 0.5],
@@ -217,7 +242,24 @@ function muzzleStar(b: PixelBuffer, c: number, a: number, main: number, side: nu
       }
       if (d > r) continue;
       const q = d / r;
-      px(b, x, y, hot ? (q < 0.4 ? 'white' : q < 0.65 ? 'ochre4' : q < 0.85 ? 'ochre3' : 'rust3') : q < 0.45 ? 'ochre4' : q < 0.8 ? 'ochre3' : 'rust3');
+      px(
+        b,
+        x,
+        y,
+        hot
+          ? q < 0.4
+            ? 'white'
+            : q < 0.65
+              ? 'ochre4'
+              : q < 0.85
+                ? 'ochre3'
+                : 'rust3'
+          : q < 0.45
+            ? 'ochre4'
+            : q < 0.8
+              ? 'ochre3'
+              : 'rust3',
+      );
     }
   }
 }
@@ -236,9 +278,23 @@ export function rapidFlash(dir: Dir8, seed: number): Framed {
         { x: c + 0.5 + vx * 3, y: c - 0.5 + vy * 3 - f, r: 1.6 + f * 0.4 },
         { x: c + 0.5 + vx * 5 + 1, y: c - 2 + vy * 4 - f * 1.5, r: 1.2 + f * 0.3 },
       ];
-      paintLobes(b, lobes, { ramp: ['gray3', 'gray5', 'gray6', 'gray7', 'white'], outlineLit: 'gray4', creases: false });
+      paintLobes(b, lobes, {
+        ramp: ['gray3', 'gray5', 'gray6', 'gray7', 'white'],
+        outlineLit: 'gray4',
+        creases: false,
+      });
     }
-    if (f < 2) muzzleStar(b, c, a, f === 0 ? 8 : 5, f === 0 ? 4 : 2.5, f === 0 ? 2.4 : 1.6, seed + f, f === 0);
+    if (f < 2)
+      muzzleStar(
+        b,
+        c,
+        a,
+        f === 0 ? 8 : 5,
+        f === 0 ? 4 : 2.5,
+        f === 0 ? 2.4 : 1.6,
+        seed + f,
+        f === 0,
+      );
     return b;
   });
   return { frames, anchor: { x: c, y: c } };
@@ -252,8 +308,8 @@ export function rapidTracer(dir: Dir8): Framed {
   const ey = Math.round(vy * (L - 1));
   const W = Math.abs(ex) + 3;
   const H = Math.abs(ey) + 3;
-  const hx = (ex >= 0 ? W - 2 : 1);
-  const hy = (ey >= 0 ? H - 2 : 1);
+  const hx = ex >= 0 ? W - 2 : 1;
+  const hy = ey >= 0 ? H - 2 : 1;
   const frames = [0, 1].map((f) => {
     const b = buf(W, H);
     // Hot glow under the head (1 px wider at the front).
@@ -291,10 +347,23 @@ export function casingBurst(): Framed {
   }));
   // Spin poses: horizontal, diagonal, vertical, other diagonal (brass, lit end ochre3).
   const POSES: Array<Array<[number, number, string]>> = [
-    [[0, 0, 'ochre1'], [1, 0, 'ochre3'], [2, 0, 'ochre2']],
-    [[0, 1, 'ochre1'], [1, 0, 'ochre3']],
-    [[0, 0, 'ochre3'], [0, 1, 'ochre1']],
-    [[0, 0, 'ochre3'], [1, 1, 'ochre1']],
+    [
+      [0, 0, 'ochre1'],
+      [1, 0, 'ochre3'],
+      [2, 0, 'ochre2'],
+    ],
+    [
+      [0, 1, 'ochre1'],
+      [1, 0, 'ochre3'],
+    ],
+    [
+      [0, 0, 'ochre3'],
+      [0, 1, 'ochre1'],
+    ],
+    [
+      [0, 0, 'ochre3'],
+      [1, 1, 'ochre1'],
+    ],
   ];
   const frames: PixelBuffer[] = [];
   for (let f = 0; f < 20; f++) {
@@ -366,7 +435,12 @@ export function fragGrenade(): Framed {
     px(b, fx + (Math.abs(uy) > 0.7 ? 1 : 0), fy + (Math.abs(uy) > 0.7 ? 0 : 1), 'zinc3');
     for (let k = 1; k <= 3; k++) {
       const sa = a + 0.42 * k;
-      px(b, Math.floor(c + Math.cos(sa) * 3.9), Math.floor(c + 0.3 + Math.sin(sa) * 4.2), k === 1 ? 'zinc3' : 'zinc2');
+      px(
+        b,
+        Math.floor(c + Math.cos(sa) * 3.9),
+        Math.floor(c + 0.3 + Math.sin(sa) * 4.2),
+        k === 1 ? 'zinc3' : 'zinc2',
+      );
     }
     outlineBuf(b, 'ink');
     frames.push(b);
@@ -379,12 +453,36 @@ export function fragSpoon(): Framed {
   const W = 13;
   const H = 13;
   const shapes: Array<Array<[number, number]>> = [
-    [[0, 0], [1, 0], [2, 1]],
-    [[0, 1], [1, 0], [1, -1]],
-    [[0, 0], [0, 1], [1, 2]],
-    [[0, 1], [1, 1], [2, 0]],
-    [[0, 0], [1, 1], [1, 2]],
-    [[0, 0], [1, 0], [2, 0]],
+    [
+      [0, 0],
+      [1, 0],
+      [2, 1],
+    ],
+    [
+      [0, 1],
+      [1, 0],
+      [1, -1],
+    ],
+    [
+      [0, 0],
+      [0, 1],
+      [1, 2],
+    ],
+    [
+      [0, 1],
+      [1, 1],
+      [2, 0],
+    ],
+    [
+      [0, 0],
+      [1, 1],
+      [1, 2],
+    ],
+    [
+      [0, 0],
+      [1, 0],
+      [2, 0],
+    ],
   ];
   const path: Array<[number, number]> = [
     [3, 8],
@@ -486,7 +584,8 @@ function rocketAt(spec: RocketSpec, a: number, f: number): Framed {
       const back = tail - u; // distance behind the tail
       if (back > 0 && back < fl) {
         const w = spec.hw * 0.95 * (1 - back / fl) + 0.35;
-        if (Math.abs(v) <= w) px(b, x, y, back < fl * 0.3 ? 'white' : back < fl * 0.6 ? 'ochre4' : 'ochre3');
+        if (Math.abs(v) <= w)
+          px(b, x, y, back < fl * 0.3 ? 'white' : back < fl * 0.6 ? 'ochre4' : 'ochre3');
         else if (Math.abs(v) <= w + 0.8 && back < fl * 0.8) px(b, x, y, 'rust3');
       }
     }
@@ -501,11 +600,21 @@ function rocketAt(spec: RocketSpec, a: number, f: number): Framed {
       let ref: string | null = null;
       if (u >= tail && u <= head && Math.abs(v) <= spec.hw) {
         const side = v * litSide;
-        ref = side > spec.hw * 0.35 ? spec.body[2] : side < -spec.hw * 0.35 ? spec.body[0] : spec.body[1];
+        ref =
+          side > spec.hw * 0.35
+            ? spec.body[2]
+            : side < -spec.hw * 0.35
+              ? spec.body[0]
+              : spec.body[1];
         if (spec.band && u > head - 3 && u <= head - 2) ref = spec.band;
       } else if (u > head && u <= head + 2.6 && Math.abs(v) <= spec.hw * (1 - (u - head) / 2.8)) {
         ref = spec.nose;
-      } else if (u >= tail - 0.4 && u <= tail + 2 && Math.abs(v) <= spec.fin && Math.abs(v) > spec.hw - 0.2) {
+      } else if (
+        u >= tail - 0.4 &&
+        u <= tail + 2 &&
+        Math.abs(v) <= spec.fin &&
+        Math.abs(v) > spec.hw - 0.2
+      ) {
         ref = spec.body[0];
       }
       if (ref) px(body, x, y, ref);
@@ -561,7 +670,10 @@ export function exhaustPuff(big: boolean): Framed {
           { x: c + r * 0.5, y: c - 0.5 - f * 0.4, r: r * 0.7 },
         ];
     paintLobes(b, lobes, {
-      ramp: f === 1 ? ['gray4', 'gray6', 'gray7', 'white', 'white'] : ['gray2', 'gray4', 'gray5', 'gray6', 'gray7'],
+      ramp:
+        f === 1
+          ? ['gray4', 'gray6', 'gray7', 'white', 'white']
+          : ['gray2', 'gray4', 'gray5', 'gray6', 'gray7'],
       outlineLit: f === 1 ? 'gray5' : 'gray3',
       creases: false,
     });
@@ -592,12 +704,19 @@ export function launchBlast(): Framed {
         r: Math.max(1, r * (1 - Math.abs(s) * 0.3)),
         sy: 0.85,
       }));
-      paintLobes(b, lobes.sort((q, w) => q.y - w.y), {
-        ramp: p < 0.35 ? ['gray3', 'gray5', 'gray6', 'gray7', 'white'] : ['gray2', 'gray4', 'gray5', 'gray6', 'gray7'],
-        outlineLit: 'gray3',
-        creases: false,
-        holes: p > 0.6 ? [{ x: cx + 0.5, y: cy - 4 - p * 4, r: (p - 0.5) * 7 }] : [],
-      });
+      paintLobes(
+        b,
+        lobes.sort((q, w) => q.y - w.y),
+        {
+          ramp:
+            p < 0.35
+              ? ['gray3', 'gray5', 'gray6', 'gray7', 'white']
+              : ['gray2', 'gray4', 'gray5', 'gray6', 'gray7'],
+          outlineLit: 'gray3',
+          creases: false,
+          holes: p > 0.6 ? [{ x: cx + 0.5, y: cy - 4 - p * 4, r: (p - 0.5) * 7 }] : [],
+        },
+      );
     }
     if (f < 2) {
       muzzleStar(b, Math.floor(cx), -Math.PI / 2, f === 0 ? 7 : 4, 5, 2.6, 5 + f, f === 0);

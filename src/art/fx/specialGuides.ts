@@ -7,7 +7,7 @@
  *                  chevron stripe, start puck, arrowhead, the 2×1.2-tile width ghost (dashed edges +
  *                  iso hatching) and an invalid / too-long state.
  * - `guideRing`  — iso rings of any radius: the Tank's dashed range ring and the blast preview.
- * - `reticle`    — the Tank's aim reticle: idle (brackets turning), locked, out of range.
+ * - `reticle`    — the Tank's aim reticle: idle (brackets breathing), locked, out of range.
  *
  * The painters work in tile space (distances in tiles, iso-correct widths and caps) and output
  * palette-pure frames. Inputs are world px; the returned anchor is the pixel of the first point,
@@ -33,7 +33,11 @@ function toTile(dx: number, dy: number): [number, number] {
 }
 
 /** Bounding box (world px) of a polyline grown by `pad` px. */
-function bbox(pts: readonly WorldPoint[], padX: number, padY: number): { x0: number; y0: number; x1: number; y1: number } {
+function bbox(
+  pts: readonly WorldPoint[],
+  padX: number,
+  padY: number,
+): { x0: number; y0: number; x1: number; y1: number } {
   let x0 = Infinity;
   let y0 = Infinity;
   let x1 = -Infinity;
@@ -44,12 +48,17 @@ function bbox(pts: readonly WorldPoint[], padX: number, padY: number): { x0: num
     x1 = Math.max(x1, p.x);
     y1 = Math.max(y1, p.y);
   }
-  return { x0: Math.floor(x0 - padX), y0: Math.floor(y0 - padY), x1: Math.ceil(x1 + padX), y1: Math.ceil(y1 + padY) };
+  return {
+    x0: Math.floor(x0 - padX),
+    y0: Math.floor(y0 - padY),
+    x1: Math.ceil(x1 + padX),
+    y1: Math.ceil(y1 + padY),
+  };
 }
 
 /** Iso hatch: sparse 2:1 diagonal lines on world pixels (reads as painted-on-the-ground). */
 function isoHatch(wx: number, wy: number, period = 8): boolean {
-  return ((((wx - 2 * wy) % period) + period) % period) === 0;
+  return (((wx - 2 * wy) % period) + period) % period === 0;
 }
 
 /* ------------------------------------------------------------------ strike line */
@@ -95,7 +104,9 @@ export function strikeLine(points: readonly WorldPoint[], o: StrikeLineOptions =
   const path = pts.map((p) => toTile(p.x - origin.x, p.y - origin.y));
   const cum = [0];
   for (let k = 1; k < path.length; k++)
-    cum.push(cum[k - 1]! + Math.hypot(path[k]![0] - path[k - 1]![0], path[k]![1] - path[k - 1]![1]));
+    cum.push(
+      cum[k - 1]! + Math.hypot(path[k]![0] - path[k - 1]![0], path[k]![1] - path[k - 1]![1]),
+    );
   const total = cum[cum.length - 1]!;
   const maxLen = o.maxLen ?? Infinity;
   const reach = (ghost ? W : 0.9) + 0.2;
@@ -183,7 +194,8 @@ export function strikeLine(points: readonly WorldPoint[], o: StrikeLineOptions =
           if (Math.abs(v) <= half && u > -0.12) {
             kind[i] = FIXED;
             mset(solid, x, y);
-            fixed[i] = fl.s > maxLen ? 'gray5' : Math.abs(v) < half - 0.16 && u < 0.6 ? 'crim2' : 'hivis2';
+            fixed[i] =
+              fl.s > maxLen ? 'gray5' : Math.abs(v) < half - 0.16 && u < 0.6 ? 'crim2' : 'hivis2';
             continue;
           }
         } else if (
@@ -226,7 +238,8 @@ export function strikeLine(points: readonly WorldPoint[], o: StrikeLineOptions =
       for (let x = 0; x < BW; x++) {
         const i = y * BW + x;
         if (kind[i] === STRIPE || dArr[i]! > W || sArr[i]! < -W || sArr[i]! > total + W) continue;
-        if (outside(x + 1, y) || outside(x - 1, y) || outside(x, y + 1) || outside(x, y - 1)) kind[i] = EDGE;
+        if (outside(x + 1, y) || outside(x - 1, y) || outside(x, y + 1) || outside(x, y - 1))
+          kind[i] = EDGE;
       }
     }
   }
@@ -261,7 +274,8 @@ export function strikeLine(points: readonly WorldPoint[], o: StrikeLineOptions =
         // Edge dashes march with the chevrons.
         const sv = sArr[i]!;
         const along = sv + (sv < 0 || sv > total ? Math.atan2(sideArr[i]!, 1) : 0);
-        if ((Math.floor((along + sideArr[i]! * chev * 0.25 - phase * chev) / (chev / 2)) & 1) === 0) continue;
+        if ((Math.floor((along + sideArr[i]! * chev * 0.25 - phase * chev) / (chev / 2)) & 1) === 0)
+          continue;
         c = over[i] ? C.crim1 : C.hivis2;
         // Ink drop under the dash so it reads on light pavement.
         if (i + BW < N && !kind[i + BW] && !d32[i + BW]) d32[i + BW] = C.ink;
@@ -332,13 +346,14 @@ export function ramLane(dx: number, dy: number, half = 0.5, nF = 6): Framed {
           colour[i] = Math.floor((v + half) / 0.25) & 1 ? 'hivis2' : 'navy2';
           continue;
         }
-        // Chevrons inside the sweep window (bright head, dimmer tail).
-        const w = sweep - s;
-        if (w > -0.1 && w < 1.6 && Math.abs(v) < half - 0.12) {
+        // Chevrons along the whole lane (navy, so the lane always reads), lit hi-vis inside
+        // the sweep window (white-hot head, hi-vis tail).
+        if (Math.abs(v) < half - 0.12) {
           const q = s + Math.abs(v) * 0.9;
           if ((Math.floor(q / 0.25) & 1) === 0) {
+            const w = sweep - s;
             mset(solid, x, y);
-            colour[i] = w < 0.7 ? 'hivis2' : 'hivis1';
+            colour[i] = w > -0.1 && w < 0.35 ? 'white' : w >= 0.35 && w < 1.6 ? 'hivis2' : 'navy2';
           }
         }
       }
@@ -351,7 +366,7 @@ export function ramLane(dx: number, dy: number, half = 0.5, nF = 6): Framed {
         if (inLane(x + 1, y) && inLane(x - 1, y) && inLane(x, y + 1) && inLane(x, y - 1)) continue;
         const [s] = sv;
         if (s > L - 0.2) continue;
-        if (((Math.floor((s - f * 0.08) / 0.3) & 1) === 1)) continue;
+        if ((Math.floor((s - f * 0.08) / 0.3) & 1) === 1) continue;
         colour[y * BW + x] = 'hivis2';
         if (y + 1 < BH && !colour[(y + 1) * BW + x]) colour[(y + 1) * BW + x] = 'ink';
       }
@@ -379,7 +394,7 @@ export function guideRing(tiles: number, style: RingStyle): Framed {
   const H = Math.ceil(RY * 2) + 8;
   const cx = W / 2;
   const cy = H / 2;
-  const nF = style === 'range' ? 2 : 4;
+  const nF = 2;
   const per = (RX + RY) * 2.2;
   const frames: PixelBuffer[] = [];
   for (let f = 0; f < nF; f++) {
@@ -398,7 +413,7 @@ export function guideRing(tiles: number, style: RingStyle): Framed {
         }
       }
     } else {
-      const pulse = [0, 0.6, 1, 0.6][f]!;
+      const pulse = [0, 1][f]!;
       const rx = RX - 1 + pulse;
       const ry = RY - 0.5 + pulse * 0.5;
       // Hazard hatch inside (world-aligned once placed at an integer centre).
@@ -409,8 +424,18 @@ export function guideRing(tiles: number, style: RingStyle): Framed {
         }
       }
       ellipseRing(b, cx, cy + 1, rx, ry, 'rust0', 2);
-      ellipseRing(b, cx, cy, rx, ry, (_x, _y, a) => ((step(a) + f * 3) % 8 < 5 ? 'crim2' : 'rust4'), 2);
-      ellipseRing(b, cx, cy, rx * 0.86, ry * 0.86, (_x, _y, a) => (step(a) % 4 === 0 ? 'crim2' : null));
+      ellipseRing(
+        b,
+        cx,
+        cy,
+        rx,
+        ry,
+        (_x, _y, a) => ((step(a) + f * 3) % 8 < 5 ? 'crim2' : 'rust4'),
+        2,
+      );
+      ellipseRing(b, cx, cy, rx * 0.86, ry * 0.86, (_x, _y, a) =>
+        step(a) % 4 === 0 ? 'crim2' : null,
+      );
     }
     frames.push(b);
   }
@@ -423,38 +448,40 @@ export type ReticleState = 'idle' | 'locked' | 'invalid';
 
 /**
  * Ground reticle for the tank's missile (anchor = the aimed ground point). Idle: four hi-vis
- * bracket arcs slowly turning around an iso ellipse, a white crosshair; locked: brackets snap in,
+ * bracket arcs breathing on the iso diagonals, a white crosshair; locked: brackets snap in,
  * crimson, the centre diamond blinks white/red with inward ticks; invalid: grey brackets + red X.
  */
 export function reticle(state: ReticleState): Framed {
-  const W = 41;
-  const H = 25;
-  const cx = 20.5;
-  const cy = 12.5;
-  const nF = state === 'idle' ? 6 : state === 'locked' ? 4 : 2;
+  const W = 57;
+  const H = 33;
+  const cx = 28.5;
+  const cy = 16.5;
+  const nF = state === 'invalid' ? 2 : 4;
   const frames: PixelBuffer[] = [];
   for (let f = 0; f < nF; f++) {
     const b = buf(W, H);
     const solid = mask(W, H);
-    const rx = state === 'locked' ? [12, 10, 10, 10][f]! : state === 'idle' ? 15 + (f % 3 === 1 ? 1 : 0) : 14;
+    const rx =
+      state === 'locked' ? [19, 16, 16, 16][f]! : state === 'idle' ? [21, 22, 23, 22][f]! : 19;
     const ry = rx / 2;
-    const turn = state === 'idle' ? (f / nF) * (Math.PI / 2) : 0;
     const main = state === 'locked' ? 'crim2' : state === 'idle' ? 'hivis2' : 'gray5';
-    // Bracket arcs (2 px thick) at the four diagonals.
+    // Bracket arcs (3 px thick) fixed on the four diagonals — never rotated into the crosshair.
     for (let y = 0; y < H; y++) {
       for (let x = 0; x < W; x++) {
-        if (!inEllipse(x, y, cx, cy, rx, ry) || inEllipse(x, y, cx, cy, rx - 2, ry - 1.2)) continue;
-        const a = Math.atan2((y + 0.5 - cy) / ry, (x + 0.5 - cx) / rx) - turn;
+        if (!inEllipse(x, y, cx, cy, rx, ry) || inEllipse(x, y, cx, cy, rx - 3, ry - 1.9)) continue;
+        const a = Math.atan2((y + 0.5 - cy) / ry, (x + 0.5 - cx) / rx);
         if (Math.abs(Math.sin(2 * a)) < 0.62) continue;
         mset(solid, x, y);
-        px(b, x, y, main);
+        // Inner edge catches a highlight so the brackets pop over a busy crowd.
+        const rim = !inEllipse(x, y, cx, cy, rx - 1.5, ry - 0.9);
+        px(b, x, y, state !== 'invalid' && !rim ? 'white' : main);
       }
     }
     // Crosshair / centre.
     const cxi = Math.floor(cx);
     const cyi = Math.floor(cy);
     if (state === 'invalid') {
-      for (let k = -3; k <= 3; k++) {
+      for (let k = -4; k <= 4; k++) {
         for (const [x, y] of [
           [cxi + k * 2, cyi + k],
           [cxi + k * 2 + 1, cyi + k],
@@ -467,7 +494,7 @@ export function reticle(state: ReticleState): Framed {
       }
     } else {
       // Crosshair: solid iso arms (2:1) with a gap around the centre.
-      const arm = state === 'locked' ? 5 : 8;
+      const arm = state === 'locked' ? 4 : 10;
       const cross = state === 'locked' ? 'white' : 'stone5';
       for (let k = 3; k <= arm + 2; k++) {
         for (const [x, y] of [
@@ -496,7 +523,7 @@ export function reticle(state: ReticleState): Framed {
         [cxi, cyi - 1],
         [cxi, cyi + 1],
       ] as const) {
-        if (state === 'idle' && (x !== cxi || y !== cyi) && f % 3 !== 0) continue;
+        if (state === 'idle' && (x !== cxi || y !== cyi) && f % 2 !== 0) continue;
         mset(solid, x, y);
         px(b, x, y, dc);
       }
@@ -543,23 +570,29 @@ function strikeSegment(d: Dir8, state: GuideState): Framed {
 export function registerGuides(reg: SpriteRegistry): void {
   for (const d of DIRS) {
     const st = segmentStep(d);
-    addGuide(reg, `ui.special.ram.lane.${d}`, ramLane(st.x * (Math.abs(st.y) === 8 ? 6 : 4), st.y * (Math.abs(st.y) === 8 ? 6 : 4)), 12);
+    // Registered lanes: the four tile axes (6 tiles); any other heading → `ramLane()`.
+    if (Math.abs(st.y) === 8)
+      addGuide(reg, `ui.special.ram.lane.${d}`, ramLane(st.x * 6, st.y * 6, 0.5, 4), 10);
     addGuide(reg, `ui.special.strike.seg.${d}`, strikeSegment(d, 'valid'), 8);
     addGuide(reg, `ui.special.strike.seg.${d}.invalid`, strikeSegment(d, 'invalid'), 8);
   }
-  addGuide(reg, 'ui.special.strike.sample', strikeLine(
-    [
-      { x: 0, y: 0 },
-      { x: 80, y: 40 },
-      { x: 150, y: 44 },
-      { x: 220, y: 20 },
-    ],
-    { maxLen: 9 },
-  ), 8);
-  addGuide(reg, 'ui.special.missile.blast', guideRing(MISSILE_RADIUS, 'blast'), 8);
-  addGuide(reg, 'ui.special.frag.blast', guideRing(FRAG_RADIUS, 'frag'), 8);
+  addGuide(
+    reg,
+    'ui.special.strike.sample',
+    strikeLine(
+      [
+        { x: 0, y: 0 },
+        { x: 80, y: 40 },
+        { x: 150, y: 44 },
+        { x: 220, y: 20 },
+      ],
+      { maxLen: 9, frames: 1 },
+    ),
+    4,
+  );
+  addGuide(reg, 'ui.special.missile.blast', guideRing(MISSILE_RADIUS, 'blast'), 4);
+  addGuide(reg, 'ui.special.frag.blast', guideRing(FRAG_RADIUS, 'frag'), 4);
   addGuide(reg, 'ui.special.missile.reticle.idle', reticle('idle'), 8);
   addGuide(reg, 'ui.special.missile.reticle.locked', reticle('locked'), 12);
   addGuide(reg, 'ui.special.missile.reticle.invalid', reticle('invalid'), 4);
 }
-

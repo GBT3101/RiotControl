@@ -197,13 +197,22 @@ export function specialCue(skill: SpecialSkill, f: number): PixelBuffer {
 export function specialButton(name: SpecialIconName, state: ButtonState): PixelBuffer {
   const b = roundButton(null, state, 'lg');
   const icon = state === 'disabled' ? greyed(specialIcon(name)) : specialIcon(name);
-  stamp(b, icon, 11 - Math.floor(icon.w / 2) - 0, 11 - Math.floor(icon.h / 2) + (state === 'pressed' ? 1 : 0));
+  stamp(
+    b,
+    icon,
+    11 - Math.floor(icon.w / 2) - 0,
+    11 - Math.floor(icon.h / 2) + (state === 'pressed' ? 1 : 0),
+  );
   return b;
 }
 
 export function registerSpecialUi(reg: SpriteRegistry): void {
   for (const n of SPECIAL_ICON_NAMES) {
-    reg.add(`ui.special.icon.${n}`, { group: 'ui', frames: specialIcon(n), anchor: { x: 5, y: 5 } });
+    reg.add(`ui.special.icon.${n}`, {
+      group: 'ui',
+      frames: specialIcon(n),
+      anchor: { x: 5, y: 5 },
+    });
     reg.add(`ui.special.btn.${n}`, {
       group: 'ui',
       frames: BUTTON_STATES.map((s) => specialButton(n, s)),

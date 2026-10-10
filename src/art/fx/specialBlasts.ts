@@ -28,7 +28,6 @@ import {
   px,
   rect,
   type Lobe,
-  type Mask,
 } from './draw';
 import { cluster } from './explosions';
 
@@ -181,7 +180,8 @@ function shadeHot(b: PixelBuffer, lobes: readonly Lobe[], d: number): void {
     const ry = l.r * (l.sy ?? 1);
     for (let y = Math.floor(l.y - ry); y <= Math.ceil(l.y + ry); y++) {
       for (let x = Math.floor(l.x - l.r); x <= Math.ceil(l.x + l.r); x++) {
-        if (!inEllipse(x, y, l.x, l.y, l.r, ry) || inEllipse(x + 1, y + 1, l.x, l.y, l.r, ry)) continue;
+        if (!inEllipse(x, y, l.x, l.y, l.r, ry) || inEllipse(x + 1, y + 1, l.x, l.y, l.r, ry))
+          continue;
         if (!mget(k, x + 2, y + 2) || x + 0.5 < l.x - l.r * 0.2) continue;
         const c = colourName(b, x, y);
         if (c === 'white' || c === 'ochre4') marks.push([x, y, 'ochre3']);
@@ -193,7 +193,8 @@ function shadeHot(b: PixelBuffer, lobes: readonly Lobe[], d: number): void {
 
 const NAME_OF = new Map<number, string>();
 function colourName(b: PixelBuffer, x: number, y: number): string | undefined {
-  if (!NAME_OF.size) for (const n of Object.keys(DARKER).concat('rust0')) NAME_OF.set(col(n) >>> 8, n);
+  if (!NAME_OF.size)
+    for (const n of Object.keys(DARKER).concat('rust0')) NAME_OF.set(col(n) >>> 8, n);
   const i = (y * b.w + x) * 4;
   if (b.data[i + 3] !== 255) return undefined;
   return NAME_OF.get((b.data[i]! << 16) | (b.data[i + 1]! << 8) | b.data[i + 2]!);
@@ -306,15 +307,26 @@ export function fireball(spec: FireballSpec): Framed {
     ? [0.3, 0.45, 0.65, 0.95, 1.3, 1.65, 1.95, 2.2, 2.4, 2.55, 2.65, 2.7]
     : [0.35, 0.5, 0.75, 1.0, 1.25, 1.45, 1.62, 1.75, 1.85];
   const SMOKE_R = mush
-    ? [0, 0.35, 0.7, 0.92, 1.05, 1.12, 1.18, 1.22, 1.24, 1.24, 1.2, 1.12]
-    : [0, 0.45, 0.8, 0.98, 1.08, 1.14, 1.16, 1.14, 1.06];
+    ? [0, 0, 0.62, 0.92, 1.05, 1.12, 1.18, 1.22, 1.24, 1.24, 1.2, 1.12]
+    : [0, 0, 0.75, 0.98, 1.08, 1.14, 1.16, 1.14, 1.06];
   const frames: PixelBuffer[] = [];
   for (let f = 0; f < n; f++) {
     const b = buf(W, H);
     const t = f / (n - 1);
     if (f === 0) {
       // Ground glow + tall white starburst.
-      starFlash(b, gx + 0.5, gy - R * 0.1, R * 1.25, R * 0.6, 12, seed + 1, 0.42, HOT_WHITE, 'rust2');
+      starFlash(
+        b,
+        gx + 0.5,
+        gy - R * 0.1,
+        R * 1.25,
+        R * 0.6,
+        12,
+        seed + 1,
+        0.42,
+        HOT_WHITE,
+        'rust2',
+      );
       starFlash(b, gx + 0.5, gy - R * 0.6, R * 1.05, R * 0.5, 9, seed, 1.05, HOT_WHITE, 'rust3');
       frames.push(b);
       continue;
@@ -330,7 +342,16 @@ export function fireball(spec: FireballSpec): Framed {
       const top = Math.round(cy + smokeR * 0.25);
       const thin = 1 - Math.max(0, (t - 0.6) / 0.4) * 0.55;
       const lift = t > 0.6 ? Math.round(((t - 0.6) / 0.4) * (gy - top) * 0.75) : 0;
-      column(b, gx + 0.5, gy - 1 - lift, top, R * 0.3 * thin + 1, R * 0.17 * thin + 1, seed, t < 0.55);
+      column(
+        b,
+        gx + 0.5,
+        gy - 1 - lift,
+        top,
+        R * 0.3 * thin + 1,
+        R * 0.17 * thin + 1,
+        seed,
+        t < 0.55,
+      );
       if (t < 0.5) {
         const foot = cluster(gx + 0.5, gy - R * 0.25, R * (0.55 - t * 0.6), 4, seed + 5, 0.6);
         paintLobes(b, foot, { ramp: HOT, mode: 'hot' });
@@ -379,7 +400,7 @@ export function fireball(spec: FireballSpec): Framed {
       );
     }
     // Base dust skirt (early): wide and flat, behind the fireball's foot.
-    if ((spec.skirt ?? true) && t < 0.62) {
+    if ((spec.skirt ?? true) && t < (mush ? 0.42 : 0.62)) {
       const sk = R * (0.75 + t * 1.6);
       const shrink = 1 - t * 0.7;
       const skirt: Lobe[] = [-1, 1, -0.78, 0.78, -0.55, 0.55, -0.3, 0.3, 0].map((s, i) => ({
@@ -435,9 +456,32 @@ export function groundFlash(rx: number, seed: number, frames = 3): Framed {
   for (let f = 0; f < frames; f++) {
     const b = buf(W, H);
     if (f === 0) {
-      starFlash(b, cx, cy, rx, rx * 0.5, 14, seed, 0.5, ['rust3', 'ochre3', 'ochre4', 'white'], 'rust1');
+      starFlash(
+        b,
+        cx,
+        cy,
+        rx,
+        rx * 0.5,
+        14,
+        seed,
+        0.5,
+        ['rust3', 'ochre3', 'ochre4', 'white'],
+        'rust1',
+      );
     } else if (f === 1) {
-      starFlash(b, cx, cy, rx * 1.18, rx * 0.62, 14, seed + 1, 0.5, ['rust2', 'ochre2', 'ochre3', 'ochre4'], 'rust0', 0.42);
+      starFlash(
+        b,
+        cx,
+        cy,
+        rx * 1.18,
+        rx * 0.62,
+        14,
+        seed + 1,
+        0.5,
+        ['rust2', 'ochre2', 'ochre3', 'ochre4'],
+        'rust0',
+        0.42,
+      );
     } else {
       // Spark ring: short radial dashes at the rim, hot → cooling.
       const rnd = prng(seed + f * 7);
@@ -448,7 +492,12 @@ export function groundFlash(rx: number, seed: number, frames = 3): Framed {
         const len = 2 + Math.floor(rnd() * (f === 2 ? 3 : 2));
         for (let k = 0; k < len; k++) {
           const rr = r - k * 1.2;
-          px(b, cx + Math.cos(a) * rr, cy + Math.sin(a) * rr * 0.5, k === 0 ? (f === 2 ? 'ochre4' : 'ochre3') : 'rust3');
+          px(
+            b,
+            cx + Math.cos(a) * rr,
+            cy + Math.sin(a) * rr * 0.5,
+            k === 0 ? (f === 2 ? 'ochre4' : 'ochre3') : 'rust3',
+          );
         }
       }
     }
@@ -475,7 +524,10 @@ export function shockRing(tiles: number, seed: number, frames = 7): Framed {
   const dust0 = 2.2 + tiles * 0.65;
   const perim = 2 * Math.PI * Math.sqrt((RX * RX + RY * RY) / 2);
   const nLobes = Math.max(12, Math.round(perim / (dust0 * 1.25)));
-  const lobeAng = Array.from({ length: nLobes }, (_, i) => (i / nLobes) * Math.PI * 2 + rnd() * 0.25);
+  const lobeAng = Array.from(
+    { length: nLobes },
+    (_, i) => (i / nLobes) * Math.PI * 2 + rnd() * 0.25,
+  );
   const lobeJit = Array.from({ length: nLobes }, () => 0.75 + rnd() * 0.5);
   const sched = [0.22, 0.42, 0.6, 0.74, 0.85, 0.93, 0.98, 1].slice(-frames);
   const out: PixelBuffer[] = [];
@@ -507,7 +559,11 @@ export function shockRing(tiles: number, seed: number, frames = 7): Framed {
       paintLobes(
         b,
         lobes.sort((p, q) => p.y - q.y),
-        { ramp: life < 0.5 ? DUST_LIGHT : DUST, outlineLit: life < 0.5 ? 'stone2' : 'stone1', creases: false },
+        {
+          ramp: life < 0.5 ? DUST_LIGHT : DUST,
+          outlineLit: life < 0.5 ? 'stone2' : 'stone1',
+          creases: false,
+        },
       );
     }
     // Pressure front: white (thick) → stone → dashed faint.
@@ -526,7 +582,8 @@ export function shockRing(tiles: number, seed: number, frames = 7): Framed {
         },
         life < 0.3 ? 2 : 1,
       );
-      if (life < 0.5) ellipseRing(b, cx, cy + 1, rx - 1, ry - 0.5, (x, y) => (has(b, x, y) ? null : 'stone2'));
+      if (life < 0.5)
+        ellipseRing(b, cx, cy + 1, rx - 1, ry - 0.5, (x, y) => (has(b, x, y) ? null : 'stone2'));
     }
     out.push(b);
   });
@@ -537,7 +594,10 @@ export function shockRing(tiles: number, seed: number, frames = 7): Framed {
 
 const CHUNKS: Record<string, { rows: string[]; keys: Record<string, string> }> = {
   // Asphalt lump: dark top, lit upper-left corner.
-  a: { rows: ['.oo.', 'oLGo', 'oGDo', '.oo.'], keys: { o: 'ink', L: 'gray4', G: 'gray3', D: 'gray2' } },
+  a: {
+    rows: ['.oo.', 'oLGo', 'oGDo', '.oo.'],
+    keys: { o: 'ink', L: 'gray4', G: 'gray3', D: 'gray2' },
+  },
   // Brick shard.
   b: { rows: ['ooo.', 'oLRo', '.oRo', '..o.'], keys: { o: 'rust0', L: 'rust4', R: 'rust2' } },
   // Hot shrapnel sliver.
@@ -630,9 +690,7 @@ export function blastSmoke(variant: number, R: number): Framed {
       r: Math.max(0.8, l.r * R * grow * (1 - tear * 0.6) - (i % 2) * tear * R * 0.15),
     }));
     const holes: Lobe[] =
-      tear > 0
-        ? [{ x: gx + 0.5 + R * 0.2, y: gy - R * 0.9 - lift, r: R * 0.32 * tear }]
-        : [];
+      tear > 0 ? [{ x: gx + 0.5 + R * 0.2, y: gy - R * 0.9 - lift, r: R * 0.32 * tear }] : [];
     paintLobes(
       b,
       lobes.sort((p, q) => p.y - q.y),
@@ -701,12 +759,20 @@ export function scorchDecal(rx: number, seed: number, crater: boolean): Framed {
   for (let i = 0; i < 7; i++) {
     const a = rnd() * Math.PI * 2;
     const d = rx * (0.25 + rnd() * 0.35);
-    ellipseMask(k, cx + Math.cos(a) * d, cy + Math.sin(a) * d * 0.5, rx * (0.22 + rnd() * 0.16), ry * (0.22 + rnd() * 0.16));
+    ellipseMask(
+      k,
+      cx + Math.cos(a) * d,
+      cy + Math.sin(a) * d * 0.5,
+      rx * (0.22 + rnd() * 0.16),
+      ry * (0.22 + rnd() * 0.16),
+    );
   }
-  const rays = 8 + Math.floor(rnd() * 3);
+  // Small marks get a few stubby rays (long thin ones read as spider legs at 1×).
+  const small = rx < 20;
+  const rays = small ? 5 : 8 + Math.floor(rnd() * 3);
   for (let i = 0; i < rays; i++) {
     const a = (i / rays) * Math.PI * 2 + rnd() * 0.3;
-    const len = rx * (0.82 + rnd() * 0.22);
+    const len = rx * (small ? 0.62 + rnd() * 0.12 : 0.82 + rnd() * 0.22);
     for (let t = 0.4; t < 1; t += 0.5 / len) {
       const w = Math.pow(1 - t, 1.4) * (2.6 + rx * 0.06);
       const x = cx + Math.cos(a) * len * t;
@@ -722,14 +788,16 @@ export function scorchDecal(rx: number, seed: number, crater: boolean): Framed {
       const ey = (y + 0.5 - cy) / ry;
       const a = Math.atan2(ey, ex);
       // Ragged band edges (angular wobble) and 2×2 soot clusters (no per-pixel noise).
-      const q = Math.hypot(ex, ey) / (1 + 0.13 * Math.sin(5 * a + seed) + 0.08 * Math.sin(9 * a + seed * 2));
+      const q =
+        Math.hypot(ex, ey) /
+        (1 + 0.13 * Math.sin(5 * a + seed) + 0.08 * Math.sin(9 * a + seed * 2));
       const n = hash2(x >> 1, y >> 1, seed) % 100;
       const depth = d[y * W + x]!;
       let c: string | null;
-      if (q < 0.36) c = 'ink';
-      else if (q < 0.6) c = n < 22 ? 'ink' : 'gray1';
-      else if (depth > 1.2) c = n < 35 ? 'gray1' : 'gray2';
-      else c = n < 55 ? 'gray2' : n < 75 ? 'stone0' : null;
+      if (q < 0.3) c = n < 40 ? 'gray1' : n < 85 ? 'gray2' : 'ink';
+      else if (q < 0.58) c = n < 30 ? 'gray1' : n < 80 ? 'gray2' : 'stone0';
+      else if (depth > 1.2) c = n < 20 ? 'gray1' : n < 65 ? 'gray2' : 'stone0';
+      else c = n < 50 ? 'gray2' : n < 75 ? 'stone0' : null;
       if (c) px(b, x, y, c);
     }
   }
@@ -780,11 +848,3 @@ export function scorchDecal(rx: number, seed: number, crater: boolean): Framed {
   }
   return { frames: [b], anchor: { x: Math.floor(cx), y: Math.floor(cy) } };
 }
-
-/** Helper for tests / docs: does a mask-free buffer have any opaque pixel? */
-export function isEmpty(b: PixelBuffer): boolean {
-  for (let i = 3; i < b.data.length; i += 4) if (b.data[i]) return false;
-  return true;
-}
-
-export type { Mask };

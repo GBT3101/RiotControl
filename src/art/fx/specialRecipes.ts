@@ -71,11 +71,23 @@ export interface FxRecipe {
 function recipe(spawns: FxSpawn[], shake = 0, shakeTime = 0, hitStopMs = 0, shakeAt = 0): FxRecipe {
   let duration = 0;
   for (const s of spawns) duration = Math.max(duration, s.delay + (s.life ?? 1));
-  return { spawns: spawns.sort((a, b) => a.delay - b.delay), shake, shakeTime, shakeAt, hitStopMs, duration };
+  return {
+    spawns: spawns.sort((a, b) => a.delay - b.delay),
+    shake,
+    shakeTime,
+    shakeAt,
+    hitStopMs,
+    duration,
+  };
 }
 
 /** Random point in the iso disc of `r` tiles (fraction band lo..hi of the radius). */
-function inDisc(rnd: () => number, r: number, lo: number, hi: number): { dx: number; dy: number; a: number; f: number } {
+function inDisc(
+  rnd: () => number,
+  r: number,
+  lo: number,
+  hi: number,
+): { dx: number; dy: number; a: number; f: number } {
   const a = rnd() * Math.PI * 2;
   const f = lo + Math.sqrt(rnd()) * (hi - lo);
   return { dx: Math.cos(a) * r * TILE_RX * f, dy: Math.sin(a) * r * TILE_RY * f, a, f };
@@ -138,7 +150,16 @@ export function fragBlastRecipe(o: WorldPoint, opts: BlastOptions = {}): FxRecip
     { name: 'fx.special.frag.flash', x: o.x, y: o.y, delay: 0, layer: 'ground', emissive: true },
     { name: 'fx.special.frag.ring', x: o.x, y: o.y, delay: 0.03, layer: 'ground' },
     { name: 'fx.special.frag.fireball', x: o.x, y: o.y, delay: 0, layer: 'entity', emissive: true },
-    { name: 'fx.light.blast', x: o.x, y: o.y, delay: 0, layer: 'light', life: 0.25, fade: 0.2, alpha: 0.45 },
+    {
+      name: 'fx.light.blast',
+      x: o.x,
+      y: o.y,
+      delay: 0,
+      layer: 'light',
+      life: 0.25,
+      fade: 0.2,
+      alpha: 0.45,
+    },
     { name: 'fx.special.frag.scorch', x: o.x, y: o.y, delay: 0.1, layer: 'ground', decal: true },
   ];
   // Shrapnel: hot slivers skimming out to the lethal radius in ~0.25 s.
@@ -220,9 +241,32 @@ export function missileBlastRecipe(o: WorldPoint, opts: BlastOptions = {}): FxRe
   const out: FxSpawn[] = [
     { name: 'fx.special.missile.flash', x: o.x, y: o.y, delay: 0, layer: 'ground', emissive: true },
     { name: 'fx.special.missile.ring', x: o.x, y: o.y, delay: 0.04, layer: 'ground' },
-    { name: 'fx.special.missile.fireball', x: o.x, y: o.y, delay: 0, layer: 'entity', emissive: true },
-    { name: 'fx.special.light.big', x: o.x, y: o.y, delay: 0, layer: 'light', life: 0.5, fade: 0.4, alpha: 0.5 },
-    { name: 'fx.special.missile.crater', x: o.x, y: o.y, delay: 0.15, layer: 'ground', decal: true },
+    {
+      name: 'fx.special.missile.fireball',
+      x: o.x,
+      y: o.y,
+      delay: 0,
+      layer: 'entity',
+      emissive: true,
+    },
+    {
+      name: 'fx.special.light.big',
+      x: o.x,
+      y: o.y,
+      delay: 0,
+      layer: 'light',
+      life: 0.5,
+      fade: 0.4,
+      alpha: 0.5,
+    },
+    {
+      name: 'fx.special.missile.crater',
+      x: o.x,
+      y: o.y,
+      delay: 0.15,
+      layer: 'ground',
+      decal: true,
+    },
     {
       name: 'fx.smoke.column.black',
       x: o.x + 4,
@@ -255,7 +299,16 @@ export function missileBlastRecipe(o: WorldPoint, opts: BlastOptions = {}): FxRe
       decal: true,
     });
   }
-  debris(out, rnd, o, r * 0.85, 22, 5, ['fx.special.debris.a', 'fx.special.debris.d', 'fx.special.debris.b', 'fx.special.debris.c'], 0.05);
+  debris(
+    out,
+    rnd,
+    o,
+    r * 0.85,
+    22,
+    5,
+    ['fx.special.debris.a', 'fx.special.debris.d', 'fx.special.debris.b', 'fx.special.debris.c'],
+    0.05,
+  );
   rollingRing(out, rnd, o, r, 14, 0.1, 0.9);
   for (let k = 0; k < 8; k++) {
     const p = inDisc(rnd, r, 0.1, 0.75);
@@ -275,7 +328,9 @@ export function missileBlastRecipe(o: WorldPoint, opts: BlastOptions = {}): FxRe
 
 /** Pick the right blast for a radius: ≥ 3 tiles = missile style, else frag style. */
 export function blastRecipe(o: WorldPoint, radius: number, seed = 1): FxRecipe {
-  return radius >= 3 ? missileBlastRecipe(o, { seed, radius }) : fragBlastRecipe(o, { seed, radius });
+  return radius >= 3
+    ? missileBlastRecipe(o, { seed, radius })
+    : fragBlastRecipe(o, { seed, radius });
 }
 
 /* ------------------------------------------------------------------ projectiles */
@@ -342,9 +397,25 @@ export function missileRecipe(
   const dist = tilesOf(target.x - launcher.x, target.y - launcher.y);
   const time = 0.45 + dist * 0.045;
   const out: FxSpawn[] = [
-    { name: 'fx.special.missile.launch', x: launcher.x, y: launcher.y, z: launcher.z ?? 0, delay: 0, layer: 'entity' },
+    {
+      name: 'fx.special.missile.launch',
+      x: launcher.x,
+      y: launcher.y,
+      z: launcher.z ?? 0,
+      delay: 0,
+      layer: 'entity',
+    },
   ];
-  lofted(out, 'fx.special.missile', 'fx.special.missile.trail', launcher, target, time, 40 + dist * 3, 0.02);
+  lofted(
+    out,
+    'fx.special.missile',
+    'fx.special.missile.trail',
+    launcher,
+    target,
+    time,
+    40 + dist * 3,
+    0.02,
+  );
   const blast = missileBlastRecipe(target, opts);
   for (const s of blast.spawns) out.push({ ...s, delay: s.delay + time + 0.02 });
   const r = recipe(out, blast.shake, blast.shakeTime, blast.hitStopMs, time + 0.02);
@@ -371,8 +442,30 @@ export function fragThrowRecipe(
   const vy = (target.y - hand.y) / time;
   const out: FxSpawn[] = [
     { name: 'fx.special.frag.spoon', x: hand.x, y: hand.y, z: z0, delay: 0, layer: 'entity' },
-    { name: 'fx.special.frag.grenade', x: hand.x, y: hand.y, z: z0, delay: 0, layer: 'air', vx, vy, vz, g, life: time, loop: true },
-    { name: 'fx.special.frag.shadow', x: hand.x, y: hand.y, delay: 0, layer: 'ground', vx, vy, life: time },
+    {
+      name: 'fx.special.frag.grenade',
+      x: hand.x,
+      y: hand.y,
+      z: z0,
+      delay: 0,
+      layer: 'air',
+      vx,
+      vy,
+      vz,
+      g,
+      life: time,
+      loop: true,
+    },
+    {
+      name: 'fx.special.frag.shadow',
+      x: hand.x,
+      y: hand.y,
+      delay: 0,
+      layer: 'ground',
+      vx,
+      vy,
+      life: time,
+    },
   ];
   const fuse = opts.fuse ?? 0.15;
   // A short rest on the ground (frame 0 held) before the boom.
@@ -417,10 +510,29 @@ export function rapidFireRecipe(
     layer: 'entity',
   });
   for (let k = 0; k < 5; k++) {
-    const tg = targets[k % Math.max(1, targets.length)] ?? { x: muzzle.x + DIR_VEC[dir][0] * 80, y: muzzle.y + DIR_VEC[dir][1] * 80 };
+    const tg = targets[k % Math.max(1, targets.length)] ?? {
+      x: muzzle.x + DIR_VEC[dir][0] * 80,
+      y: muzzle.y + DIR_VEC[dir][1] * 80,
+    };
     const t = k * gap;
-    out.push({ name: `fx.special.rapid.flash.${dir}`, x: muzzle.x, y: muzzle.y, z: muzzle.z, delay: t, layer: 'air', emissive: true });
-    out.push({ name: 'fx.light.muzzle', x: muzzle.x, y: muzzle.y, delay: t, layer: 'light', life: 0.06, alpha: 0.5 });
+    out.push({
+      name: `fx.special.rapid.flash.${dir}`,
+      x: muzzle.x,
+      y: muzzle.y,
+      z: muzzle.z,
+      delay: t,
+      layer: 'air',
+      emissive: true,
+    });
+    out.push({
+      name: 'fx.light.muzzle',
+      x: muzzle.x,
+      y: muzzle.y,
+      delay: t,
+      layer: 'light',
+      life: 0.06,
+      alpha: 0.5,
+    });
     const dx = tg.x - muzzle.x;
     const dy = tg.y - (muzzle.y - muzzle.z);
     const dist = Math.hypot(dx, dy);
@@ -486,7 +598,13 @@ export function ramTrailRecipe(from: WorldPoint, to: WorldPoint, time: number): 
     if (k % 4 === 3) continue; // gallop: 3 strikes then a suspension beat
     const u = t / time;
     const side = k % 2 ? 3 : -3;
-    out.push({ name: 'fx.special.ram.hoof', x: from.x + dx * u + side, y: from.y + dy * u + (k % 2 ? 1 : -1), delay: t, layer: 'ground' });
+    out.push({
+      name: 'fx.special.ram.hoof',
+      x: from.x + dx * u + side,
+      y: from.y + dy * u + (k % 2 ? 1 : -1),
+      delay: t,
+      layer: 'ground',
+    });
   }
   return recipe(out, 1, time, 0);
 }
@@ -495,11 +613,39 @@ export function ramTrailRecipe(from: WorldPoint, to: WorldPoint, time: number): 
  * One protester bowled aside at `at`: the knock burst (mirrored toward the side they fly), KO
  * stars over the head (`headZ` px above the feet) for `ko` seconds, and a body-fall dust.
  */
-export function ramHitSpawns(at: WorldPoint, flyLeft: boolean, delay = 0, headZ = 19, ko = 2.5): FxSpawn[] {
+export function ramHitSpawns(
+  at: WorldPoint,
+  flyLeft: boolean,
+  delay = 0,
+  headZ = 19,
+  ko = 2.5,
+): FxSpawn[] {
   return [
-    { name: `fx.special.ram.knock.${flyLeft ? 'w' : 'e'}`, x: at.x, y: at.y, delay, layer: 'entity' },
-    { name: 'fx.ko.stars', x: at.x + (flyLeft ? -6 : 6), y: at.y, z: headZ - 8, delay: delay + 0.25, layer: 'air', loop: true, life: ko, fade: 0.4 },
-    { name: 'fx.dust.land', x: at.x + (flyLeft ? -8 : 8), y: at.y + 1, delay: delay + 0.22, layer: 'entity' },
+    {
+      name: `fx.special.ram.knock.${flyLeft ? 'w' : 'e'}`,
+      x: at.x,
+      y: at.y,
+      delay,
+      layer: 'entity',
+    },
+    {
+      name: 'fx.ko.stars',
+      x: at.x + (flyLeft ? -6 : 6),
+      y: at.y,
+      z: headZ - 8,
+      delay: delay + 0.25,
+      layer: 'air',
+      loop: true,
+      life: ko,
+      fade: 0.4,
+    },
+    {
+      name: 'fx.dust.land',
+      x: at.x + (flyLeft ? -8 : 8),
+      y: at.y + 1,
+      delay: delay + 0.22,
+      layer: 'entity',
+    },
   ];
 }
 
@@ -527,7 +673,10 @@ export interface AirStrikeOptions {
 export function airStrikeRecipe(
   path: readonly WorldPoint[],
   o: AirStrikeOptions = {},
-): FxRecipe & { flyover: Array<{ t: number; x: number; y: number }>; impacts: Array<{ t: number; x: number; y: number }> } {
+): FxRecipe & {
+  flyover: Array<{ t: number; x: number; y: number }>;
+  impacts: Array<{ t: number; x: number; y: number }>;
+} {
   const rnd = prng(o.seed ?? 3);
   const W = o.width ?? 1.2;
   const lead = o.lead ?? 0.6;
@@ -569,23 +718,77 @@ export function airStrikeRecipe(
     impacts.push({ t, x, y });
     // Rocket from the heli (a little behind/above), streaking down to the impact.
     const back = pointAt(Math.max(0, s - 1.6));
-    lofted(out, 'fx.special.rocket', 'fx.special.rocket.trail', { x: back.x, y: back.y, z: HELI_ALT - 6 }, { x, y }, 0.22, 2, t - 0.22, 3, 0.04);
-    out.push({ name: k % 2 ? 'fx.special.burst.a' : 'fx.special.burst.b', x, y, delay: t, layer: 'entity', emissive: true, flip: rnd() < 0.5 });
+    lofted(
+      out,
+      'fx.special.rocket',
+      'fx.special.rocket.trail',
+      { x: back.x, y: back.y, z: HELI_ALT - 6 },
+      { x, y },
+      0.22,
+      2,
+      t - 0.22,
+      3,
+      0.04,
+    );
+    out.push({
+      name: k % 2 ? 'fx.special.burst.a' : 'fx.special.burst.b',
+      x,
+      y,
+      delay: t,
+      layer: 'entity',
+      emissive: true,
+      flip: rnd() < 0.5,
+    });
     out.push({ name: 'fx.dust.land', x, y: y + 2, delay: t + 0.05, layer: 'entity' });
-    out.push({ name: `fx.special.strike.scorch.${k % 2 ? 'a' : 'b'}`, x, y, delay: t + 0.08, layer: 'ground', decal: true });
-    if (k % 2 === 0) out.push({ name: 'fx.light.blast', x, y, delay: t, layer: 'light', life: 0.18, fade: 0.14, alpha: 0.35 });
-    debris(out, rnd, { x, y }, 0.8, 2, k % 3 === 0 ? 1 : 0, ['fx.special.debris.a', 'fx.special.debris.b'], t);
+    out.push({
+      name: `fx.special.strike.scorch.${k % 2 ? 'a' : 'b'}`,
+      x,
+      y,
+      delay: t + 0.08,
+      layer: 'ground',
+      decal: true,
+    });
+    if (k % 2 === 0)
+      out.push({
+        name: 'fx.light.blast',
+        x,
+        y,
+        delay: t,
+        layer: 'light',
+        life: 0.18,
+        fade: 0.14,
+        alpha: 0.35,
+      });
+    debris(
+      out,
+      rnd,
+      { x, y },
+      0.8,
+      2,
+      k % 3 === 0 ? 1 : 0,
+      ['fx.special.debris.a', 'fx.special.debris.b'],
+      t,
+    );
   }
   // Smoke drifting over the scorched line afterwards.
   for (let k = 0; k < Math.ceil(n / 2); k++) {
     const p = impacts[k * 2]!;
-    out.push({ name: 'fx.special.smoke.a', x: p.x, y: p.y, delay: p.t + 0.3, layer: 'entity', vz: 6, vx: 5, flip: rnd() < 0.5 });
+    out.push({
+      name: 'fx.special.smoke.a',
+      x: p.x,
+      y: p.y,
+      delay: p.t + 0.3,
+      layer: 'entity',
+      vz: 6,
+      vx: 5,
+      flip: rnd() < 0.5,
+    });
   }
   // Flyover keyframes: the heli runs in along the line's first direction, over every path
   // point at strafing speed (it is ~1.6 tiles ahead of each impact when the rocket leaves),
   // and on past the end.
   const speed = total / Math.max(0.2, (n - 1) * cadence); // tiles / s
-  const tAt = (s: number): number => lead - 0.22 + (s + 1.6) / speed - 1.6 / speed;
+  const tAt = (s: number): number => lead - 0.22 + (s + 1.6) / speed;
   const extend = (from: WorldPoint, to: WorldPoint, tiles: number): WorldPoint => {
     const l = tilesOf(to.x - from.x, to.y - from.y) || 1;
     return { x: to.x + ((to.x - from.x) / l) * tiles, y: to.y + ((to.y - from.y) / l) * tiles };
@@ -596,7 +799,11 @@ export function airStrikeRecipe(
   const exit = extend(path[path.length - 2]!, pn, 4);
   const flyover = [
     { t: tAt(-3), ...entry },
-    ...path.map((p, k) => ({ t: tAt(k === 0 ? 0 : segs[k - 1]!.at + segs[k - 1]!.len), x: p.x, y: p.y })),
+    ...path.map((p, k) => ({
+      t: tAt(k === 0 ? 0 : segs[k - 1]!.at + segs[k - 1]!.len),
+      x: p.x,
+      y: p.y,
+    })),
     { t: tAt(total + 4), ...exit },
   ];
   const r = recipe(out, 2, (n - 1) * cadence + 0.3, 0, lead);
