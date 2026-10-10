@@ -96,10 +96,20 @@ export function masthead(city: City, minW = 0, maxW = Infinity): PixelBuffer {
       px(b, tx + x, ty + y, 'ink');
     }
   }
-  // Crest seals either side.
-  const seal = waxSeal(6);
-  stamp(b, seal, tx - seal.w - 8, ty + (scale === 2 ? 4 : -1));
-  stamp(b, seal, tx + t.m.w + 8, ty + (scale === 2 ? 4 : -1));
+  // Crest seals either side: full size, else smaller and closer, else none (never clipped by the
+  // page edge on narrow phone pages with long titles).
+  for (const [r, gap] of [
+    [6, 8],
+    [4, 4],
+  ] as const) {
+    const seal = waxSeal(r);
+    if (tx - seal.w - gap < 3) continue;
+    const sy =
+      ty + (r === 6 ? (scale === 2 ? 4 : -1) : Math.floor((scale * f.capHeight - seal.h) / 2));
+    stamp(b, seal, tx - seal.w - gap, sy);
+    stamp(b, seal, tx + t.m.w + gap, sy);
+    break;
+  }
   const ry = ty + scale * f.capHeight + 3;
   hline(b, 2, ry, W - 4, 'ink');
   const dl = measureText(FONTS.small, m.dateline);
