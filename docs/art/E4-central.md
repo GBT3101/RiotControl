@@ -66,8 +66,10 @@ The secondary landmarks are static (1 frame). All the art is RIOT-64 only (`test
 
 - `tests/landmarks-art.test.ts`, `tests/palette-compliance.test.ts` and `tests/landmarks-preview.test.ts` pass
   (SPECS entries for the three cities were added).
-- In `tests/cities-complete.test.ts`, the Capitol, flags and landmark checks for budapest and vienna pass. Prague's
-  blueprint was not registered yet when this was written.
+- In `tests/cities-complete.test.ts`, the Capitol, flags and landmark checks pass for budapest, vienna and prague.
+  Only the E3 environment-style, E5 music and E5 copy checks still fail, and those pieces belong to the other milestones.
+- In game, with the dev server at `zoom=2`: `docs/progress/e4-central-game-{budapest,vienna,prague}.png`. The Parliament
+  stands on the Danube with the Kossuth memorial in the square; the Parliament stands next to the Rathaus.
 - The pieces were iterated at 3–4× and compared at 1× against Congreso, Westminster and Bourbon (`capitols-vs-m3b`).
 
 ## Known gaps
