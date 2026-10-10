@@ -363,13 +363,10 @@ export function paintGable(o: OrnamentCtx, g: GableRoof): void {
       return g.roof(b * 16, z - H, lightA);
     },
   );
-  cv.poly(
-    [P3(-ov, 0, H), P3(-ov, D + ov, H), P3(mid, D + ov, Z), P3(mid, 0, Z)],
-    (u, v, z) => {
-      const b = left ? d - v : w - u;
-      return g.roof(b * 16, z - H, lightB);
-    },
-  );
+  cv.poly([P3(-ov, 0, H), P3(-ov, D + ov, H), P3(mid, D + ov, Z), P3(mid, 0, Z)], (u, v, z) => {
+    const b = left ? d - v : w - u;
+    return g.roof(b * 16, z - H, lightB);
+  });
   // Ridge cap.
   for (let k = 0; k <= Math.ceil((D + ov) * 32); k++) {
     const p = P3(mid, k / 32, Z);
@@ -432,8 +429,7 @@ export function paintGable(o: OrnamentCtx, g: GableRoof): void {
   };
   // Openings (face px x across, h rows above the wall top).
   const open = gableOpenings(g, Lpx, P, R);
-  const wallAt = (x: number, h: number): RGBA =>
-    wallPx(look.mat, look.wall, x, -1 - h, o.seed);
+  const wallAt = (x: number, h: number): RGBA => wallPx(look.mat, look.wall, x, -1 - h, o.seed);
   cv.poly(
     [P3(0, 0, H - 3), P3(L, 0, H - 3), P3(L, 0, H + top + 1), P3(0, 0, H + top + 1)],
     (u, v, z) => {
@@ -679,7 +675,12 @@ export function treeSprite(kind: 'elm' | 'linden', seed: number): PropSprite {
     for (let y = base - 15; y <= base; y++) {
       const wd = y > base - 2 ? 4 : 3;
       for (let k = 0; k < wd; k++)
-        setPixel(b, cx - 1 + k - (y > base - 2 ? 1 : 0), y, k === 0 ? bark[2]! : k === wd - 1 ? bark[0]! : bark[1]!);
+        setPixel(
+          b,
+          cx - 1 + k - (y > base - 2 ? 1 : 0),
+          y,
+          k === 0 ? bark[2]! : k === wd - 1 ? bark[0]! : bark[1]!,
+        );
       if (hash(y, 3, seed) % 4 === 0) setPixel(b, cx, y, bark[3]!);
     }
     // Limbs fanning out (the elm's vase).
@@ -715,7 +716,12 @@ export function treeSprite(kind: 'elm' | 'linden', seed: number): PropSprite {
     for (let y = base - 16; y <= base; y++) {
       const wd = y > base - 2 ? 4 : 3;
       for (let k = 0; k < wd; k++)
-        setPixel(b, cx - 1 + k - (y > base - 2 ? 1 : 0), y, k === 0 ? bark[2]! : k === wd - 1 ? bark[0]! : bark[1]!);
+        setPixel(
+          b,
+          cx - 1 + k - (y > base - 2 ? 1 : 0),
+          y,
+          k === 0 ? bark[2]! : k === wd - 1 ? bark[0]! : bark[1]!,
+        );
     }
     const ramp = ['ink', 'green0', 'green1', 'green2', 'green3', 'green4'].map((n) => C(n));
     const top = base - 50;
@@ -933,6 +939,7 @@ export function drawBike(
   }
   if (o.crate) {
     for (let y = 2; y <= 4; y++)
-      for (let x = 11; x <= 13; x++) setPixel(b, ox + x, oy + y, y === 2 ? lighter(o.crate) : o.crate);
+      for (let x = 11; x <= 13; x++)
+        setPixel(b, ox + x, oy + y, y === 2 ? lighter(o.crate) : o.crate);
   }
 }

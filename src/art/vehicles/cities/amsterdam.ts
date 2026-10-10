@@ -29,11 +29,11 @@ const tram: Builder = (f, s) =>
             return s === 'ok' && Math.abs(q[0] - (q[2] - 6) * 0.8 + 3) < 0.4 ? 'glassHi' : 'glass';
           }
           // Doors.
-          for (const x of [-15, 0, 15])
-            if (Math.abs(q[0] - x) < 1.6 && q[2] < 11.6) return 'dark';
+          for (const x of [-15, 0, 15]) if (Math.abs(q[0] - x) < 1.6 && q[2] < 11.6) return 'dark';
           if (q[2] > 12.4 && q[2] < 13.2) return 'blue';
         }
-        if (n[0] > 0.5 && q[2] > 11.8 && Math.abs(q[1]) < 3.5) return s === 'ok' ? 'lampAmber' : 'dark';
+        if (n[0] > 0.5 && q[2] > 11.8 && Math.abs(q[1]) < 3.5)
+          return s === 'ok' ? 'lampAmber' : 'dark';
         return undefined;
       },
       extras: (m, _f, st) => {
@@ -43,7 +43,11 @@ const tram: Builder = (f, s) =>
         m.box('steel', [-4, -0.3, 15.2], [3, 0.3, 15.7]);
         m.box('steel', [2.6, -2.6, 18.8], [3.4, 2.6, 19.3]);
         for (let k = 0; k < 6; k++)
-          m.box('steel', [-1 + k * 0.6, -0.25, 15.6 + k * 0.55], [-0.4 + k * 0.6, 0.25, 16.2 + k * 0.55]);
+          m.box(
+            'steel',
+            [-1 + k * 0.6, -0.25, 15.6 + k * 0.55],
+            [-0.4 + k * 0.6, 0.25, 16.2 + k * 0.55],
+          );
       },
     },
     f,

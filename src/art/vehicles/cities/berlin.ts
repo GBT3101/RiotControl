@@ -24,27 +24,29 @@ const taxiBerlin: Builder = sedan('cream', (m, f, s) => {
 });
 
 /** Trabant 601: small, square, two-tone with a white roof. */
-const trabi = (body: string): Builder => (f, s) =>
-  car(
-    {
-      L: 17,
-      W: 9.0,
-      wheelR: 1.9,
-      wheelX: [-5.6, 5.2],
-      sill: 1.4,
-      belt: 4.8,
-      roof: 8.4,
-      cabin: [-6.6, 3.0],
-      rake: [1.2, 2.4],
-      body,
-      roofMat: 'white',
-      nose: 1.0,
-      tail: 0.6,
-      hub: 'cream',
-    },
-    f,
-    s,
-  );
+const trabi =
+  (body: string): Builder =>
+  (f, s) =>
+    car(
+      {
+        L: 17,
+        W: 9.0,
+        wheelR: 1.9,
+        wheelX: [-5.6, 5.2],
+        sill: 1.4,
+        belt: 4.8,
+        roof: 8.4,
+        cabin: [-6.6, 3.0],
+        rake: [1.2, 2.4],
+        body,
+        roofMat: 'white',
+        nose: 1.0,
+        tail: 0.6,
+        hub: 'cream',
+      },
+      f,
+      s,
+    );
 
 export const berlin: readonly CivDef[] = [
   { id: 'bus_berlin', build: busBerlin, burnt: true, burning: true, hw: 6 },

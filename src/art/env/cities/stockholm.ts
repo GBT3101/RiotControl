@@ -45,27 +45,31 @@ function seams(ramp: readonly RGBA[]): (rise: number) => SlopeTex {
 }
 const TIN = seams([C('ink'), C('gray1'), C('gray2')]);
 /** Verdigris copper: seams catch the light, the shade side goes blue-green. */
-const COPPER = (rise: number): SlopeTex => (a, b, l) => {
-  const ai = ((Math.floor(a) % 4) + 4) % 4;
-  const bi = Math.floor(b);
-  if (bi <= 0) return C('zinc0');
-  const base = l > 0 ? C('teal2') : l < 0 ? C('zinc0') : C('teal1');
-  const seam = l > 0 ? C('teal1') : l < 0 ? C('teal1') : C('teal2');
-  if (bi >= rise - 1) return seam;
-  if (ai === 0) return seam;
-  return hash(Math.floor(a) >> 2, bi >> 3, 5) % 11 === 0 ? seam : base;
-};
+const COPPER =
+  (rise: number): SlopeTex =>
+  (a, b, l) => {
+    const ai = ((Math.floor(a) % 4) + 4) % 4;
+    const bi = Math.floor(b);
+    if (bi <= 0) return C('zinc0');
+    const base = l > 0 ? C('teal2') : l < 0 ? C('zinc0') : C('teal1');
+    const seam = l > 0 ? C('teal1') : l < 0 ? C('teal1') : C('teal2');
+    if (bi >= rise - 1) return seam;
+    if (ai === 0) return seam;
+    return hash(Math.floor(a) >> 2, bi >> 3, 5) % 11 === 0 ? seam : base;
+  };
 
 /** Red clay tiles (Södermalm, the odd Gamla stan roof). */
-const TILES = (rise: number): SlopeTex => (a, b, l) => {
-  const ai = Math.floor(a);
-  const bi = Math.floor(b);
-  if (bi <= 0) return C('rust0');
-  if (bi >= rise - 1) return shadeBy(C('rust3'), l);
-  let c = (((ai % 3) + 3) % 3) === 0 ? C('rust3') : C('rust2');
-  if (bi % 3 === 0) c = darker(c);
-  return shadeBy(c, l);
-};
+const TILES =
+  (rise: number): SlopeTex =>
+  (a, b, l) => {
+    const ai = Math.floor(a);
+    const bi = Math.floor(b);
+    if (bi <= 0) return C('rust0');
+    if (bi >= rise - 1) return shadeBy(C('rust3'), l);
+    let c = ((ai % 3) + 3) % 3 === 0 ? C('rust3') : C('rust2');
+    if (bi % 3 === 0) c = darker(c);
+    return shadeBy(c, l);
+  };
 
 const roofTex = (look: Look): ((rise: number) => SlopeTex) =>
   look.slope === 'zinc' ? COPPER : look.slope === 'slate' ? TIN : TILES;
@@ -112,7 +116,9 @@ function boat(v: number): PropSprite {
     hull: C(v === 1 ? 'earth3' : 'navy1'),
     seed: 43 + v,
     lit: 0.3,
-    cabins: [{ a: 0.3, b: 0.62, h: 6, col: C('white'), roof: C('navy2'), win: 'square', inset: 0.12 }],
+    cabins: [
+      { a: 0.3, b: 0.62, h: 6, col: C('white'), roof: C('navy2'), win: 'square', inset: 0.12 },
+    ],
   });
 }
 
@@ -127,7 +133,8 @@ function fountain(k: PropKit): PropSprite {
       z1: 4,
       r: 0.44,
       n: 8,
-      tex: (s, _x, y) => (y <= 0 ? granite[3]! : s > 0.6 ? granite[2]! : s > 0.4 ? granite[1]! : granite[0]!),
+      tex: (s, _x, y) =>
+        y <= 0 ? granite[3]! : s > 0.6 ? granite[2]! : s > 0.4 ? granite[1]! : granite[0]!,
     });
     // Water surface.
     prism(cv, {
@@ -142,7 +149,14 @@ function fountain(k: PropKit): PropSprite {
     });
     // Bronze figures on a rock, jets of water.
     const bronze = [C('green0'), C('teal1'), C('teal2')];
-    dome(cv, { cu: 0.5, cv: 0.5, z0: 3, r: 0.16, h: 6, ramp: [C('gray2'), C('gray3'), C('gray4')] });
+    dome(cv, {
+      cu: 0.5,
+      cv: 0.5,
+      z0: 3,
+      r: 0.16,
+      h: 6,
+      ramp: [C('gray2'), C('gray3'), C('gray4')],
+    });
     prism(cv, {
       cu: 0.5,
       cv: 0.5,
@@ -314,9 +328,7 @@ export const stockholm: EnvCity = {
     const civic = kind === 'civic';
     const grand =
       civic ||
-      (site !== undefined &&
-        site.storeys >= 5 &&
-        (site.roof !== 'pitched' || Math.min(site.w, site.d) >= 3));
+      (site !== undefined && (site.storeys >= 6 || (site.storeys >= 5 && site.roof !== 'pitched')));
     if (grand) {
       const wall = civic
         ? d.pick(['stone4', 'stone3', 'gray6'])
@@ -431,7 +443,8 @@ export const stockholm: EnvCity = {
             kind,
             ridge: R,
             roof: roofTex(look)(R),
-            ridgeCol: look.slope === 'zinc' ? C('teal2') : look.slope === 'slate' ? C('gray2') : C('rust3'),
+            ridgeCol:
+              look.slope === 'zinc' ? C('teal2') : look.slope === 'slate' ? C('gray2') : C('rust3'),
             trim: look.trim,
             hoist: d.chance(0.25),
             door: look.door,
@@ -473,7 +486,10 @@ export const stockholm: EnvCity = {
     metal: ['gray3', 'gray2'],
     bench: { frame: 'gray1', wood: 'earth4' },
     kiosk: { body: 'rust1', roof: 'gray2', top: { sign: 'navy2' } },
-    bin: { grid: G.BIN_STOCKHOLM, keys: { B: 'green2', b: 'green1', A: 'gray5', d: 'ink', m: 'gray2' } },
+    bin: {
+      grid: G.BIN_STOCKHOLM,
+      keys: { B: 'green2', b: 'green1', A: 'gray5', d: 'ink', m: 'gray2' },
+    },
     bollard: { grid: G.BOLLARD_STOCKHOLM, keys: { M: 'gray2', m: 'gray1' } },
     hydrant: { M: 'ochre2', m: 'ochre1', A: 'gray3' },
     metro: { grid: G.METRO_STOCKHOLM, shadow: 3 },

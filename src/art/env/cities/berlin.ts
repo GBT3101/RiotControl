@@ -82,7 +82,7 @@ function poster(f: Face, x0: number, y0: number, d: Dice): void {
     for (let x = 0; x < 4; x++) {
       if (f.kindAt(x0 + x, y0 + y) === K_GLASS) continue;
       const head = y === 1 && x > 0 && x < 3;
-      f.set(x0 + x, y0 + y, head ? ink : y === 3 && (x & 1) ? darker(paper) : paper, K_RELIEF);
+      f.set(x0 + x, y0 + y, head ? ink : y === 3 && x & 1 ? darker(paper) : paper, K_RELIEF);
     }
 }
 
@@ -115,7 +115,12 @@ function platteBay(
       }
     for (let y = y0 + 6; y < y0 + 9; y++)
       for (let x = x0; x < x0 + 8; x++)
-        f.set(x, y, y === y0 + 6 ? lighter(accent) : (x + y) % 5 === 0 ? darker(accent) : accent, K_RELIEF);
+        f.set(
+          x,
+          y,
+          y === y0 + 6 ? lighter(accent) : (x + y) % 5 === 0 ? darker(accent) : accent,
+          K_RELIEF,
+        );
     return;
   }
   for (let y = y0 + 2; y < y0 + 7; y++)
@@ -150,7 +155,13 @@ function glassBay(
         continue;
       }
       const sheen = (x - x0 + (y - y0)) % 9 === 0 || (x - x0 + (y - y0)) % 9 === 1;
-      f.set(x, y, sheen ? C('zinc3') : y === y0 ? darker(glass) : glass, K_GLASS, glow ? (sheen ? glowHi : glow) : 0);
+      f.set(
+        x,
+        y,
+        sheen ? C('zinc3') : y === y0 ? darker(glass) : glass,
+        K_GLASS,
+        glow ? (sheen ? glowHi : glow) : 0,
+      );
     }
 }
 
@@ -287,7 +298,11 @@ function spreeBoat(v: number): PropSprite {
       cv.pole(P(-0.46, 0, -4), 9, C('gray5'));
       for (let z = 2; z < 5; z++)
         for (let s = 1; s < 4; s++)
-          cv.dot(P(-0.46 - s * 0.02, 0, z), z === 4 ? C('ink') : z === 3 ? C('crim2') : C('ochre3'), 1);
+          cv.dot(
+            P(-0.46 - s * 0.02, 0, z),
+            z === 4 ? C('ink') : z === 3 ? C('crim2') : C('ochre3'),
+            1,
+          );
     },
   });
 }
@@ -298,8 +313,10 @@ const extra: Record<string, (k: PropKit) => PropSprite> = {
   'morris.1': (k) => litfass(k, 1),
   'kiosk.0': doener,
   'kiosk.1': spaeti,
-  'metro.0': (k) => k.gridProp(G.METRO_BERLIN, { M: 'gray3', m: 'gray2', B: 'navy2' }, { shadow: 3 }),
-  'metro.1': (k) => k.gridProp(G.SBAHN_BERLIN, { M: 'gray3', m: 'gray2', G: 'green3' }, { shadow: 3 }),
+  'metro.0': (k) =>
+    k.gridProp(G.METRO_BERLIN, { M: 'gray3', m: 'gray2', B: 'navy2' }, { shadow: 3 }),
+  'metro.1': (k) =>
+    k.gridProp(G.SBAHN_BERLIN, { M: 'gray3', m: 'gray2', G: 'green3' }, { shadow: 3 }),
   'metro.2': (k) =>
     k.gridProp(G.US_BERLIN, { M: 'gray3', m: 'gray2', B: 'navy2', G: 'green3' }, { shadow: 3 }),
 };
@@ -379,7 +396,11 @@ export const berlin: EnvCity = {
         const r = Math.floor((_v * 2 + 1e-6) % 2);
         const edge = Math.abs(_v * 2 - Math.round(_v * 2)) < 0.05;
         if (edge) return C('gray4');
-        return r === 0 ? C('gray5') : hash(Math.floor(_v * 2), 1, seed) % 5 === 0 ? C('gray6') : C('gray5');
+        return r === 0
+          ? C('gray5')
+          : hash(Math.floor(_v * 2), 1, seed) % 5 === 0
+            ? C('gray6')
+            : C('gray5');
       },
     },
   },
@@ -510,8 +531,7 @@ export const berlin: EnvCity = {
         glassBay(f, look.wall, look.shutter, x0, y0, glow, glowHi);
         return;
       }
-      const mod =
-        type === 'small' ? G.BLN_WIN_SMALL : type === 'tall' ? G.BLN_WIN_TALL : G.BLN_WIN;
+      const mod = type === 'small' ? G.BLN_WIN_SMALL : type === 'tall' ? G.BLN_WIN_TALL : G.BLN_WIN;
       stampModule(f, mod, x0, y0, res, glow, glowHi);
       if (look.variant === 'stone') return;
       if (type === 'balcony') stampModule(f, G.BLN_BALCONY, x0, y0, res);
@@ -520,7 +540,7 @@ export const berlin: EnvCity = {
       else if (r < 0.1 && type === 'balcony') stampModule(f, M.FLOWERS, x0, y0, res);
       else if (r < 0.13 && type === 'balcony') stampModule(f, M.LAUNDRY, x0, y0, res);
       // Rent-strike and protest bedsheets hang everywhere.
-      else if (r < 0.165 && type !== 'small') stampModule(f, M.BANNER_NO, x0, y0, res);
+      else if (r < 0.15 && type !== 'small') stampModule(f, M.BANNER_NO, x0, y0, res);
       if (d.chance(0.05)) stampModule(f, M.SAT_DISH, x0, y0, res);
     },
     door: G.BLN_DOOR,
@@ -627,7 +647,11 @@ export const berlin: EnvCity = {
       ],
     },
     flag: flagGermany,
-    bike: { colours: ['gray1', 'navy1', 'crim1', 'green1', 'white'], basket: false, scooters: false },
+    bike: {
+      colours: ['gray1', 'navy1', 'crim1', 'green1', 'white'],
+      basket: false,
+      scooters: false,
+    },
     extra,
   },
 

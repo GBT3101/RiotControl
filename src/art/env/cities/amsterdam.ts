@@ -334,7 +334,12 @@ export const amsterdam: EnvCity = {
     leaves: true,
     ironRail: true,
     // GVB tram tracks down the middle of the through streets.
-    tram: { at: [0.22, 0.34, 0.66, 0.78], rail: C('gray5'), railHi: C('gray6'), groove: C('gray1') },
+    tram: {
+      at: [0.22, 0.34, 0.66, 0.78],
+      rail: C('gray5'),
+      railHi: C('gray6'),
+      groove: C('gray1'),
+    },
   },
 
   awnings: [
@@ -381,7 +386,9 @@ export const amsterdam: EnvCity = {
       groundMat: plinth === 'same' ? (plaster ? 'stucco' : 'brick') : 'smooth',
       ground: plinth === 'same' ? C(wall) : C(plinth),
       trim: C(plaster ? 'stone5' : 'white'),
-      frame: C(warehouse ? d.pick(['white', 'green1']) : d.pick(['white', 'white', 'white', 'gray7'])),
+      frame: C(
+        warehouse ? d.pick(['white', 'green1']) : d.pick(['white', 'white', 'white', 'gray7']),
+      ),
       shutter: C(warehouse ? d.pick(['green1', 'crim1', 'green2']) : d.pick(['green1', 'crim1'])),
       iron: C('ink'),
       ironHi: C('gray2'),
@@ -404,7 +411,15 @@ export const amsterdam: EnvCity = {
       if (look.variant === 'warehouse') {
         // Pakhuis: loading doors up the middle, shuttered windows either side.
         const centre = Math.abs(x0 + 4 - f.w / 2) < 6;
-        stampModule(f, centre ? G.AMS_LUIK : G.AMS_SHUTTERED, x0, y0, res, centre ? 0 : glow, glowHi);
+        stampModule(
+          f,
+          centre ? G.AMS_LUIK : G.AMS_SHUTTERED,
+          x0,
+          y0,
+          res,
+          centre ? 0 : glow,
+          glowHi,
+        );
         return;
       }
       const mod = type === 'tall' ? G.AMS_WIN_TALL : type === 'small' ? G.AMS_WIN_SMALL : G.AMS_WIN;
@@ -485,8 +500,14 @@ export const amsterdam: EnvCity = {
     metal: ['gray2', 'gray1'],
     bench: { frame: 'green1', wood: 'earth4' },
     kiosk: { body: 'green1', roof: 'green2', top: { sign: 'crim1' } },
-    bin: { grid: G.BIN_AMSTERDAM, keys: { B: 'gray3', b: 'gray2', A: 'crim2', d: 'ink', m: 'gray2' } },
-    bollard: { grid: G.BOLLARD_AMSTERDAM, keys: { M: 'rust1', m: 'rust0', w: 'rust3', A: 'rust2' } },
+    bin: {
+      grid: G.BIN_AMSTERDAM,
+      keys: { B: 'gray3', b: 'gray2', A: 'crim2', d: 'ink', m: 'gray2' },
+    },
+    bollard: {
+      grid: G.BOLLARD_AMSTERDAM,
+      keys: { M: 'rust1', m: 'rust0', w: 'rust3', A: 'rust2' },
+    },
     hydrant: { M: 'ochre3', m: 'ochre2', A: 'gray3' },
     metro: { grid: G.METRO_AMSTERDAM, shadow: 3 },
     busStop: { frame: 'gray2', roof: 'gray5', flag: 'blue1' },

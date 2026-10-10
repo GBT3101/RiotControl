@@ -11,14 +11,14 @@ postcard / viewer colours. Madrid, London and Paris are pixel-identical (see _Ve
 
 ## Files
 
-| File                                                            | What                                                                                     |
-| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `src/art/env/cities/{budapest,vienna,prague}.ts`                | the three `EnvCity` styles (+ roof textures, ornament painters, Prague's sgraffito pass) |
-| `src/art/env/cities/{budapest,vienna,prague}.grid.ts`           | facade modules and prop grids (Prettier-ignored)                                         |
-| `src/art/env/cities/central.ts`                                 | prop builders shared by the three: moored river boat, street stand, stone fountain       |
-| `src/art/vehicles/cities/{budapest,vienna,prague}.ts`           | trams (shared `tram()` builder in budapest.ts), taxis, Budapest/Vienna buses             |
-| `src/art/env/bld/ornaments.ts` (new, shared)                    | skyline helpers: `gable` + `PROFILES`, `dome`, `prism`, `cone`, `billboard`, `slopeDormer` |
-| one line each in `src/art/env/cities/index.ts` and `src/art/vehicles/cities/index.ts` |                                                                                          |
+| File                                                                                  | What                                                                                       |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `src/art/env/cities/{budapest,vienna,prague}.ts`                                      | the three `EnvCity` styles (+ roof textures, ornament painters, Prague's sgraffito pass)   |
+| `src/art/env/cities/{budapest,vienna,prague}.grid.ts`                                 | facade modules and prop grids (Prettier-ignored)                                           |
+| `src/art/env/cities/central.ts`                                                       | prop builders shared by the three: moored river boat, street stand, stone fountain         |
+| `src/art/vehicles/cities/{budapest,vienna,prague}.ts`                                 | trams (shared `tram()` builder in budapest.ts), taxis, Budapest/Vienna buses               |
+| `src/art/env/bld/ornaments.ts` (new, shared)                                          | skyline helpers: `gable` + `PROFILES`, `dome`, `prism`, `cone`, `billboard`, `slopeDormer` |
+| one line each in `src/art/env/cities/index.ts` and `src/art/vehicles/cities/index.ts` |                                                                                            |
 
 ## Shared extension: `RoofStyle.ornament` (optional, backwards compatible)
 
