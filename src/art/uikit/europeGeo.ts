@@ -24,7 +24,9 @@ export function project(lon: number, lat: number): { x: number; y: number } {
   const l = (lon - PROJ.lon0) * D;
   const p = lat * D;
   const p0 = PROJ.lat0 * D;
-  const k = Math.sqrt(2 / (1 + Math.sin(p0) * Math.sin(p) + Math.cos(p0) * Math.cos(p) * Math.cos(l)));
+  const k = Math.sqrt(
+    2 / (1 + Math.sin(p0) * Math.sin(p) + Math.cos(p0) * Math.cos(p) * Math.cos(l)),
+  );
   const x = R * k * Math.cos(p) * Math.sin(l);
   const y = -R * k * (Math.cos(p0) * Math.sin(p) - Math.sin(p0) * Math.cos(p) * Math.cos(l));
   return { x: (x - PROJ.x0) / PROJ.kmPerPx, y: (y - PROJ.y0) / PROJ.kmPerPx };
@@ -87,7 +89,8 @@ export function assembleRing(tokens: readonly string[]): RingResult {
         const [a, b] = end(p);
         const [c, d] = end(next);
         const dist = (u: LonLat, v: LonLat): number => Math.hypot(u[0] - v[0], u[1] - v[1]);
-        if (Math.min(dist(a, c), dist(a, d)) < Math.min(dist(b, c), dist(b, d))) first = [...p].reverse();
+        if (Math.min(dist(a, c), dist(a, d)) < Math.min(dist(b, c), dist(b, d)))
+          first = [...p].reverse();
       }
       out.push(...first);
       return;
@@ -121,7 +124,12 @@ export interface EuropeGrid {
 type Poly = { x: number; y: number }[];
 
 /** Scanline fill (pixel-centre rule) of one closed polygon; calls `set` for every pixel. */
-export function fillPoly(poly: Poly, w: number, h: number, set: (x: number, y: number) => void): number {
+export function fillPoly(
+  poly: Poly,
+  w: number,
+  h: number,
+  set: (x: number, y: number) => void,
+): number {
   let n = 0;
   let minY = Infinity;
   let maxY = -Infinity;
@@ -211,12 +219,19 @@ function cleanGrid(ids: Uint8Array, w: number, h: number): void {
         const i = y * w + x;
         const v = ids[i]!;
         if (v === LAKE) continue;
-        const n = [ids[i - 1]!, ids[i + 1]!, ids[i - w]!, ids[i + w]!];
-        const counts = new Map<number, number>();
-        for (const q of n) counts.set(q, (counts.get(q) ?? 0) + 1);
+        const n0 = ids[i - 1]!;
+        const n1 = ids[i + 1]!;
+        const n2 = ids[i - w]!;
+        const n3 = ids[i + w]!;
+        // Most frequent neighbour value other than v (and lakes), without allocating.
         let best = v;
         let bestN = 0;
-        for (const [q, c] of counts) if (q !== v && q !== LAKE && c > bestN) [best, bestN] = [q, c];
+        for (const q of [n0, n1, n2, n3]) {
+          if (q === v || q === LAKE) continue;
+          const c =
+            (q === n0 ? 1 : 0) + (q === n1 ? 1 : 0) + (q === n2 ? 1 : 0) + (q === n3 ? 1 : 0);
+          if (c > bestN) [best, bestN] = [q, c];
+        }
         if (v === SEA ? bestN >= 3 && best !== SEA : bestN === 4) ids[i] = best;
       }
     }
@@ -333,7 +348,10 @@ export function countryColours(g: EuropeGrid = europeGrid()): Map<string, LandFa
       if (fam[v]! >= 0) continue;
       const sat = new Set([...hard[v]!].map((u) => fam[u]!).filter((f) => f >= 0)).size;
       const k = [sat, hard[v]!.size, area[v]!];
-      if (k[0]! > key[0]! || (k[0] === key[0] && (k[1]! > key[1]! || (k[1] === key[1] && k[2]! > key[2]!)))) {
+      if (
+        k[0]! > key[0]! ||
+        (k[0] === key[0] && (k[1]! > key[1]! || (k[1] === key[1] && k[2]! > key[2]!)))
+      ) {
         key = k;
         pick = v;
       }
@@ -346,13 +364,13 @@ export function countryColours(g: EuropeGrid = europeGrid()): Map<string, LandFa
     LAND_FAMILIES.forEach((_, f) => {
       if (banned.has(f)) return;
       // Spread both the count and the ink: big countries push their colour down the list.
-    const score =
-      used[f]! * 2 +
-      Math.min(usedArea[f]!, 16000) / 1000 +
-      (avoid.has(f) ? 25 : 0) +
-      (alike.has(f) ? 12 : 0) +
-      (LAND_FAMILIES[f]!.accent ? 8 + area[pick]! / 400 : 0) +
-      f * 0.1;
+      const score =
+        used[f]! * 2 +
+        Math.min(usedArea[f]!, 16000) / 1000 +
+        (avoid.has(f) ? 25 : 0) +
+        (alike.has(f) ? 12 : 0) +
+        (LAND_FAMILIES[f]!.accent ? 8 + area[pick]! / 400 : 0) +
+        f * 0.1;
       if (score < bestScore) {
         bestScore = score;
         best = f;

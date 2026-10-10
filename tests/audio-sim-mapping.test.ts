@@ -17,7 +17,14 @@ import {
 } from '../src/audio/simEvents';
 import { SFX } from '../src/audio/sfx/catalog';
 import { LOOPS } from '../src/audio/sfx/loops';
-import { LOOP_IDS, SFX_IDS, type LoopId, type LoopOptions, type PlayOptions, type SfxId } from '../src/audio/types';
+import {
+  LOOP_IDS,
+  SFX_IDS,
+  type LoopId,
+  type LoopOptions,
+  type PlayOptions,
+  type SfxId,
+} from '../src/audio/types';
 
 /** One sample payload per event type — the mapped type forces this list to stay complete. */
 const SAMPLES: { [K in SimEventType]: SimEventMap[K] } = {
@@ -26,29 +33,70 @@ const SAMPLES: { [K in SimEventType]: SimEventMap[K] } = {
   commanded: { unitId: 7, toI: 20, toJ: 20, pathLength: 9 },
   died: { handle: 1, ptype: 'woke', x: 11, y: 11, cause: 'melee', lethal: false, bodyId: 1, by: 7 },
   unitDied: {
-    unitId: 7, unit: 'riot', x: 12, y: 12, cause: 'melee', lethal: true, bodyId: 2,
-    member: 0, squadLeft: 0, thrownOff: false,
+    unitId: 7,
+    unit: 'riot',
+    x: 12,
+    y: 12,
+    cause: 'melee',
+    lethal: true,
+    bodyId: 2,
+    member: 0,
+    squadLeft: 0,
+    thrownOff: false,
   },
   attacked: {
-    attackerKind: 'unit', attackerId: 7, targetKind: 'protester', targetId: 1,
-    x: 11, y: 11, damage: 10, dmgType: 'melee',
+    attackerKind: 'unit',
+    attackerId: 7,
+    targetKind: 'protester',
+    targetId: 1,
+    x: 11,
+    y: 11,
+    damage: 10,
+    dmgType: 'melee',
   },
   fired: {
-    shooterKind: 'unit', shooterId: 8, weapon: 'pistol', x0: 5, y0: 5, z0: 0,
-    x1: 9, y1: 9, projectileId: -1, hits: 1,
+    shooterKind: 'unit',
+    shooterId: 8,
+    weapon: 'pistol',
+    x0: 5,
+    y0: 5,
+    z0: 0,
+    x1: 9,
+    y1: 9,
+    projectileId: -1,
+    hits: 1,
   },
   exploded: { kind: 'shell', x: 15, y: 15, radius: 2.5 },
   areaCreated: { areaId: 4, kind: 'gas', x: 14, y: 14, radius: 2.5, ttl: 6 },
   thrownOffRoof: {
-    unitId: 9, unit: 'sniper', member: 0, building: 2, fromX: 20, fromY: 20, height: 3, toX: 21, toY: 22,
+    unitId: 9,
+    unit: 'sniper',
+    member: 0,
+    building: 2,
+    fromX: 20,
+    fromY: 20,
+    height: 3,
+    toX: 21,
+    toY: 22,
   },
   climbStart: { handle: 3, building: 2, x: 19, y: 19, duration: 2 },
   reachedRoof: { handle: 3, building: 2 },
   abilityReady: { unitId: 10, skill: 'gasGrenade' },
   abilityUsed: { unitId: 10, x: 16, y: 16 },
   skillUsed: {
-    unitId: 11, unit: 'tank', skill: 'missile', x0: 10, y0: 10, x1: 18, y1: 14, path: null,
-    impactAt: 0.83, lead: 0, dur: 0.83, radius: 4.5, seed: 1,
+    unitId: 11,
+    unit: 'tank',
+    skill: 'missile',
+    x0: 10,
+    y0: 10,
+    x1: 18,
+    y1: 14,
+    path: null,
+    impactAt: 0.83,
+    lead: 0,
+    dur: 0.83,
+    radius: 4.5,
+    seed: 1,
   },
   skillHit: { unitId: 11, skill: 'missile', x: 18, y: 14, radius: 4.5, index: 0, kills: 12 },
   skillShot: { unitId: 12, x0: 5, y0: 5, x1: 9, y1: 9, hits: 2, index: 0 },
@@ -138,9 +186,15 @@ describe('sim event → audio mapping', () => {
 
   it('maps weapons by kind, MG and door gun as keep-alive loops per shooter', () => {
     const weapons: [string, string][] = [
-      ['rubber', 'rubberPop'], ['pistol', 'pistol'], ['rifle', 'rifle'], ['sniper', 'sniper'],
-      ['cannon', 'tankCannon'], ['bazooka', 'bazooka'], ['molotov', 'molotovThrow'],
-      ['gasGrenade', 'canisterPop'], ['gasCone', 'gasSpray'],
+      ['rubber', 'rubberPop'],
+      ['pistol', 'pistol'],
+      ['rifle', 'rifle'],
+      ['sniper', 'sniper'],
+      ['cannon', 'tankCannon'],
+      ['bazooka', 'bazooka'],
+      ['molotov', 'molotovThrow'],
+      ['gasGrenade', 'canisterPop'],
+      ['gasCone', 'gasSpray'],
     ];
     for (const [weapon, sfx] of weapons) {
       const s = run([ev('fired', { weapon: weapon as never })]);
@@ -156,12 +210,22 @@ describe('sim event → audio mapping', () => {
   it('uses tracked unit types for melee sounds', () => {
     const riotHit = run([
       ev('unitDeployed', { unitId: 1, unit: 'riot' }),
-      ev('attacked', { attackerKind: 'protester', targetKind: 'unit', targetId: 1, dmgType: 'melee' }),
+      ev('attacked', {
+        attackerKind: 'protester',
+        targetKind: 'unit',
+        targetId: 1,
+        dmgType: 'melee',
+      }),
     ]);
     expect(riotHit.plays.at(-1)?.id).toBe('shieldThud');
     const blockade = run([
       ev('unitDeployed', { unitId: 2, unit: 'blockade' }),
-      ev('attacked', { attackerKind: 'protester', targetKind: 'unit', targetId: 2, dmgType: 'melee' }),
+      ev('attacked', {
+        attackerKind: 'protester',
+        targetKind: 'unit',
+        targetId: 2,
+        dmgType: 'melee',
+      }),
     ]);
     expect(blockade.plays.at(-1)?.id).toBe('metalHit');
     const horse = run([
@@ -171,7 +235,10 @@ describe('sim event → audio mapping', () => {
     expect(horse.plays.at(-1)?.id).toBe('bat');
     const baton = run([ev('attacked', { attackerKind: 'unit', attackerId: 99, dmgType: 'melee' })]);
     expect(baton.plays[0]?.id).toBe('baton');
-    const gallop = run([ev('unitDeployed', { unitId: 3, unit: 'mounted' }), ev('commanded', { unitId: 3 })]);
+    const gallop = run([
+      ev('unitDeployed', { unitId: 3, unit: 'mounted' }),
+      ev('commanded', { unitId: 3 }),
+    ]);
     expect(gallop.plays.at(-1)?.id).toBe('hooves');
   });
 

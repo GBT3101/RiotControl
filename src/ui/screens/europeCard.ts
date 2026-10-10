@@ -15,7 +15,11 @@ import { dossier } from './common';
 
 /** The construction stamp (same art everywhere: card and tests). */
 export function constructionStamp(): PixelBuffer {
-  return rubberStamp('UNDER CONSTRUCTION', 'rust1', { font: FONTS.smallBold, tilt: -0.05, seed: 9 });
+  return rubberStamp('UNDER CONSTRUCTION', 'rust1', {
+    font: FONTS.smallBold,
+    tilt: -0.05,
+    seed: 9,
+  });
 }
 
 /** A small red ribbon with white caps (LEVEL 1 · TUTORIAL). */

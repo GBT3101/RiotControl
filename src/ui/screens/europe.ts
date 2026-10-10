@@ -63,6 +63,28 @@ const SEEN_KEY = 'riot.europe.v1';
 /** Touch target radius around a pin tip (CSS px): 44 px targets. */
 const PIN_TOUCH_CSS = 22;
 
+let prewarmed = false;
+
+/**
+ * Paint the map sheet in idle slices while the title screen shows, so PLAY opens the map
+ * without a hitch (each stage is cached; the screen just reuses the buffers).
+ */
+export function prewarmEuropeMap(): void {
+  if (prewarmed || typeof window === 'undefined') return;
+  prewarmed = true;
+  const stages = [mapLabels, europeSheet, europeWaves, deskTile];
+  const idle =
+    (window as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number })
+      .requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 120));
+  const next = (): void => {
+    const st = stages.shift();
+    if (!st) return;
+    st();
+    idle(next, { timeout: 1500 });
+  };
+  idle(next, { timeout: 1500 });
+}
+
 /** Map px (sheet coordinates, pixel centre) of every campaign city's pin tip. */
 export function pinPoints(): Map<CityId, { x: number; y: number }> {
   return new Map(
@@ -137,7 +159,8 @@ export function visibleLabels(tags: readonly TagOut[], z: number, k: number): Se
 export function headerPlaque(maxW: number, lines: 1 | 2): PixelBuffer {
   const big = 'CONTINENTAL OPERATIONS';
   const small = 'MINISTRY OF THE INTERIOR';
-  const font = lines === 2 && measureText(FONTS.large, big).w + 20 <= maxW ? FONTS.large : FONTS.smallBold;
+  const font =
+    lines === 2 && measureText(FONTS.large, big).w + 20 <= maxW ? FONTS.large : FONTS.smallBold;
   const bw = measureText(font, big).w;
   const sw = measureText(FONTS.small, small).w;
   const w = Math.min(maxW, Math.max(bw, lines === 2 ? sw : 0) + 20);
@@ -230,6 +253,8 @@ export class EuropeScreen implements Screen {
   /** Device px of the sheet's top-left. */
   private off = { x: 0, y: 0 };
   private laidZ = -1;
+  /** Pan to show the selected tag after the next tag layout (first view, new selection). */
+  private wantFit = true;
   private selected: CityId;
   private hover: CityId | null = null;
   private t = 0;
@@ -245,11 +270,16 @@ export class EuropeScreen implements Screen {
     const store = browserStorage();
     const seen = readJson(store, SEEN_KEY) as { seen?: boolean } | null;
     const last = app.settings.lastCity;
-    this.selected = !seen?.seen ? FIRST_CITY : last && CAMPAIGN.some((c) => c.id === last) ? last : FIRST_CITY;
+    this.selected = !seen?.seen
+      ? FIRST_CITY
+      : last && CAMPAIGN.some((c) => c.id === last)
+        ? last
+        : FIRST_CITY;
     writeJson(store, SEEN_KEY, { seen: true });
     this.reduced =
       !app.settings.shake ||
-      (typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+      (typeof window !== 'undefined' &&
+        !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
 
     this.desk = new TilingSprite({ texture: uiTex('europe:desk', deskTile), width: 1, height: 1 });
     this.desk.texture.source.addressMode = 'repeat';
@@ -277,7 +307,16 @@ export class EuropeScreen implements Screen {
       const pin = new Sprite();
       const tag = new Sprite();
       this.pinsC.addChild(tag);
-      this.pins.set(c.id, { c, sx: p.x + 0.5, sy: p.y + 0.5, pin, tag, tagOrigin: { x: 0, y: 0 }, out: null, tagRel: null });
+      this.pins.set(c.id, {
+        c,
+        sx: p.x + 0.5,
+        sy: p.y + 0.5,
+        pin,
+        tag,
+        tagOrigin: { x: 0, y: 0 },
+        out: null,
+        tagRel: null,
+      });
     }
     // Pins above every tag (a thread never crosses a pin head).
     for (const v of this.pins.values()) this.pinsC.addChild(v.pin);
@@ -298,7 +337,16 @@ export class EuropeScreen implements Screen {
     this.back = new Button(stampFaces('BACK'), { onTap: () => this.goBack(), pad: 3 });
     this.deploy = new Button(stampFaces('DEPLOY'), { onTap: () => this.deploySelected(), pad: 3 });
     makeInteractive(this.card, { blockOnly: true });
-    this.root.addChild(this.desk, this.mapC, this.pinsC, this.surface, this.header, this.back, this.card, this.deploy);
+    this.root.addChild(
+      this.desk,
+      this.mapC,
+      this.pinsC,
+      this.surface,
+      this.header,
+      this.back,
+      this.card,
+      this.deploy,
+    );
 
     // The live city underneath is invisible behind the desk: pause and hide it.
     const g = app.game;
@@ -337,7 +385,10 @@ export class EuropeScreen implements Screen {
       if (this.app.input.hit(d.x, d.y)?.node !== this.surface) return;
       this.touches.set(e.pointerId, d);
       if (this.touches.size === 2) {
-        const [a, b] = [...this.touches.values()] as [{ x: number; y: number }, { x: number; y: number }];
+        const [a, b] = [...this.touches.values()] as [
+          { x: number; y: number },
+          { x: number; y: number },
+        ];
         const mx = (a.x + b.x) / 2;
         const my = (a.y + b.y) / 2;
         this.pinch = {
@@ -358,7 +409,10 @@ export class EuropeScreen implements Screen {
       this.touches.set(e.pointerId, d);
       const p = this.pinch;
       if (!p || this.touches.size < 2) return;
-      const [a, b] = [...this.touches.values()] as [{ x: number; y: number }, { x: number; y: number }];
+      const [a, b] = [...this.touches.values()] as [
+        { x: number; y: number },
+        { x: number; y: number },
+      ];
       const dist = Math.hypot(a.x - b.x, a.y - b.y);
       const z = Math.max(this.zp.min - 0.4, Math.min(this.zp.max + 0.4, (p.z0 * dist) / p.d0));
       const mx = (a.x + b.x) / 2;
@@ -430,6 +484,7 @@ export class EuropeScreen implements Screen {
     this.selected = id;
     this.app.sfx('click');
     this.laidZ = -1;
+    this.wantFit = true;
     this.refreshCard();
     this.ensureVisible(id);
   }
@@ -534,7 +589,10 @@ export class EuropeScreen implements Screen {
     const old = this.header.texture;
     this.header.texture = ownTex(plaque, 'ui:europe-header');
     if (old && old.label === 'ui:europe-header') old.destroy(true);
-    this.header.position.set(plan.header.x + Math.floor((plan.header.w - plaque.w) / 2), plan.header.y);
+    this.header.position.set(
+      plan.header.x + Math.floor((plan.header.w - plaque.w) / 2),
+      plan.header.y,
+    );
     this.back.position.set(plan.back.x, plan.back.y);
     if (first || !prev) {
       this.z = this.zTarget = this.zp.def;
@@ -543,7 +601,10 @@ export class EuropeScreen implements Screen {
       // Keep the zoom and the centre of the free area across a resize / rotation.
       const cx = ((prev.free.x + prev.free.w / 2) * k - this.off.x) / this.z;
       const cy = ((prev.free.y + prev.free.h / 2) * k - this.off.y) / this.z;
-      this.z = this.zTarget = Math.max(this.zp.min, Math.min(this.zp.max, Math.round(this.zTarget)));
+      this.z = this.zTarget = Math.max(
+        this.zp.min,
+        Math.min(this.zp.max, Math.round(this.zTarget)),
+      );
       this.centreOn(cx, cy);
     }
     this.laidZ = -1;
@@ -564,7 +625,15 @@ export class EuropeScreen implements Screen {
       const btn = plan.horizontal
         ? { x: w - go.w - 8, y: h + 6 - go.h, w: go.w, h: go.h }
         : { x: Math.floor((w - go.w) / 2), y: h + 4 - go.h, w: go.w, h: go.h };
-      const card = postcard(c.id, this.app.records[c.id], w, h, cityPicture(c.id), plan.horizontal, btn);
+      const card = postcard(
+        c.id,
+        this.app.records[c.id],
+        w,
+        h,
+        cityPicture(c.id),
+        plan.horizontal,
+        btn,
+      );
       b = card.buf;
       const ribbon = levelRibbon(c);
       const photo = card.boxes.photo;
@@ -593,7 +662,11 @@ export class EuropeScreen implements Screen {
   }
 
   private styleOf(id: CityId): TagStyleName {
-    return id === this.selected || id === this.hover ? 'selected' : isBuilt(id) ? 'built' : 'unbuilt';
+    return id === this.selected || id === this.hover
+      ? 'selected'
+      : isBuilt(id)
+        ? 'built'
+        : 'unbuilt';
   }
 
   /** Re-run the tag layout for the current integer zoom; hide labels under tags. */
@@ -623,6 +696,29 @@ export class EuropeScreen implements Screen {
       v.tagRel = t.tag ? { x: t.tag.x - tipX, y: t.tag.y - tipY, w: t.tag.w, h: t.tag.h } : null;
     }
     this.refreshPins();
+    if (this.wantFit) this.fitSelectedTag();
+  }
+
+  /** Pan once so the selected city's tag is fully on screen beside the card (if it can be). */
+  private fitSelectedTag(): void {
+    this.wantFit = false;
+    const v = this.pins.get(this.selected);
+    const plan = this.plan;
+    if (!v?.tagRel || !plan) return;
+    const k = this.app.k;
+    const tip = this.tipUi(v);
+    const t = { x: tip.x + v.tagRel.x, y: tip.y + v.tagRel.y, w: v.tagRel.w, h: v.tagRel.h };
+    const f = plan.free;
+    let dx = 0;
+    let dy = 0;
+    if (t.x + t.w > f.x + f.w - 4) dx = f.x + f.w - 4 - (t.x + t.w);
+    if (t.x + dx < f.x + 4) dx = f.x + 4 - t.x;
+    if (t.y + t.h > f.y + f.h - 4) dy = f.y + f.h - 4 - (t.y + t.h);
+    if (t.y + dy < f.y + 4) dy = f.y + 4 - t.y;
+    if (!dx && !dy) return;
+    const before = { ...this.off };
+    this.panBy(Math.round(dx) * k, Math.round(dy) * k);
+    if (before.x !== this.off.x || before.y !== this.off.y) this.laidZ = -1;
   }
 
   /** Pin / tag textures for the current selection and hover. */
@@ -681,7 +777,10 @@ export class EuropeScreen implements Screen {
       const a = this.zAnchor;
       const mx = (a.x - this.off.x) / this.z;
       const my = (a.y - this.off.y) / this.z;
-      const nz = Math.abs(this.zTarget - this.z) < 0.02 ? this.zTarget : this.z + (this.zTarget - this.z) * Math.min(1, dt * 16);
+      const nz =
+        Math.abs(this.zTarget - this.z) < 0.02
+          ? this.zTarget
+          : this.z + (this.zTarget - this.z) * Math.min(1, dt * 16);
       this.z = nz;
       this.off.x = a.x - mx * nz;
       this.off.y = a.y - my * nz;

@@ -130,7 +130,8 @@ function labelSprite(
       if (ch === ' ') return;
       const x = 2 + i * sx;
       const y = y0 + i * sy;
-      if (pass === 0) drawText(b, FONTS.small, ch, x, y, halo, { outline: halo, outlineThin: true });
+      if (pass === 0)
+        drawText(b, FONTS.small, ch, x, y, halo, { outline: halo, outlineThin: true });
       else drawText(b, FONTS.small, ch, x, y, ink);
     });
   return trimBuf(b);
@@ -230,12 +231,19 @@ export function mapLabels(): MapLabel[] {
   const out: MapLabel[] = [];
   const taken: { x: number; y: number; w: number; h: number }[] = [];
   const free = (x: number, y: number, w: number, h: number): boolean =>
-    !taken.some((t) => x < t.x + t.w + 2 && t.x < x + w + 2 && y < t.y + t.h + 2 && t.y < y + h + 2);
+    !taken.some(
+      (t) => x < t.x + t.w + 2 && t.x < x + w + 2 && y < t.y + t.h + 2 && t.y < y + h + 2,
+    );
   // Roomiest pixels of each region, best first (≥ 3 px apart).
   const spots = new Map<number, { x: number; y: number }[]>();
-  const order = [...room.keys()].sort((a, b) => room[b]! - room[a]!);
+  // Bucket the pixels by room (largest first) instead of sorting 200k indices.
+  const buckets: number[][] = [];
+  for (let i = 0; i < room.length; i++) {
+    const r = room[i]!;
+    if (r >= 3 && r < 255) (buckets[r] ??= []).push(i);
+  }
+  const order = buckets.reverse().flatMap((b) => b ?? []);
   for (const i of order) {
-    if (room[i]! < 3) break;
     const v = g.ids[i]!;
     const list = spots.get(v) ?? [];
     if (list.length >= 24) continue;
@@ -272,7 +280,9 @@ export function mapLabels(): MapLabel[] {
   // Big countries first: small neighbours take what room is left.
   const area = new Map<number, number>();
   for (const v of g.ids) area.set(v, (area.get(v) ?? 0) + 1);
-  const byArea = g.countries.map((c, k) => ({ c, k })).sort((a, b) => (area.get(b.k + 1) ?? 0) - (area.get(a.k + 1) ?? 0));
+  const byArea = g.countries
+    .map((c, k) => ({ c, k }))
+    .sort((a, b) => (area.get(b.k + 1) ?? 0) - (area.get(a.k + 1) ?? 0));
   byArea.forEach(({ c, k }) => {
     if (!c.label || !c.names[0]) return;
     const fam = fams.get(c.id)!;
@@ -281,7 +291,8 @@ export function mapLabels(): MapLabel[] {
     // An authored slant reads best along long countries (Italy's boot): it goes first.
     const variants = (name: string): PixelBuffer[] => {
       const v: PixelBuffer[] = [];
-      const slanted = c.slant && name.length > 2 ? [labelSprite(name, fam.dark, fam.fill, 0, c.slant)] : [];
+      const slanted =
+        c.slant && name.length > 2 ? [labelSprite(name, fam.dark, fam.fill, 0, c.slant)] : [];
       if (name === c.names[0]) v.push(...slanted);
       if (name.length <= 8 && !name.includes('.')) v.push(labelSprite(name, fam.dark, fam.fill, 1));
       v.push(labelSprite(name, fam.dark, fam.fill, 0));
@@ -299,8 +310,17 @@ export function mapLabels(): MapLabel[] {
     const ring: { x: number; y: number }[] = [p];
     for (let r = 2; r <= 10; r += 2)
       for (let a = 0; a < 8; a++)
-        ring.push({ x: p.x + Math.cos((a * Math.PI) / 4) * r, y: p.y + Math.sin((a * Math.PI) / 4) * r });
-    place(`sea:${s.name}`, [s.name], ring, variants, (v, x, y) => v === SEA && dist[y * g.w + x]! >= 2);
+        ring.push({
+          x: p.x + Math.cos((a * Math.PI) / 4) * r,
+          y: p.y + Math.sin((a * Math.PI) / 4) * r,
+        });
+    place(
+      `sea:${s.name}`,
+      [s.name],
+      ring,
+      variants,
+      (v, x, y) => v === SEA && dist[y * g.w + x]! >= 2,
+    );
   }
   labelCache = out;
   return out;
@@ -320,7 +340,11 @@ const projected = (src: string): { x: number; y: number }[] =>
   parsePts(src).map(([lon, lat]) => project(lon, lat));
 
 /** Walk a polyline in ~unit steps, calling `at` with integer pixels (deduplicated). */
-function walk(pts: { x: number; y: number }[], step: number, at: (x: number, y: number, i: number) => void): void {
+function walk(
+  pts: { x: number; y: number }[],
+  step: number,
+  at: (x: number, y: number, i: number) => void,
+): void {
   let carry = 0;
   let i = 0;
   let last = '';
@@ -406,7 +430,7 @@ function paintBody(): MapLayers {
       if (n4.some((q) => !isLand(q))) {
         setPixel(b, x, y, C(f.dark));
         role[i] = 2;
-      } else if (isLand(n4[1]!) && n4[1] !== v || (isLand(n4[3]!) && n4[3] !== v)) {
+      } else if ((isLand(n4[1]!) && n4[1] !== v) || (isLand(n4[3]!) && n4[3] !== v)) {
         setPixel(b, x, y, C(BORDER_COL));
         role[i] = 3;
       } else {
@@ -430,7 +454,9 @@ function paintBody(): MapLayers {
   // Label boxes stay clear of rivers and relief.
   const labels = mapLabels();
   const inLabel = (x: number, y: number): boolean =>
-    labels.some((l) => x >= l.x - 1 && y >= l.y - 1 && x < l.x + l.buf.w + 1 && y < l.y + l.buf.h + 1);
+    labels.some(
+      (l) => x >= l.x - 1 && y >= l.y - 1 && x < l.x + l.buf.w + 1 && y < l.y + l.buf.h + 1,
+    );
   // Rivers.
   for (const r of RIVERS)
     walk(projected(r), 0.4, (x, y) => {
@@ -526,11 +552,13 @@ function coffeeRing(b: PixelBuffer, cx: number, cy: number, r: number, seed: num
     const y = Math.round(cy + Math.sin(a) * r);
     stainPx(b, x, y);
     // The lip: thicker on the lower right.
-    if (Math.cos(a - Math.PI / 4) > 0.55) stainPx(b, Math.round(cx + Math.cos(a) * (r - 1)), Math.round(cy + Math.sin(a) * (r - 1)));
+    if (Math.cos(a - Math.PI / 4) > 0.55)
+      stainPx(b, Math.round(cx + Math.cos(a) * (r - 1)), Math.round(cy + Math.sin(a) * (r - 1)));
   }
   // A drip.
   const da = gapA + Math.PI * 0.8;
-  for (let k = 1; k <= 3; k++) stainPx(b, Math.round(cx + Math.cos(da) * (r + k)), Math.round(cy + Math.sin(da) * (r + k)));
+  for (let k = 1; k <= 3; k++)
+    stainPx(b, Math.round(cx + Math.cos(da) * (r + k)), Math.round(cy + Math.sin(da) * (r + k)));
 }
 
 /** 31×31 compass rose (north point crimson), lit from the upper left, on a thin ring. */
@@ -613,7 +641,14 @@ function scaleBar(b: PixelBuffer, x: number, y: number): void {
   vline(b, x - 1, y - 1, 4, 'ink');
   vline(b, x + 50, y - 1, 4, 'ink');
   drawText(b, FONTS.small, '0', x - 2, y + 5, 'zinc4');
-  drawText(b, FONTS.small, '500 KM', x + 50 - measureText(FONTS.small, '500 KM').w + 3, y + 5, 'zinc4');
+  drawText(
+    b,
+    FONTS.small,
+    '500 KM',
+    x + 50 - measureText(FONTS.small, '500 KM').w + 3,
+    y + 5,
+    'zinc4',
+  );
 }
 
 /** A strip of masking tape across a corner (diagonal band, serrated ends). */
@@ -652,7 +687,8 @@ export function europeSheet(): PixelBuffer {
   for (let k = 0; k < 26; k++) {
     const x = o + 1 + Math.floor(rnd() * (pw - 2));
     const y = o + 1 + Math.floor(rnd() * (ph - 2));
-    if (x > MAP_OX - 2 && x < MAP_OX + MAP_W + 1 && y > MAP_OY - 2 && y < MAP_OY + MAP_H + 1) continue;
+    if (x > MAP_OX - 2 && x < MAP_OX + MAP_W + 1 && y > MAP_OY - 2 && y < MAP_OY + MAP_H + 1)
+      continue;
     px(b, x, y, 'stone3');
   }
   // Neat lines: a thin outer rule and the map frame.
@@ -670,11 +706,25 @@ export function europeSheet(): PixelBuffer {
   const title = 'MINISTRY OF THE INTERIOR · CONTINENTAL OPERATIONS · SHEET E-1';
   drawText(b, FONTS.small, title, MAP_OX + 18, o + 3, 'stone1');
   const cls = 'CLASSIFIED';
-  drawText(b, FONTS.smallBold, cls, MAP_OX + MAP_W - 18 - measureText(FONTS.smallBold, cls).w, o + 3, 'crim1');
+  drawText(
+    b,
+    FONTS.smallBold,
+    cls,
+    MAP_OX + MAP_W - 18 - measureText(FONTS.smallBold, cls).w,
+    o + 3,
+    'crim1',
+  );
   const foot = 'NOT FOR PUBLIC DISTRIBUTION · BORDERS SUBJECT TO MINISTERIAL MOOD';
   drawText(b, FONTS.small, foot, MAP_OX, MAP_OY + MAP_H + 4, 'stone2');
   const scale = 'SCALE 1:10,000,000';
-  drawText(b, FONTS.small, scale, MAP_OX + MAP_W - measureText(FONTS.small, scale).w, MAP_OY + MAP_H + 4, 'stone2');
+  drawText(
+    b,
+    FONTS.small,
+    scale,
+    MAP_OX + MAP_W - measureText(FONTS.small, scale).w,
+    MAP_OY + MAP_H + 4,
+    'stone2',
+  );
   // Compass rose and scale bar in the open Atlantic.
   const rose = compassRose();
   const rp = { x: 20, y: 140 };
@@ -733,7 +783,9 @@ const LIGHTER: Record<string, string> = {
   gray7: 'white',
   ink: 'gray1',
 };
-const LIGHT_BY_RGBA = new Map<number, string>(Object.keys(LIGHTER).map((n) => [resolveColor(n) >>> 0, n]));
+const LIGHT_BY_RGBA = new Map<number, string>(
+  Object.keys(LIGHTER).map((n) => [resolveColor(n) >>> 0, n]),
+);
 
 function lighten(b: PixelBuffer, x: number, y: number): void {
   if (x < 0 || y < 0 || x >= b.w || y >= b.h) return;
@@ -780,13 +832,20 @@ export function europeWaves(): PixelBuffer[] {
       const y = cy + Math.floor(rnd() * 4);
       const phase = Math.floor(rnd() * WAVE_FRAMES);
       let ok = true;
-      for (let yy = y - 1; yy <= y + 2 && ok; yy++) for (let xx = x - 1; xx <= x + 4 && ok; xx++) ok = deep(xx, yy);
+      for (let yy = y - 1; yy <= y + 2 && ok; yy++)
+        for (let xx = x - 1; xx <= x + 4 && ok; xx++) ok = deep(xx, yy);
       if (!ok) continue;
-      if (labels.some((l) => x + 4 >= l.x - 1 && x <= l.x + l.buf.w && y + 2 >= l.y - 1 && y <= l.y + l.buf.h)) continue;
+      if (
+        labels.some(
+          (l) => x + 4 >= l.x - 1 && x <= l.x + l.buf.w && y + 2 >= l.y - 1 && y <= l.y + l.buf.h,
+        )
+      )
+        continue;
       const near = dist[y * g.w + x]! <= 4;
       frames.forEach((f, k) => {
         const shape = (k + phase) % WAVE_FRAMES < 2 || k === 0 ? A : B;
-        for (const [dx, dy] of shape) px(f, MAP_OX + x + dx!, MAP_OY + y + dy!, near ? SEA_SURF : SEA_SHALLOW);
+        for (const [dx, dy] of shape)
+          px(f, MAP_OX + x + dx!, MAP_OY + y + dy!, near ? SEA_SURF : SEA_SHALLOW);
       });
     }
   waveCache = frames;
@@ -906,7 +965,12 @@ export function tagSize(text: string, ribbon?: string, hazard = false): { w: num
  * A paper tag with a city name, an optional red ribbon line above it and, for cities still
  * being built, a strip of hazard tape down its left edge.
  */
-export function tagSprite(text: string, style: TagStyle, ribbon?: string, hazard = false): PixelBuffer {
+export function tagSprite(
+  text: string,
+  style: TagStyle,
+  ribbon?: string,
+  hazard = false,
+): PixelBuffer {
   const { w, h } = tagSize(text, ribbon, hazard);
   const b = buf(w, h);
   let y0 = 0;
@@ -931,7 +995,14 @@ export function tagSprite(text: string, style: TagStyle, ribbon?: string, hazard
     tx = 5;
   }
   const tw = measureText(FONTS.small, text.toUpperCase()).w;
-  drawText(b, FONTS.small, text.toUpperCase(), tx + Math.floor((w - tx - tw) / 2), y0 + 3, style.ink);
+  drawText(
+    b,
+    FONTS.small,
+    text.toUpperCase(),
+    tx + Math.floor((w - tx - tw) / 2),
+    y0 + 3,
+    style.ink,
+  );
   return b;
 }
 
@@ -962,7 +1033,12 @@ export function thread(b: PixelBuffer, ox: number, oy: number, x: number, y: num
 
 export function registerEurope(reg: SpriteRegistry): void {
   const g = 'europe';
-  reg.add('ui.europe.pin.built', { group: g, frames: pinSprite('built'), anchor: PIN_ANCHOR, hasShadow: true });
+  reg.add('ui.europe.pin.built', {
+    group: g,
+    frames: pinSprite('built'),
+    anchor: PIN_ANCHOR,
+    hasShadow: true,
+  });
   reg.add('ui.europe.pin.unbuilt', {
     group: g,
     frames: pinSprite('unbuilt'),

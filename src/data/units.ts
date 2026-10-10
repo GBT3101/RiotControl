@@ -93,7 +93,8 @@ export interface AttackDef {
 }
 
 /** Special skill ids (docs/specials.md). */
-export type AbilityId = 'gasGrenade' | 'ram' | 'rapidFire' | 'fragGrenade' | 'missile' | 'airStrike';
+export type AbilityId =
+  'gasGrenade' | 'ram' | 'rapidFire' | 'fragGrenade' | 'missile' | 'airStrike';
 
 /**
  * How the player aims a skill: `auto` fires on a tap (the sim picks the target), `point` enters

@@ -37,7 +37,7 @@ import { clearAtlasBuffers } from './core/tex';
 import { Hud } from './hud/hud';
 import { computeHudLayout, insetsToUi, NO_INSETS, type HudLayout, type Insets } from './layout';
 import { applyRun, loadRecords, saveRecords, type Records } from './records';
-import { EuropeScreen } from './screens/europe';
+import { EuropeScreen, prewarmEuropeMap } from './screens/europe';
 import { CreditsScreen } from './screens/credits';
 import { EndScreen } from './screens/end';
 import { PauseScreen } from './screens/pause';
@@ -474,7 +474,10 @@ export class UiApp {
     this.startAttract(p);
     this.relayout();
     if (toSelect) this.showCitySelect(true);
-    else this.push(new TitleScreen(this), 'title');
+    else {
+      this.push(new TitleScreen(this), 'title');
+      prewarmEuropeMap();
+    }
     this.markReadyWhenComplete();
   }
 

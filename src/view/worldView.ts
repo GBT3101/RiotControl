@@ -333,7 +333,8 @@ export class WorldView {
       switch (e.type) {
         case 'attacked':
           if (e.targetKind === 'protester') this.protesters.onHit(e.targetId, now);
-          else if (e.dmgType === 'crush') this.onRammed(e.targetId, Math.max(now, e.tick * this.world.dt));
+          else if (e.dmgType === 'crush')
+            this.onRammed(e.targetId, Math.max(now, e.tick * this.world.dt));
           break;
         case 'spawned':
           if (e.building >= 0) this.protesters.onSpawn(e.handle, now);
