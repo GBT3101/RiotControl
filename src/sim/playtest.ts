@@ -43,6 +43,8 @@ export interface PlaytestResult extends PlaytestJob {
   climbs: number;
   /** Protesters that went after a unit in aggro range. */
   hunts: number;
+  /** Special skills fired and the protesters they dropped. */
+  skills: [number, number];
   trace: BalanceTrace;
 }
 
@@ -78,6 +80,7 @@ export function runPlaytest(job: PlaytestJob): PlaytestResult {
     rammed: s.officersRammed,
     climbs: s.climbsStarted,
     hunts: s.huntsStarted,
+    skills: [s.skillsUsed, s.skillKills],
     trace: r.trace,
   };
 }

@@ -1,21 +1,28 @@
 /**
  * Selected-unit panel (paper sheet, bottom-left above the deploy bar): portrait, name, HP bar,
- * role, kills, and for commandable units a blinking "TAP A ROAD TO MOVE" hint; the Tear Gas
- * Shooter gets its charge ring and a pulsing THROW GAS button once the grenade is charged.
- * Also floats a bouncing grenade over every charged gas shooter in the world (tap = throw).
+ * role, kills, and for commandable units a blinking "TAP A ROAD TO MOVE" hint. Units with a
+ * special skill (docs/specials.md: gas grenade, ram, rapid fire, frag, missile, air strike) get
+ * the charge ring and, once charged, a pulsing skill button (THROW GAS, or the skill's round
+ * icon button + stamp); the tank's / helicopter's button enters the aim / paint mode and turns
+ * into CANCEL meanwhile, with the instructions on the hint line.
+ * Also floats a bouncing ready cue (the skill's icon) over every charged unit in the world
+ * (tap = use).
  */
 import { Container, Sprite, type Texture } from 'pixi.js';
 import { buf, hline, rect, stamp } from '../../art/fx/draw';
 import { FONTS, lineWidth, type BitmapFont } from '../../art/uikit/text';
 import { abilityRing } from '../../art/uikit/cards';
 import { ICONS } from '../../art/uikit/icons';
+import { stampButton, type ButtonState } from '../../art/uikit/buttons';
+import { specialButton, specialCue, type SpecialSkill } from '../../art/uikit/specials';
+import type { PixelBuffer } from '../../art/lib/pixels';
 import { panel } from '../../art/uikit/panels';
 import { tileToWorld } from '../../core/iso';
-import { UNITS } from '../../data/units';
+import { UNITS, type AbilityId } from '../../data/units';
 import type { GameController } from '../../game/controller';
 import type { Unit } from '../../sim/units';
 import { unitPortrait } from '../art';
-import { Button, stampFaces } from '../core/button';
+import { Button, facesFrom, stampFaces, type ButtonFaces } from '../core/button';
 import { Label } from '../core/label';
 import { capBlockH, overlaps, textBelow, type Box, type TextBox } from '../core/boxes';
 import { makeInteractive } from '../core/node';
@@ -23,6 +30,49 @@ import { swapOwned, uiTex, destroyOwned } from '../core/tex';
 import { UNIT_COPY, UI_TEXT } from '../strings';
 import type { HudLayout } from '../layout';
 import type { UiApp } from '../app';
+
+/** The art's icon / cue name of each new skill (the gas grenade keeps its own cue). */
+const SKILL_ICON: Record<Exclude<AbilityId, 'gasGrenade'>, SpecialSkill> = {
+  ram: 'ram',
+  rapidFire: 'rapid',
+  fragGrenade: 'frag',
+  missile: 'missile',
+  airStrike: 'air',
+};
+
+/** Skill button labels (stamp beside the round icon button). */
+const SKILL_LABEL: Record<AbilityId, string> = {
+  gasGrenade: 'THROW GAS',
+  ram: 'RAM!',
+  rapidFire: 'RAPID FIRE',
+  fragGrenade: 'FRAG OUT',
+  missile: 'FIRE MISSILE',
+  airStrike: 'AIR STRIKE',
+};
+
+/** Instructions on the hint line while aiming / painting (touch, mouse). */
+const SKILL_MODE_HINT = {
+  aim: ['TAP A TARGET, THEN TAP IT AGAIN', 'CLICK A TARGET IN THE RING'],
+  paint: ['DRAG A LINE TO STRIKE', 'DRAG A LINE TO STRIKE'],
+} as const;
+
+/** Round icon button + stamp label, one face per button state. */
+function skillFace(icon: SpecialSkill | 'cancel', label: string, st: ButtonState): PixelBuffer {
+  const round = specialButton(icon, st);
+  const stampB = stampButton(label, 0, st);
+  const h = Math.max(round.h, stampB.h);
+  const b = buf(round.w + 1 + stampB.w, h);
+  stamp(b, round, 0, Math.floor((h - round.h) / 2));
+  stamp(b, stampB, round.w + 1, Math.floor((h - stampB.h) / 2));
+  return b;
+}
+
+function skillFaces(ab: AbilityId, cancel: boolean): ButtonFaces {
+  if (cancel) return facesFrom('skill:cancel', (st) => skillFace('cancel', 'CANCEL', st));
+  if (ab === 'gasGrenade') return stampFaces(SKILL_LABEL.gasGrenade);
+  const icon = SKILL_ICON[ab];
+  return facesFrom(`skill:${ab}`, (st) => skillFace(icon, SKILL_LABEL[ab], st));
+}
 
 function hpBar(frac: number, w: number): ReturnType<typeof buf> {
   const b = buf(w, 6);
@@ -90,13 +140,19 @@ export function infoPanelLayout(sp: InfoPanelSpec): InfoPanelLayout {
   const right = sp.w - 7;
   let h = sp.h;
   let out: InfoPanelLayout | null = null;
-  for (let pass = 0; pass < 4; pass++) {
+  let footerMode = false;
+  for (let pass = 0; pass < 6; pass++) {
     const close = { x: sp.w - 12, y: 3, w: 9, h: 9 };
     const ring = sp.ring ? { x: sp.w - 21, y: h - 22, w: 18, h: 18 } : null;
     const tb = sp.throwBtn
       ? { x: Math.max(6, sp.w - sp.throwBtn.w - 24), y: h - sp.throwBtn.h - 3, ...sp.throwBtn }
       : null;
-    const obstacles = [close, ...(ring ? [ring] : []), ...(tb ? [tb] : [])];
+    // Footer mode: the ring / button get a row of their own under the text (no wrapping round).
+    const obstacles = [
+      close,
+      ...(!footerMode && ring ? [ring] : []),
+      ...(!footerMode && tb ? [tb] : []),
+    ];
     // Text block (cap line `cap`, ink from `after` down) wrapped to the room left of every
     // obstacle in its band.
     const flow = (font: BitmapFont, str: string, cap: number, after: number): TextBox => {
@@ -154,9 +210,21 @@ export function infoPanelLayout(sp: InfoPanelSpec): InfoPanelLayout {
     const texts = [name, hpText, role, kills, hint].filter((b): b is TextBox => !!b && b.w > 0);
     const clash = texts.some((t) => [ring, tb].some((o) => o && overlaps(t, o, 1)));
     const footer = Math.max(ring ? 23 : 0, tb ? tb.h + 4 : 0);
-    const need = clash ? Math.max(h + 1, bottom + 1 + footer) : bottom + 3;
-    if (need <= h) break;
-    h = need;
+    if (footerMode) {
+      // Final pass: the footer row sits under the text; then place it at the new bottom.
+      const fh = Math.max(sp.h, bottom + 1 + footer);
+      if (fh !== h) {
+        h = fh;
+        continue;
+      }
+      break;
+    }
+    if (clash) {
+      footerMode = true;
+      continue;
+    }
+    if (bottom + 3 <= h) break;
+    h = bottom + 3;
   }
   return out!;
 }
@@ -175,10 +243,12 @@ export class InfoPanel {
   private readonly ring = new Sprite();
   private readonly throwBtn: Button;
   private readonly close: Button;
-  /** World-space grenade cues over charged gas shooters (screen UI px). */
+  /** World-space ready cues over charged units (screen UI px). */
   private readonly cues = new Container({ label: 'ability-cues' });
   private readonly cuePool: Sprite[] = [];
   private readonly cueFrames: Texture[];
+  /** Faces shown on the skill button (skill id, or 'cancel' in the aim / paint mode). */
+  private faceKey = '';
   private unitId = -1;
   private key = '';
   private hpKey = '';
@@ -200,7 +270,9 @@ export class InfoPanel {
     makeInteractive(this.bg, { blockOnly: true });
     this.throwBtn = new Button(stampFaces('THROW GAS'), {
       onTap: () => {
-        if (this.unitId >= 0) game.useAbility(this.unitId);
+        if (this.unitId < 0) return;
+        if (game.skillMode?.unitId === this.unitId) game.cancelSkill();
+        else game.useAbility(this.unitId);
       },
       pad: 3,
     });
@@ -333,7 +405,15 @@ export class InfoPanel {
       swapOwned(this.hp, hpBar(frac, 48), 'ui:hp');
     }
     const compact = this.h < 52;
-    const gas = !!u.def.ability;
+    const ab = u.def.ability;
+    const gas = !!ab;
+    const mode = this.game.skillMode?.unitId === u.id ? this.game.skillMode.mode : null;
+    // The skill button: its own faces, CANCEL while aiming / painting.
+    const fk = ab ? `${ab.id}:${mode ? 'cancel' : ''}` : '';
+    if (ab && fk !== this.faceKey) {
+      this.faceKey = fk;
+      this.throwBtn.setFaces(skillFaces(ab.id, mode !== null));
+    }
     const k = this.killCount.get(u.id) ?? 0;
     const spec: InfoPanelSpec = {
       w: this.w,
@@ -347,43 +427,54 @@ export class InfoPanel {
       role: UNIT_COPY[u.type].role,
       // Phones keep the commandable units' panel to the move hint.
       kills: u.def.commandable && compact ? '' : u.def.attack ? `KILLS ${k}` : `HOLDING THE LINE`,
-      hint: u.def.commandable ? (this.app.touch ? UI_TEXT.moveHint : UI_TEXT.moveHintMouse) : '',
+      hint: mode
+        ? SKILL_MODE_HINT[mode][this.app.touch ? 0 : 1]
+        : u.def.commandable
+          ? this.app.touch
+            ? UI_TEXT.moveHint
+            : UI_TEXT.moveHintMouse
+          : '',
       ring: gas,
       // Room for THROW GAS is kept while it charges too (the panel doesn't jump when ready).
       throwBtn: gas ? { w: this.throwBtn.w, h: this.throwBtn.h } : null,
     };
-    const key = `${u.id}:${this.w}:${this.h}:${spec.hpText}:${spec.kills}:${spec.hint}`;
+    const key = `${u.id}:${this.w}:${this.h}:${spec.hpText}:${spec.kills}:${spec.hint}:${this.throwBtn.w}`;
     if (key !== this.key) {
       this.key = key;
       this.build(u, spec);
     }
     this.place();
-    // Commandable hint / gas ability.
+    // Commandable hint / skill ring and button.
     this.ring.visible = gas;
     this.throwBtn.visible = gas && u.abilityReady;
     if (gas) {
-      const step = u.abilityReady ? 10 : Math.floor((u.charge / u.def.ability!.charge) * 10);
+      const step = u.abilityReady ? 10 : Math.floor((u.charge / ab.charge) * 10);
       this.ring.texture = uiTex(`ring:${step}`, () => abilityRing(Math.max(0, Math.min(10, step))));
       const at = this.throwAt;
       if (this.throwBtn.visible && at) {
-        const bob = Math.floor(this.t * 3) % 2;
+        const bob = mode ? 1 : Math.floor(this.t * 3) % 2;
         this.throwBtn.position.set(at.x, at.y + 1 - bob);
       }
     }
-    this.hint.visible = !!spec.hint && (compact || Math.floor(this.t * 1.6) % 2 === 0);
+    this.hint.visible =
+      !!spec.hint && (compact || mode !== null || Math.floor(this.t * 1.6) % 2 === 0);
     this.kills.visible = !!spec.kills && !this.hint.visible;
   }
 
-  /** Bouncing grenades over charged gas shooters (tap one to throw). */
+  /** Bouncing ready cues over charged units (tap one to use the skill). */
   private updateCues(l: HudLayout): void {
     let n = 0;
     const w = this.game.world;
     const f = Math.floor(this.t * 8) % 4;
+    const busy = this.game.skillMode?.unitId ?? -1;
     if (!this.game.attract) {
       for (const u of w.units.active) {
-        if (!u.abilityReady) continue;
+        const ab = u.def.ability;
+        if (!u.abilityReady || !ab || u.id === busy) continue;
         const p = tileToWorld(u.x, u.y);
-        const s = this.game.view.worldToUi(p.x, p.y - 34);
+        // Above the head (vehicles are taller; roof units and the helicopter are lifted).
+        const lift = (this.game.view.units.entity(u.id)?.lift ?? 0) + (u.def.vehicle ? 40 : 34);
+        const s = this.game.view.worldToUi(p.x, p.y - lift);
         if (s.x < 0 || s.y < l.topBar.h || s.x > l.W || s.y > l.deploy.y) continue;
         let sp = this.cuePool[n];
         if (!sp) {
@@ -401,7 +492,12 @@ export class InfoPanel {
           this.cues.addChild(sp);
         }
         (sp as Sprite & { unitId?: number }).unitId = u.id;
-        sp.texture = this.cueFrames[f]!;
+        sp.texture =
+          ab.id === 'gasGrenade'
+            ? this.cueFrames[f]!
+            : uiTex(`cue:${ab.id}:${f}`, () =>
+                specialCue(SKILL_ICON[ab.id as keyof typeof SKILL_ICON], f),
+              );
         sp.position.set(Math.round(s.x), Math.round(s.y));
         sp.visible = true;
         n++;

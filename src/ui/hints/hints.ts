@@ -9,7 +9,7 @@
  */
 import { LEVELS, WIN_LEGITIMACY } from '../../data/levels';
 import { protesterDef, type ProtesterId } from '../../data/protesters';
-import { UNITS } from '../../data/units';
+import { UNITS, type AbilityId } from '../../data/units';
 import type { GameController } from '../../game/controller';
 import { waveForecast } from '../../sim/forecast';
 import { protesterFigure } from '../art';
@@ -36,6 +36,16 @@ import {
   saveSeenHints,
 } from './defs';
 import { HintScheduler, type HintOffer } from './scheduler';
+
+/** The "ready" hint of each special skill. */
+const SKILL_HINT: Record<AbilityId, HintTextId> = {
+  gasGrenade: 'gasCharged',
+  ram: 'ramReady',
+  rapidFire: 'rapidReady',
+  fragGrenade: 'fragReady',
+  missile: 'missileReady',
+  airStrike: 'airReady',
+};
 
 export type HintContent =
   | { channel: 'advisor'; text: string; mood: AdvisorMood }
@@ -96,7 +106,8 @@ export class Hints {
         if (e.state >= 1 && CAPITOL_COPY[e.state])
           this.sched.offer({ id: capitolHintId(e.state), ...capitolRule });
       }),
-      b.on('abilityReady', () => this.offerFixed('gasCharged')),
+      // First charge of each skill: how to use it (the gas grenade, then the five specials).
+      b.on('abilityReady', (e) => this.offerFixed(SKILL_HINT[e.skill])),
       b.on('unitDeployed', (e) => {
         if (UNITS[e.unit].commandable && e.unit !== 'heli') this.offerFixed('commandable');
         if (e.unit === 'gas') this.offerFixed('gasThrow');

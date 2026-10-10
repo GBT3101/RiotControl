@@ -19,6 +19,7 @@ import type { World } from '../sim/world';
 import { AmbientView } from './ambient';
 import { BodyView, type ThrowInfo } from './bodyView';
 import { CombatView } from './combatView';
+import { SkillView } from './skillView';
 import { gradeAt, mixColor, PREP_TOD, stepTod, targetTod, type Grade } from './daylight';
 import { DecalLayer } from './decalLayer';
 import { ForecastView } from './forecastView';
@@ -65,6 +66,8 @@ export class WorldView {
   readonly units: UnitView;
   readonly bodies: BodyView;
   readonly combat: CombatView;
+  /** Special-skill FX (recipes) and the aim / paint guides (`skills.guide`). */
+  readonly skills: SkillView;
   readonly ambient: AmbientView;
   readonly overlays: OverlayView;
   /** Incoming-wave forecast: route chevrons + the forecast state the HUD markers read. */
@@ -148,6 +151,7 @@ export class WorldView {
       },
       (id, out) => this.units.muzzle(id, out),
     );
+    this.skills = new SkillView(this.layers, this.fx, this.decals, this.juice, this.units);
     this.units.onGasPuff = (u, x, y) => {
       const d = 14 + ((this.world.tick * 13) % 30);
       this.fx.spawn(
@@ -245,6 +249,7 @@ export class WorldView {
 
   /** Remove this view from the stage (M9: restart / quit / city switch). Art stays installed. */
   destroy(): void {
+    this.skills.destroy();
     this.terrain.destroy();
     this.decals.destroy();
     this.layers.world.destroy({ children: true });
@@ -398,6 +403,7 @@ export class WorldView {
         default:
       }
       this.combat.onEvent(e, now, realMs, v);
+      this.skills.onEvent(e, now, realMs, v);
     }
   }
 
@@ -522,6 +528,7 @@ export class WorldView {
     lap('combat');
     this.ambient.update(now, dtSim, r);
     lap('ambient');
+    this.skills.update(now, realMs);
     this.fx.update(now, dtSim);
     lap('fx');
     this.overlays.update(ui, now);

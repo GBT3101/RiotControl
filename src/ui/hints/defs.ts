@@ -39,6 +39,11 @@ export const HINT_RULES: Record<HintTextId, Rule> = {
   forecast: advisor(6, 15),
   rammed: advisor(7, 15),
   roofStormed: advisor(6, 15),
+  ramReady: advisor(5, 30),
+  rapidReady: advisor(5, 30),
+  fragReady: advisor(5, 30),
+  missileReady: advisor(6, 30),
+  airReady: advisor(6, 30),
 };
 
 /** Seconds of wave time without an officer death or level-up before "Legitimacy stalled?". */

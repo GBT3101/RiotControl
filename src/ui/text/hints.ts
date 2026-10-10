@@ -28,7 +28,12 @@ export type HintTextId =
   | 'gasThrow'
   | 'forecast'
   | 'rammed'
-  | 'roofStormed';
+  | 'roofStormed'
+  | 'ramReady'
+  | 'rapidReady'
+  | 'fragReady'
+  | 'missileReady'
+  | 'airReady';
 
 export const HINT_TEXT: Record<HintTextId, HintLine> = {
   sniperThrown: {
@@ -106,6 +111,32 @@ export const HINT_TEXT: Record<HintTextId, HintLine> = {
   roofStormed: {
     text: 'Climbers on a lonely roof! A sniper far from the line needs a cop nearby.',
     mood: 'sweat',
+  },
+  // First time each special skill is ready (docs/specials.md).
+  ramReady: {
+    text: 'The horse wants to charge. Click him: RAM. Bowling, but with a pension.',
+    touch: 'The horse wants to charge. Tap him: RAM. Bowling, but with a pension.',
+    mood: 'smug',
+  },
+  rapidReady: {
+    text: 'Armed Cops can empty a clip. Click them. Five shots, one form to fill in.',
+    touch: 'Armed Cops can empty a clip. Tap them. Five shots, one form to fill in.',
+    mood: 'idle',
+  },
+  fragReady: {
+    text: 'Soldiers have a real grenade. Click them to throw it. Not gas. Not a drill.',
+    touch: 'Soldiers have a real grenade. Tap them to throw it. Not gas. Not a drill.',
+    mood: 'sweat',
+  },
+  missileReady: {
+    text: 'Your tank has a missile. Click it, then click the crowd. Mind the paperwork.',
+    touch: 'Your tank has a missile. Tap it, aim, tap to fire.',
+    mood: 'smug',
+  },
+  airReady: {
+    text: 'The helicopter can strafe a street. Click it, then drag a line. Any line.',
+    touch: 'The helicopter can strafe a street. Tap it, then draw a line. Any line.',
+    mood: 'smug',
   },
 };
 

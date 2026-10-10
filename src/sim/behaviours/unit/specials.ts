@@ -1,10 +1,12 @@
 /**
- * Special unit behaviours: Tear Gas Shooter (cone + grenade ability), Mounted Riot Police
+ * Special unit behaviours: Tear Gas Shooter (cone + grenade ability; charging and the other
+ * units' skills live in sim/skills.ts), Mounted Riot Police
  * (commandable melee, knocks students aside), MG Humvee, Tank (ballistic shell with friendly
  * fire, crushes protesters), Helicopter (free flight, door gun, rotor wash).
  */
 import { DMG } from '../../../data/damage';
 import { PT } from '../../../data/protesters';
+import { abilityOf } from '../../../data/units';
 import { acquireTarget, aimAt, killProtester, validateHolders } from '../../combat';
 import { PS } from '../../crowd';
 import { TEAM_POLICE } from '../../projectiles';
@@ -16,17 +18,6 @@ import { isDisabled, meleeStrike, moverUpdate, rangedFire, recruit } from './com
 const buf = new Int32Array(1024);
 
 // ── Tear Gas Shooter ───────────────────────────────────────────────────────────────────
-
-function chargeAbility(w: World, u: Unit, dt: number): void {
-  const ab = u.def.ability;
-  if (!ab || u.abilityReady) return;
-  u.charge += dt;
-  if (u.charge >= ab.charge) {
-    u.charge = ab.charge;
-    u.abilityReady = true;
-    w.events.push('abilityReady', { unitId: u.id });
-  }
-}
 
 /** Spray cone: protesters inside choke (gas DoT) and are stunned. */
 function gasCone(w: World, u: Unit, dt: number): void {
@@ -117,7 +108,7 @@ export function findDensest(w: World, x: number, y: number, range: number): bool
 
 /** Throw the charged gas grenade at the densest crowd in range. */
 export function useGasGrenade(w: World, u: Unit): boolean {
-  const ab = u.def.ability;
+  const ab = abilityOf(u.def, 'gasGrenade');
   if (!ab || !u.abilityReady || !u.alive || isDisabled(u)) return false;
   if (!findDensest(w, u.x, u.y, ab.range)) return false;
   const tx = densest.x;
@@ -165,7 +156,6 @@ export const gasser: UnitBehaviour = {
   update(w, u, dt) {
     validateHolders(w, u);
     recruit(w, u);
-    chargeAbility(w, u, dt);
     gasCone(w, u, dt);
   },
 };

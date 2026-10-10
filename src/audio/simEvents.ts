@@ -274,8 +274,79 @@ export const SIM_EVENT_AUDIO: SimEventAudioTable = {
   climbStart: 'ignore', // too frequent; the climb is a visual beat (view).
   reachedRoof: 'ignore', // the following fight/throw-off carries the sound.
 
-  abilityReady: (_e, sink) => sink.play('abilityReady'),
+  abilityReady: (e, sink) => {
+    // Ready chime by tier (docs/art/specials.md): the gas grenade keeps its own.
+    switch (e.skill) {
+      case 'gasGrenade':
+        sink.play('abilityReady');
+        return;
+      case 'ram':
+      case 'rapidFire':
+        sink.play('skillReady1');
+        return;
+      case 'fragGrenade':
+        sink.play('skillReady2');
+        return;
+      default:
+        sink.play('skillReady3');
+    }
+  },
   abilityUsed: 'ignore', // the `fired` gasGrenade event carries the sound.
+
+  skillUsed: (e, sink, st) => {
+    st.activity += 2;
+    const p = at(e.x0, e.y0);
+    switch (e.skill) {
+      case 'ram':
+        sink.play('ramGallop', p);
+        return;
+      case 'rapidFire':
+        sink.play('rapidFire', p); // all five shots in one sound (120 ms grid = the sim's)
+        return;
+      case 'fragGrenade':
+        sink.play('fragPin', p);
+        sink.play('fragThrow', { ...p, delay: 0.08 });
+        return;
+      case 'missile':
+        sink.play('missileLaunch', p);
+        return;
+      case 'airStrike': {
+        // The run: swoop as the heli dives in, the salvo as the first rocket leaves.
+        const end = at(e.x1, e.y1);
+        sink.play('airSwoop', { ...end, delay: Math.max(0, e.lead - 1.2) });
+        sink.play('rocketSalvo', { ...end, delay: Math.max(0, e.lead - 0.22) });
+        return;
+      }
+      default:
+    }
+  },
+
+  skillHit: (e, sink, st) => {
+    const p = at(e.x, e.y);
+    switch (e.skill) {
+      case 'ram':
+        sink.play('ramImpact', p);
+        return;
+      case 'fragGrenade':
+        st.activity += 3;
+        sink.play('fragBoom', p);
+        return;
+      case 'missile':
+        st.activity += 5;
+        sink.play('missileBoom', p);
+        return;
+      case 'airStrike':
+        // One chain sound (9 booms + rumble) for the whole run.
+        if (e.index === 0) {
+          st.activity += 5;
+          sink.play('strikeChain', p);
+        }
+        return;
+      default:
+    }
+  },
+  skillShot: 'ignore', // `rapidFire` (on skillUsed) carries all five shots.
+  skillEnded: 'ignore',
 
   flash: (e, sink) => {
     const p = at(e.x, e.y);

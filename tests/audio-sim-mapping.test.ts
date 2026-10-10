@@ -44,8 +44,15 @@ const SAMPLES: { [K in SimEventType]: SimEventMap[K] } = {
   },
   climbStart: { handle: 3, building: 2, x: 19, y: 19, duration: 2 },
   reachedRoof: { handle: 3, building: 2 },
-  abilityReady: { unitId: 10 },
+  abilityReady: { unitId: 10, skill: 'gasGrenade' },
   abilityUsed: { unitId: 10, x: 16, y: 16 },
+  skillUsed: {
+    unitId: 11, unit: 'tank', skill: 'missile', x0: 10, y0: 10, x1: 18, y1: 14, path: null,
+    impactAt: 0.83, lead: 0, dur: 0.83, radius: 4.5, seed: 1,
+  },
+  skillHit: { unitId: 11, skill: 'missile', x: 18, y: 14, radius: 4.5, index: 0, kills: 12 },
+  skillShot: { unitId: 12, x0: 5, y0: 5, x1: 9, y1: 9, hits: 2, index: 0 },
+  skillEnded: { unitId: 13, skill: 'ram' },
   flash: { handle: 5, x: 13, y: 13, unitId: 7 },
   bretaSpawned: { handle: 6, x: 30, y: 30, paparazzi: 8 },
   levelUp: { level: 3, units: ['gas'], protesters: [] },
@@ -94,7 +101,14 @@ describe('sim event → audio mapping', () => {
       const entry = SIM_EVENT_AUDIO[type];
       expect(entry === 'ignore' || typeof entry === 'function', type).toBe(true);
     }
-    expect(IGNORED_SIM_EVENTS.sort()).toEqual(['abilityUsed', 'climbStart', 'hateSpent', 'reachedRoof']);
+    expect(IGNORED_SIM_EVENTS.sort()).toEqual([
+      'abilityUsed',
+      'climbStart',
+      'hateSpent',
+      'reachedRoof',
+      'skillEnded',
+      'skillShot',
+    ]);
   });
 
   it('every handled event produces at least one valid sound', () => {
@@ -193,5 +207,32 @@ describe('sim event → audio mapping', () => {
     off?.();
     dispatchEvents([ev('levelUp')], bus);
     expect(seen.length).toBe(3);
+  });
+});
+
+describe('special skill sounds', () => {
+  it('ready chime by tier, launch and impact sounds per skill', () => {
+    const ready = (skill: string): string | undefined =>
+      run([ev('abilityReady', { skill: skill as never })]).plays[0]?.id;
+    expect(ready('gasGrenade')).toBe('abilityReady');
+    expect(ready('ram')).toBe('skillReady1');
+    expect(ready('rapidFire')).toBe('skillReady1');
+    expect(ready('fragGrenade')).toBe('skillReady2');
+    expect(ready('missile')).toBe('skillReady3');
+    expect(ready('airStrike')).toBe('skillReady3');
+    const used = (skill: string): string[] =>
+      run([ev('skillUsed', { skill: skill as never, lead: 1.5 })]).ids;
+    expect(used('ram')).toEqual(['ramGallop']);
+    expect(used('rapidFire')).toEqual(['rapidFire']);
+    expect(used('fragGrenade')).toEqual(['fragPin', 'fragThrow']);
+    expect(used('missile')).toEqual(['missileLaunch']);
+    expect(used('airStrike')).toEqual(['airSwoop', 'rocketSalvo']);
+    const hit = (skill: string, index = 0): string[] =>
+      run([ev('skillHit', { skill: skill as never, index })]).ids;
+    expect(hit('ram')).toEqual(['ramImpact']);
+    expect(hit('fragGrenade')).toEqual(['fragBoom']);
+    expect(hit('missile')).toEqual(['missileBoom']);
+    expect(hit('airStrike', 0)).toEqual(['strikeChain']);
+    expect(hit('airStrike', 3)).toEqual([]);
   });
 });

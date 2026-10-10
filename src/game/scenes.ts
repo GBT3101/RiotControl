@@ -1,7 +1,8 @@
 /**
  * Debug scenarios for screenshots and visual checks (`?scene=showcase`): every unit type
  * deployed around the camera start, a crowd of every protester type marching in, a sniper roof
- * left unguarded for the climbers, a gas grenade ready. Not used by normal play.
+ * left unguarded for the climbers, a gas grenade ready; `?scene=skills`: the five special-skill
+ * units charged in front of a crowd. Not used by normal play.
  */
 import { PT } from '../data/protesters';
 import type { UnitId } from '../data/units';
@@ -27,6 +28,7 @@ function roadsNear(w: World, ci: number, cj: number, r: number): Array<{ i: numb
 export function setupScene(w: World, name: string): { i: number; j: number } | null {
   if (name === 'climb') return climbScene(w);
   if (name === 'gas') return gasScene(w);
+  if (name === 'skills') return skillsScene(w);
   if (name !== 'showcase') return null;
   const e = w.economy;
   e.level = 10;
@@ -192,6 +194,54 @@ function gasScene(w: World): { i: number; j: number } | null {
       }
       return { i: p.i - 2, j: p.j - 2 };
     }
+  }
+  return null;
+}
+
+/**
+ * Special skills (docs/specials.md): Mounted Riot Police, Armed Cops, Soldiers, a Tank and the
+ * Helicopter, all charged, on open road a few tiles from a dense (tough) crowd. Use them from the
+ * console / a script: `__riot.game.useAbility(id)`.
+ */
+function skillsScene(w: World): { i: number; j: number } | null {
+  w.economy.level = 10;
+  w.economy.hate = 99999;
+  const c = w.map.cameraStart;
+  const nav = w.nav;
+  const mw = w.map.w;
+  // An open road tile 10–18 flow steps out from the Capitol (crowd up-stream of it).
+  const roads = roadsNear(w, c.i, c.j, 22).filter((p) => {
+    const d = nav.dist[p.j * mw + p.i]!;
+    return d >= 10 && d <= 18 && roadsNear(w, p.i, p.j, 4).length >= 40;
+  });
+  for (const p of roads) {
+    const d0 = nav.dist[p.j * mw + p.i]!;
+    const up = roadsNear(w, p.i, p.j, 9).filter((q) => {
+      const d = nav.dist[q.j * mw + q.i]!;
+      return d >= d0 + 7 && d <= d0 + 11;
+    });
+    if (up.length < 12) continue;
+    const near = roadsNear(w, p.i, p.j, 4);
+    let k = 0;
+    for (const unit of ['tank', 'soldier', 'armed', 'mounted'] as UnitId[]) {
+      while (k < near.length && !w.deploy(unit, near[k]!.i, near[k]!.j)) k += 2;
+      k += 3;
+    }
+    w.deploy('heli', p.i + 2, p.j + 2);
+    for (let n = 0; n < 140; n++) {
+      const q = up[n % up.length]!;
+      tough(
+        w,
+        w.spawnProtester(
+          [PT.student, PT.woke, PT.mob][n % 3]!,
+          q.i + 0.2 + (n % 4) * 0.2,
+          q.j + 0.2 + ((n >> 2) % 3) * 0.3,
+        ),
+        300,
+      );
+    }
+    for (const u of w.units.active) if (u.def.ability) u.charge = u.def.ability.charge - 0.2;
+    return { i: p.i - 3, j: p.j - 3 };
   }
   return null;
 }

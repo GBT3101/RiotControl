@@ -5,7 +5,7 @@
  *   controller.bus.on('died', (e) => …);            // sim event
  *   controller.bus.on('hatePickupArrived', (e) => …); // view event: a +Hate fist reached the HUD
  */
-import type { UnitId } from '../data/units';
+import type { AbilityId, UnitId } from '../data/units';
 import type { DeployFail, SimEventMap } from '../sim';
 import type { StatsLedger } from '../sim/stats';
 
@@ -18,6 +18,12 @@ export interface ViewEventMap {
   deployFailed: { unit: UnitId; reason: DeployFail | null; i: number; j: number };
   /** Selected commandable/ability unit (null = none). */
   selectionChanged: { unitId: number | null; unit: UnitId | null };
+  /** The tank's aim mode / the helicopter's paint mode began or ended (all null). */
+  skillModeChanged: {
+    unitId: number | null;
+    skill: AbilityId | null;
+    mode: 'aim' | 'paint' | null;
+  };
   pauseChanged: { paused: boolean };
   speedChanged: { speed: number };
   /** Time of day changed noticeably (≈ every 1/100 of a day). */

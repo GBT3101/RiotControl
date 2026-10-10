@@ -507,6 +507,8 @@ export function bindGameAudio(game: GameController, audio: Audio): (dtMs: number
     crowd: () => w.crowd.count,
   });
   game.onSimEvents = (events) => audio.handleSimEvents(events);
+  // Aim / paint mode ticks, lock and cancel (UI bus, non-positional).
+  game.onUiSound = (id) => audio.play(id);
   let acc = 1;
   return (dtMs) => {
     const v = game.camera.view();

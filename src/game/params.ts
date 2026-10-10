@@ -18,6 +18,7 @@
  *   ?demo=1                     the M1 test-map demo scene
  *   ?nocache                    ignore the IndexedDB art cache;  ?mute  no audio
  *   ?scene=showcase             debug scenario: every unit + every protester type near the camera
+ *   ?scene=skills               the five special-skill units, charged, facing a crowd
  *
  * M9 (UI): without ?city the game opens on the title screen.
  *   ?skipTitle=1                straight into a run (default city madrid)

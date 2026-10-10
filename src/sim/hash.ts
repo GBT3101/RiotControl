@@ -50,11 +50,16 @@ export function hashWorld(w: World): number {
     H.int(u.members);
     H.num(u.mob);
     H.num(u.rage);
+    H.num(u.charge);
   }
   for (const p of w.projectiles.active) {
     H.int(p.id);
     H.num(p.x);
     H.num(p.y);
+  }
+  for (const r of w.skills.active) {
+    H.int(r.id);
+    H.num(r.t);
   }
   for (const a of w.areas.active) {
     H.int(a.id);

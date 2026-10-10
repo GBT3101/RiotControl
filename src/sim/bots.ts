@@ -9,7 +9,8 @@
  * - `riot`        — the old M6 smoke bot: riot lines + a few snipers / blockades / gas.
  * - `cheap`       — spends everything on the cheapest unlocked units (≤ 10 Hate), no saving.
  * - `balanced`    — a sensible mix: riot lines on the hot approaches, snipers on guarded roofs,
- *                   blockades across narrow approaches, gas behind the lines (grenades used),
+ *                   blockades across narrow approaches, gas behind the lines (grenades and
+ *                   every special skill used; missile and air strike at the densest crowd),
  *                   lethal units once unlocked, saves for one big toy at a time, commands
  *                   vehicles/horses/helicopters to the densest crowd near the Capitol.
  * - `escalate`    — always saves for and buys the newest / most expensive unlocked unit.
@@ -486,7 +487,7 @@ export class Bot {
 
   private gasAndCall(callEarlyAt: number, minIntegrity = 0.6): void {
     const w = this.w;
-    w.useAllAbilities();
+    w.useAllAbilities(true);
     if (
       callEarlyAt >= 0 &&
       w.director.phase === 'breather' &&

@@ -5,8 +5,8 @@
  * loop's business (`core/loop.FixedStepLoop` calls `step()`).
  *
  * Step order: prev positions → director (spawns) → flow field (throttled) → spatial hash +
- * unit grid → roof guards → outnumbering (mob.ts) → units → aggro grid (prey.ts) → crowd →
- * projectiles → areas → bodies → Capitol.
+ * unit grid → roof guards → outnumbering (mob.ts) → units (skill charge, then behaviour) →
+ * skill runs (skills.ts) → aggro grid (prey.ts) → crowd → projectiles → areas → bodies → Capitol.
  */
 import { BALANCE, type QualityTier } from '../data/balance';
 import { WIN_LEGITIMACY } from '../data/levels';
@@ -14,7 +14,7 @@ import type { UnitId } from '../data/units';
 import type { MapData } from '../maps/contract';
 import { Rng, type Seed } from '../core/rng';
 import { Areas } from './areas';
-import { UNIT_BEHAVIOURS, commandUnit, useGasGrenade } from './behaviours/unit';
+import { UNIT_BEHAVIOURS, commandUnit } from './behaviours/unit';
 import { Bodies } from './bodies';
 import { Capitol } from './capitol';
 import { hurtUnit } from './combat';
@@ -29,6 +29,7 @@ import { checkDeploy, deployUnit, type DeployCheck } from './placement';
 import { PreyGrid } from './prey';
 import { Projectiles } from './projectiles';
 import { buildRallyField, type RallyField } from './rally';
+import { chargeAbility, SkillRuns, updateSkills, useSkill, type SkillAim } from './skills';
 import { SpatialHash } from './spatialHash';
 import { spawnProtester, type SpawnOpts } from './spawn';
 import { createStats, type StatsLedger } from './stats';
@@ -65,6 +66,8 @@ export class World {
   readonly bodies = new Bodies();
   readonly projectiles = new Projectiles();
   readonly areas = new Areas();
+  /** Special-skill runs in progress (ram gallops, rapid-fire bursts, blasts, air strikes). */
+  readonly skills = new SkillRuns();
   readonly economy = new Economy();
   readonly capitol = new Capitol();
   readonly director: Director;
@@ -147,6 +150,8 @@ export class World {
     if (this.phase !== 'playing') return;
     this.updateUnits(dt);
     if (this.phase !== 'playing') return;
+    updateSkills(this, dt);
+    if (this.phase !== 'playing') return;
     this.prey.rebuild(this.units.active);
     updateCrowd(this, dt);
     this.projectiles.update(this, dt);
@@ -176,6 +181,9 @@ export class World {
         if (u.burnT <= 0) u.burnDps = 0;
         if (!u.alive) continue;
       }
+      if (u.def.ability) chargeAbility(this, u, dt);
+      // A skill run (ram gallop, rapid fire, air strike) drives the unit meanwhile.
+      if (u.skillLock) continue;
       UNIT_BEHAVIOURS[u.def.behaviour].update(this, u, dt);
       if (this.phase !== 'playing') return;
     }
@@ -312,17 +320,29 @@ export class World {
     return u ? commandUnit(this, u, i, j) : false;
   }
 
-  /** Throw a charged gas grenade at the densest crowd in range. */
-  useAbility(unitId: number): boolean {
+  /**
+   * Fire a unit's charged skill (docs/specials.md). Auto skills (gas grenade, ram, rapid fire,
+   * frag) pick their own target; the tank's missile takes a ground point `{ x, y }` and the
+   * helicopter's air strike a painted line `{ path: [u0, v0, u1, v1, …] }` (tile coords).
+   */
+  useAbility(unitId: number, aim?: SkillAim): boolean {
     if (this.phase !== 'playing') return false;
     const u = this.units.get(unitId);
-    return u ? useGasGrenade(this, u) : false;
+    return u ? useSkill(this, u, aim) : false;
   }
 
-  /** Desktop `G`: every charged unit throws. Returns how many threw. */
-  useAllAbilities(): number {
+  /**
+   * Desktop `G`: every charged auto skill fires (gas, ram, rapid fire, frag). `bot`: the bots'
+   * version — the missile and the air strike aim at the densest crowd too, and each skill waits
+   * for a crowd worth it. Returns how many fired.
+   */
+  useAllAbilities(bot = false): number {
     let n = 0;
-    for (const u of [...this.units.active]) if (u.abilityReady && this.useAbility(u.id)) n++;
+    for (const u of [...this.units.active]) {
+      const ab = u.def.ability;
+      if (!u.abilityReady || !ab || (!bot && ab.aim !== 'auto')) continue;
+      if (this.phase === 'playing' && useSkill(this, u, undefined, { bot })) n++;
+    }
     return n;
   }
 

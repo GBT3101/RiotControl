@@ -34,6 +34,9 @@ export interface StatsLedger {
   climbsStarted: number;
   /** Protesters that broke off their march to go after a unit in aggro range. */
   huntsStarted: number;
+  /** Special skills fired (gas grenades included) and protesters they dropped (sim/skills.ts). */
+  skillsUsed: number;
+  skillKills: number;
 }
 
 function zeros<K extends string>(keys: readonly K[]): Record<K, number> {
@@ -65,6 +68,8 @@ export function createStats(): StatsLedger {
     officersRammed: 0,
     climbsStarted: 0,
     huntsStarted: 0,
+    skillsUsed: 0,
+    skillKills: 0,
   };
 }
 

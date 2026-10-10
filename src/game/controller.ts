@@ -12,6 +12,8 @@
  *   game.beginDeploy('riot');          // valid tiles glow, ghost follows the cursor
  *   game.tapTile(i, j);                // or a click on the canvas
  *   game.hud();                        // HUD snapshot (Hate, Legitimacy, wave, crowd, …)
+ *   game.useAbility(tankId);           // auto skills fire; the missile / air strike enter the
+ *                                      // aim / paint mode (`skillMode`, docs/specials.md)
  *   game.start();
  */
 import { EventBus } from '../core/events';
@@ -19,11 +21,12 @@ import { FixedStepLoop, TIME_SCALES } from '../core/loop';
 import { mapWorldBounds, tileToWorld } from '../core/iso';
 import type { QualityTier } from '../data/balance';
 import { LEVELS, WIN_LEGITIMACY } from '../data/levels';
-import { UNITS, UNIT_ORDER, deploysOnRoofs, type UnitId } from '../data/units';
+import { UNITS, UNIT_ORDER, deploysOnRoofs, type AbilityId, type UnitId } from '../data/units';
 import { Camera } from '../render/camera';
 import { CameraController, type PointerInfo, type TapEvent } from '../render/cameraInput';
 import type { PixelStage } from '../render/stage';
 import { zoomRange } from '../render/zoom';
+import { densest, findDensest } from '../sim/behaviours/unit';
 import { Bot, type BotKind } from '../sim/headless';
 import type { SimEvent } from '../sim/events';
 import type { Unit } from '../sim/units';
@@ -31,6 +34,18 @@ import type { World } from '../sim/world';
 import type { DirectorPhase } from '../sim/director';
 import { WorldView } from '../view/worldView';
 import { FrameGovernor } from './governor';
+import {
+  initSkillInput,
+  reduceSkillInput,
+  reticleState,
+  strokeStatus,
+  type GestureContext,
+  type GestureEvent,
+  type SkillInputMode,
+  type SkillInputState,
+  type SkillSound,
+} from './skillGesture';
+import { SkillPointerInput } from './skillInput';
 import type { CityArt } from './assets';
 import type { GameEventMap } from './events';
 
@@ -87,6 +102,18 @@ export interface DeployOption {
   level: number;
 }
 
+/** The running aim / paint session of a player-aimed skill. */
+export interface SkillSession {
+  unitId: number;
+  skill: AbilityId;
+  mode: SkillInputMode;
+  state: SkillInputState;
+}
+
+/** CSS px: tap slop (as the camera controller) and the reticle grab radius on touch. */
+const SKILL_SLOP_CSS = 8;
+const SKILL_GRAB_CSS = 30;
+
 export const HOTKEYS: Readonly<Record<UnitId, string>> = {
   riot: '1',
   sniper: '2',
@@ -118,6 +145,11 @@ export class GameController {
   private disposers: Array<() => void> = [];
   private overShown = false;
   private hitStopped = false;
+  /** Aim / paint session of the tank's missile or the helicopter's air strike. */
+  private skill: SkillSession | null = null;
+  private readonly skillInput: SkillPointerInput;
+  /** UI sounds of the aim / paint modes (set by the audio binding). */
+  onUiSound: ((id: SkillSound) => void) | null = null;
   /** Raw drained sim events each frame (audio: `audio.handleSimEvents`). */
   onSimEvents: ((events: readonly SimEvent[]) => void) | null = null;
   /** Called after each rendered frame (debug overlay, audio listener, perf probes). */
@@ -174,6 +206,14 @@ export class GameController {
     this.input = new CameraController(stage.canvas, this.camera);
     this.input.events.on('tap', (e) => this.tap(e));
     this.input.events.on('hover', (h) => this.hover(h));
+    this.skillInput = new SkillPointerInput(stage.canvas, {
+      active: () => this.skill !== null,
+      tileAt: (sx, sy) => {
+        const p = this.input.infoAt(sx, sy);
+        return { u: p.u, v: p.v };
+      },
+      feed: (ev) => this.skillEvent(ev),
+    });
     this.loop = new FixedStepLoop({
       update: () => {
         const t = performance.now();
@@ -198,6 +238,7 @@ export class GameController {
     this.destroyed = true;
     this.loop.stop();
     this.input.destroy();
+    this.skillInput.destroy();
     for (const d of this.disposers) d();
     this.bus.clear();
     this.onFrame = this.onPreRender = null;
@@ -239,6 +280,7 @@ export class GameController {
       });
     }
     const simDt = this.loop.paused ? 0 : dt * this.loop.timeScale;
+    this.updateSkillGuide();
     const tv = performance.now();
     this.view.frame(this.camera.view(), alpha, simDt, dt, nowMs, {
       deploy: this.deploying,
@@ -272,6 +314,7 @@ export class GameController {
       this.bus.emit('deployFailed', { unit: next, reason: 'locked', i: -1, j: -1 });
       return;
     }
+    if (next) this.endSkill();
     this.deploying = next;
     this.touchPreview = null;
     if (next) this.select(null);
@@ -327,6 +370,7 @@ export class GameController {
   select(unitId: number | null): void {
     const id = unitId ?? -1;
     if (id === this.selected) return;
+    if (this.skill && this.skill.unitId !== id) this.endSkill();
     this.selected = id;
     const u = id >= 0 ? this.world.units.get(id) : undefined;
     this.bus.emit('selectionChanged', { unitId: u ? id : null, unit: u ? u.type : null });
@@ -341,12 +385,167 @@ export class GameController {
     return ok;
   }
 
+  /**
+   * Use a unit's charged skill: auto skills fire at once; the tank's missile enters the aim mode
+   * and the helicopter's air strike the paint mode (the unit gets selected, its info panel turns
+   * the skill button into CANCEL). Again on the same unit = leave the mode.
+   */
   useAbility(unitId: number): boolean {
-    return this.world.useAbility(unitId);
+    const u = this.world.units.get(unitId);
+    const ab = u?.def.ability;
+    if (!u || !ab || !u.abilityReady) return false;
+    if (ab.aim === 'auto') return this.world.useAbility(unitId);
+    if (this.skill?.unitId === unitId) {
+      this.cancelSkill();
+      return true;
+    }
+    return this.beginSkill(u);
   }
 
+  /** Desktop `G`: every charged auto skill fires (the missile and air strike need aiming). */
   useAllAbilities(): number {
     return this.world.useAllAbilities();
+  }
+
+  // ── Aim / paint modes (tank missile, air strike) ─────────────────────────────────────
+
+  /** The running aim / paint session, or null. */
+  get skillMode(): SkillSession | null {
+    return this.skill;
+  }
+
+  private beginSkill(u: Unit): boolean {
+    const ab = u.def.ability!;
+    if (this.deploying) {
+      this.deploying = null;
+      this.touchPreview = null;
+      this.bus.emit('deployModeChanged', { unit: null });
+    }
+    this.select(u.id);
+    const mode: SkillInputMode = ab.aim === 'point' ? 'aim' : 'paint';
+    // The reticle starts locked on the thickest crowd in range (one tap on it fires).
+    let target: { u: number; v: number } | null = null;
+    if (ab.id === 'missile' && findDensest(this.world, u.x, u.y, ab.range - 0.5))
+      target = { u: densest.x, v: densest.y };
+    this.skill = { unitId: u.id, skill: ab.id, mode, state: initSkillInput(mode, target) };
+    this.hoverTile = null;
+    this.bus.emit('skillModeChanged', { unitId: u.id, skill: ab.id, mode });
+    return true;
+  }
+
+  /** Abort the aim / paint mode (CANCEL button, Esc). */
+  cancelSkill(): void {
+    if (this.skill) this.skillEvent({ kind: 'cancel' });
+  }
+
+  private endSkill(): void {
+    if (!this.skill) return;
+    this.skill = null;
+    this.bus.emit('skillModeChanged', { unitId: null, skill: null, mode: null });
+  }
+
+  private skillContext(s: SkillSession): GestureContext | null {
+    const u = this.world.units.get(s.unitId);
+    const ab = u?.def.ability;
+    if (!u || !ab) return null;
+    const cam = this.camera;
+    const r = this.stage.canvas.getBoundingClientRect();
+    const dpc = r.width > 0 ? this.stage.canvas.width / r.width : 1;
+    return {
+      ox: u.x,
+      oy: u.y,
+      range: ab.id === 'missile' ? ab.range : 0,
+      minLen: ab.id === 'airStrike' ? ab.minLength : 0,
+      maxLen: ab.id === 'airStrike' ? ab.maxLength : 0,
+      slop: SKILL_SLOP_CSS * dpc,
+      // The reticle (57 × 33 world px) or a thumb, whichever is bigger.
+      grab: Math.max(SKILL_GRAB_CSS * dpc, 24 * cam.zoom),
+      tapMs: 450,
+      toScreen: (tu, tv) => {
+        const p = tileToWorld(tu, tv);
+        return {
+          x: (p.x - cam.x) * cam.zoom + Math.floor(cam.width / 2),
+          y: (p.y - cam.y) * cam.zoom + Math.floor(cam.height / 2),
+        };
+      },
+    };
+  }
+
+  /** Feed one aim / paint input event (from the canvas shell, or tests). */
+  skillEvent(ev: GestureEvent): void {
+    const s = this.skill;
+    if (!s) return;
+    const ctx = this.skillContext(s);
+    if (!ctx) {
+      this.endSkill();
+      return;
+    }
+    const { state, effects } = reduceSkillInput(s.state, ev, ctx);
+    s.state = state;
+    const cam = this.camera;
+    for (const e of effects) {
+      switch (e.type) {
+        case 'pan':
+          cam.stop();
+          cam.panByScreen(e.dx, e.dy);
+          break;
+        case 'pinchStart':
+          this.pinchZoom = cam.zoom;
+          cam.stop();
+          break;
+        case 'pinch':
+          cam.panByScreen(e.dmx, e.dmy);
+          cam.setZoomAround(this.pinchZoom * e.scale, e.mx, e.my);
+          break;
+        case 'pinchEnd':
+          cam.zoomTo(Math.round(cam.zoom), e.mx, e.my);
+          break;
+        case 'sound':
+          this.onUiSound?.(e.id);
+          break;
+        case 'fire':
+          this.world.useAbility(s.unitId, e.aim);
+          break;
+        default:
+      }
+    }
+    if (state.done) this.endSkill();
+  }
+
+  private pinchZoom = 1;
+
+  /** Per frame: the session's unit must still be there and charged; hand the guides to the view. */
+  private updateSkillGuide(): void {
+    const s = this.skill;
+    const u = s ? this.world.units.get(s.unitId) : undefined;
+    if (s && (!u || !u.abilityReady || this.world.phase !== 'playing' || this.attract)) {
+      this.endSkill();
+    }
+    const ctx = this.skill ? this.skillContext(this.skill) : null;
+    if (!this.skill || !ctx || !u) {
+      this.view.skills.guide = null;
+      return;
+    }
+    const st = this.skill.state;
+    const ab = u.def.ability!;
+    const status = strokeStatus(st, ctx);
+    this.view.skills.guide = {
+      mode: this.skill.mode,
+      unitId: u.id,
+      ox: u.x,
+      oy: u.y,
+      range: ctx.range,
+      target: st.target,
+      reticle: reticleState(st, ctx),
+      blast: ab.id === 'missile' ? ab.radius : 0,
+      stroke: st.stroke,
+      strokeVersion: st.strokeVersion,
+      painting: st.g === 'paint',
+      maxLen: ctx.maxLen,
+      width: ab.id === 'airStrike' ? ab.width : 0,
+      invalid: st.strokeVoid,
+      tooLong: status.tooLong,
+    };
   }
 
   /** "Let them come" (prep) or call the next wave early (breather). */
@@ -397,9 +596,10 @@ export class GameController {
     this.view.juice.hateTarget = { x, y };
   }
 
-  /** Leave deploy mode / clear the selection (Esc, right click). */
+  /** Leave the aim / paint mode / deploy mode / clear the selection (Esc, right click). */
   cancel(): void {
-    if (this.deploying) this.beginDeploy(null);
+    if (this.skill) this.cancelSkill();
+    else if (this.deploying) this.beginDeploy(null);
     else this.select(null);
   }
 
@@ -448,6 +648,7 @@ export class GameController {
     const hit = this.view.pickUnit(w.x, w.y);
     if (hit >= 0) {
       const u = this.world.units.get(hit);
+      // Tapping a charged unit uses its skill (the tank / helicopter: aim / paint mode).
       if (u?.abilityReady && this.useAbility(hit)) return;
       this.select(hit);
       return;

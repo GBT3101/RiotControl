@@ -205,7 +205,7 @@ export function settle(w: World, u: Unit): void {
 
 /** Send a commandable unit to tile (i, j). Ground units path on roads only; the helicopter flies. */
 export function commandUnit(w: World, u: Unit, i: number, j: number): boolean {
-  if (!u.alive || !u.def.commandable || !w.nav.inBounds(i, j)) return false;
+  if (!u.alive || !u.def.commandable || u.skillLock || !w.nav.inBounds(i, j)) return false;
   let path: number[];
   if (u.def.placement === 'air') {
     path = [j * w.map.w + i];
