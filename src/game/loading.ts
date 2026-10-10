@@ -35,6 +35,7 @@ export class LoadingScreen {
   private step = 0.1;
   /** Displayed progress (eased + creeping, never past the next expected step). */
   private shown = 0;
+  private tipW = 220;
   private tipIndex = 0;
   private tipT = 0;
   private t = 0;
@@ -61,7 +62,8 @@ export class LoadingScreen {
     );
     this.label.anchor.set(0.5, 0);
     this.tipIndex = Math.abs(seed * 7 + Math.floor(Date.now() / 1000)) % TIPS.length;
-    this.tip = new Sprite(tipTexture(TIPS[this.tipIndex]!));
+    this.tipW = this.tipWidth();
+    this.tip = new Sprite(tipTexture(TIPS[this.tipIndex]!, this.tipW));
     this.tip.anchor.set(0.5, 0);
     this.root.addChild(this.logo, this.well, this.bar, this.label, this.tip);
     this.unsub = stage.onResize(() => this.layout());
@@ -82,7 +84,21 @@ export class LoadingScreen {
     this.raf = requestAnimationFrame(frame);
   }
 
+  /** Tip wrap width (UI px): 220, or the screen less a margin on narrow phones (360 CSS px). */
+  private tipWidth(): number {
+    const s = this.stage.size;
+    const k = uiScale(Math.min(s.cssWidth, s.cssHeight), s.dpr);
+    return Math.max(60, Math.min(220, Math.floor(s.width / k) - 12));
+  }
+
   private layout(): void {
+    const tw = this.tipWidth();
+    if (tw !== this.tipW) {
+      this.tipW = tw;
+      const old = this.tip.texture;
+      this.tip.texture = tipTexture(TIPS[this.tipIndex]!, tw);
+      old.destroy(true);
+    }
     const s = this.stage.size;
     const k = uiScale(Math.min(s.cssWidth, s.cssHeight), s.dpr);
     this.root.scale.set(k);
@@ -117,7 +133,7 @@ export class LoadingScreen {
       this.tipT = 0;
       this.tipIndex = (this.tipIndex + 1) % TIPS.length;
       const old = this.tip.texture;
-      this.tip.texture = tipTexture(TIPS[this.tipIndex]!);
+      this.tip.texture = tipTexture(TIPS[this.tipIndex]!, this.tipW);
       old.destroy(true);
     }
   }
@@ -141,9 +157,9 @@ export class LoadingScreen {
   }
 }
 
-function tipTexture(tip: string): Texture {
+function tipTexture(tip: string, maxWidth: number): Texture {
   return bufferTexture(
-    textSprite(FONTS.small, tip, 'stone4', { maxWidth: 220, align: 'center', lineGap: 1 }),
+    textSprite(FONTS.small, tip, 'stone4', { maxWidth, align: 'center', lineGap: 1 }),
     'tip',
   );
 }

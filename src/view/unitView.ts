@@ -166,7 +166,7 @@ export class UnitView {
 
   private destroyEnt(e: UnitEnt): void {
     if (e.type === 'blockade' && e.tiles.length > 0) this.onBlockadeGone?.(e.tiles, e.axis);
-    for (const s of e.sprites) s.destroy();
+    for (const s of e.sprites) s?.destroy(); // sparse: sprite slots are filled on demand
     e.ghost?.destroy();
     this.ents.delete(e.id);
   }

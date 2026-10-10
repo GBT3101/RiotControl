@@ -107,6 +107,11 @@ export function setupScene(w: World, name: string): { i: number; j: number } | n
   return null;
 }
 
+function stunned(w: World, s: number, hp: number): void {
+  tough(w, s, hp);
+  if (s >= 0) w.crowd.stun[s] = 600;
+}
+
 function tough(w: World, s: number, hp: number): void {
   if (s < 0) return;
   w.crowd.hp[s] = hp;
@@ -206,20 +211,29 @@ function gasScene(w: World): { i: number; j: number } | null {
 function skillsScene(w: World): { i: number; j: number } | null {
   w.economy.level = 10;
   w.economy.hate = 99999;
-  const c = w.map.cameraStart;
   const nav = w.nav;
   const mw = w.map.w;
-  // An open road tile 10–18 flow steps out from the Capitol (crowd up-stream of it).
-  const roads = roadsNear(w, c.i, c.j, 22).filter((p) => {
-    const d = nav.dist[p.j * mw + p.i]!;
-    return d >= 10 && d <= 18 && roadsNear(w, p.i, p.j, 4).length >= 40;
-  });
+  const steps = w.map.capitol.steps;
+  const s0 = steps[steps.length >> 1] ?? w.map.cameraStart;
+  const dist = (q: { i: number; j: number }): number => nav.dist[q.j * mw + q.i]!;
+  // Open road a few steps out from the Capitol steps, the crowd further up the same approach.
+  // Open ground with nothing tall in front of it (screen-below), so every skill reads.
+  const open = (p: { i: number; j: number }): number => {
+    let n = 0;
+    for (let k = -1; k <= 6; k++)
+      for (let q = -3; q <= 3; q++) {
+        const i = p.i + k + q;
+        const j = p.j + k - q;
+        if (i >= 0 && j >= 0 && i < mw && j < w.map.h && nav.walk[j * mw + i]) n++;
+      }
+    return n;
+  };
+  const roads = roadsNear(w, s0.i, s0.j, 16)
+    .filter((p) => dist(p) >= 4 && dist(p) <= 12)
+    .sort((a, b) => open(b) - open(a));
   for (const p of roads) {
-    const d0 = nav.dist[p.j * mw + p.i]!;
-    const up = roadsNear(w, p.i, p.j, 9).filter((q) => {
-      const d = nav.dist[q.j * mw + q.i]!;
-      return d >= d0 + 7 && d <= d0 + 11;
-    });
+    const d0 = dist(p);
+    const up = roadsNear(w, p.i, p.j, 10).filter((q) => dist(q) >= d0 + 8 && dist(q) <= d0 + 12);
     if (up.length < 12) continue;
     const near = roadsNear(w, p.i, p.j, 4);
     let k = 0;
@@ -227,10 +241,11 @@ function skillsScene(w: World): { i: number; j: number } | null {
       while (k < near.length && !w.deploy(unit, near[k]!.i, near[k]!.j)) k += 2;
       k += 3;
     }
-    w.deploy('heli', p.i + 2, p.j + 2);
+    w.deploy('heli', p.i + 1, p.j + 1);
+    // The crowd holds still (long stun) so each skill can be watched on it.
     for (let n = 0; n < 140; n++) {
       const q = up[n % up.length]!;
-      tough(
+      stunned(
         w,
         w.spawnProtester(
           [PT.student, PT.woke, PT.mob][n % 3]!,
@@ -241,7 +256,10 @@ function skillsScene(w: World): { i: number; j: number } | null {
       );
     }
     for (const u of w.units.active) if (u.def.ability) u.charge = u.def.ability.charge - 0.2;
-    return { i: p.i - 3, j: p.j - 3 };
+    w.startWaves();
+    const ci = up.reduce((a, q) => a + q.i, 0) / up.length;
+    const cj = up.reduce((a, q) => a + q.j, 0) / up.length;
+    return { i: Math.round((p.i + ci) / 2), j: Math.round((p.j + cj) / 2) };
   }
   return null;
 }

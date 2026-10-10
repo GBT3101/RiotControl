@@ -40,18 +40,21 @@ const SKILL_ICON: Record<Exclude<AbilityId, 'gasGrenade'>, SpecialSkill> = {
   airStrike: 'air',
 };
 
-/** Skill button labels (stamp beside the round icon button). */
+/**
+ * Skill button labels (stamp beside the round icon button). Short enough that icon + stamp
+ * (≤ 87 UI px) stays clear of the charge ring on the narrowest panel (120 UI px).
+ */
 const SKILL_LABEL: Record<AbilityId, string> = {
   gasGrenade: 'THROW GAS',
   ram: 'RAM!',
-  rapidFire: 'RAPID FIRE',
-  fragGrenade: 'FRAG OUT',
-  missile: 'FIRE MISSILE',
-  airStrike: 'AIR STRIKE',
+  rapidFire: 'RAPID',
+  fragGrenade: 'GRENADE',
+  missile: 'MISSILE',
+  airStrike: 'STRIKE',
 };
 
 /** Instructions on the hint line while aiming / painting (touch, mouse). */
-const SKILL_MODE_HINT = {
+export const SKILL_MODE_HINT = {
   aim: ['TAP A TARGET, THEN TAP IT AGAIN', 'CLICK A TARGET IN THE RING'],
   paint: ['DRAG A LINE TO STRIKE', 'DRAG A LINE TO STRIKE'],
 } as const;
@@ -65,6 +68,19 @@ function skillFace(icon: SpecialSkill | 'cancel', label: string, st: ButtonState
   stamp(b, round, 0, Math.floor((h - round.h) / 2));
   stamp(b, stampB, round.w + 1, Math.floor((h - stampB.h) / 2));
   return b;
+}
+
+/** Size (UI px) of a skill's info-panel button (`cancel` = the CANCEL face of the aim modes). */
+export function skillButtonSize(ab: AbilityId, cancel = false): { w: number; h: number } {
+  const b =
+    ab === 'gasGrenade' && !cancel
+      ? stampButton(SKILL_LABEL.gasGrenade, 0, 'normal')
+      : skillFace(
+          cancel ? 'cancel' : SKILL_ICON[ab as keyof typeof SKILL_ICON],
+          cancel ? 'CANCEL' : SKILL_LABEL[ab],
+          'normal',
+        );
+  return { w: b.w, h: b.h };
 }
 
 function skillFaces(ab: AbilityId, cancel: boolean): ButtonFaces {

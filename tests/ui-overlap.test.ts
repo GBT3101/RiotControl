@@ -29,7 +29,7 @@ import { PROTESTER_IDS } from '../src/data/protesters';
 import { emptyRecord, formatDuration, formatNumber, type CityRecord } from '../src/ui/records';
 import { postcard } from '../src/ui/screens/citySelect';
 import { pauseLayout } from '../src/ui/screens/pause';
-import { infoPanelLayout } from '../src/ui/hud/infoPanel';
+import { infoPanelLayout, skillButtonSize, SKILL_MODE_HINT } from '../src/ui/hud/infoPanel';
 import { UNITS, UNIT_IDS } from '../src/data/units';
 import { fitCount, topBarButtonSize, topBarLayout } from '../src/ui/hud/topBar';
 import { NO_INSETS, computeHudLayout } from '../src/ui/layout';
@@ -188,8 +188,7 @@ describe('top bar', () => {
 });
 
 describe('selected-unit panel', () => {
-  it('name, HP, role, kills and move hint never touch each other, the close button or the gas controls', () => {
-    const tb = stampButton('THROW GAS', 0, 'normal');
+  it('name, HP, role, kills and move hint never touch each other, the close button or the skill controls', () => {
     for (const [w, h] of [
       [145, 46],
       [134, 46],
@@ -201,6 +200,12 @@ describe('selected-unit panel', () => {
           for (const touch of [false, true]) {
             const d = UNITS[id];
             const gas = !!d.ability;
+            // Aiming / painting: the button reads CANCEL and the hint line has the instructions.
+            const mode = ready && d.ability && d.ability.aim !== 'auto' ? d.ability.aim : null;
+            const tb = d.ability ? skillButtonSize(d.ability.id, mode !== null) : null;
+            const modeHint = mode
+              ? SKILL_MODE_HINT[mode === 'point' ? 'aim' : 'paint'][touch ? 0 : 1]
+              : '';
             const g = infoPanelLayout({
               w,
               h,
@@ -212,9 +217,11 @@ describe('selected-unit panel', () => {
                   : '9999 HP',
               role: UNIT_COPY[id].role,
               kills: d.commandable && h < 52 ? '' : d.attack ? 'KILLS 999' : 'HOLDING THE LINE',
-              hint: d.commandable ? (touch ? UI_TEXT.moveHint : UI_TEXT.moveHintMouse) : '',
+              hint:
+                modeHint ||
+                (d.commandable ? (touch ? UI_TEXT.moveHint : UI_TEXT.moveHintMouse) : ''),
               ring: gas,
-              throwBtn: gas ? { w: tb.w, h: tb.h } : null,
+              throwBtn: tb,
             });
             const msg = `${w}x${h} ${id} ready=${ready} touch=${touch}`;
             const boxes: Record<string, Box> = {
