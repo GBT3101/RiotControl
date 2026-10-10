@@ -7,9 +7,11 @@
  * terrace is a band of palaces and walled gardens with no through lanes, so the only ways up are
  * the long uphill streets and stairways — Nerudova + Ke Hradu to Hradčanské náměstí (west end),
  * Zámecké schody (climbing from Thunovská, reached off Nerudova) and the Staré zámecké schody
- * (east end, from Klárov). The Stag Moat and Royal Garden lie behind (top).
+ * (east end, from Klárov). Behind it (top) lie the wooded Stag Moat and the Royal Garden with
+ * the Belvedere, walled off from Klárov; the Chotek Park leads from Klárov up to Letná.
  *
- * The Vltava runs north–south east of Malá Strana and bends east across the top past Josefov.
+ * The Vltava runs north–south east of Malá Strana and bends east across the top past Josefov,
+ * under the Letná plateau on its far (north) bank.
  * Crossings: Charles Bridge (Mostecká → Malostranské náměstí; the Old Town Bridge Tower stands
  * at its Staré Město end on Křižovnické náměstí), Mánes Bridge (Klárov ↔ Rudolfinum) and the
  * Legion Bridge over Střelecký ostrov (Národní třída ↔ Újezd). Staré Město: Karlova, the Old
@@ -26,19 +28,19 @@ import { rect } from '../blueprint';
 
 const RIVER_I = 43.5; // Vltava (water i 40..46, quays 39 & 47)
 const EMB_I = 49.5; // east embankment (Křižovnická → Smetanovo → Masarykovo → Rašínovo nábřeží)
-const NERUDOVA_J = 18.5; // Nerudova / Úvoz (j 17..19)
+const NERUDOVA_J = 23.5; // Nerudova / Úvoz (j 22..24)
 const KEHRADU_I = 10.5; // Ke Hradu ramp (i 9..11)
 const SCHODY_I = 21.5; // Zámecké schody (i 20..22)
 const UJEZD_I = 28.5; // Karmelitská / Újezd (i 27..29)
-const KARLUV_J = 21; // Charles Bridge / Mostecká (j 19..22)
-const MANES_J = 11; // Mánes Bridge (j 9..12)
-const LEGII_J = 32.5; // Legion Bridge / Národní třída / Na Příkopě (j 31..33)
+const KARLUV_J = 26; // Charles Bridge / Mostecká (j 24..27)
+const MANES_J = 16; // Mánes Bridge (j 14..17)
+const LEGII_J = 37.5; // Legion Bridge / Národní třída / Na Příkopě (j 36..38)
 
 export const prague: Blueprint = {
   city: 'prague',
   name: 'Prague',
   w: 78,
-  h: 72,
+  h: 77,
   seed: 0x70726168,
   style: {
     roofs: { pitched: 7, mansard: 2, terrace: 1 },
@@ -64,87 +66,108 @@ export const prague: Blueprint = {
 
   areas: [
     // ── Base: green.
-    // The Stag Moat / Royal Garden behind the Castle.
+    // Behind the Castle (north): the wooded Stag Moat right under its walls, the Royal Garden
+    // beyond it (a dead end: walled off from Klárov), and across the river bend the Letná
+    // plateau, reached from Klárov through the Chotek Park.
     {
       ground: 'grass',
-      shape: rect(10, 0, 36, 1),
+      shape: rect(8, 0, 32, 3),
+      name: 'Královská zahrada',
+      trees: { kinds: ['tree.round', 'tree.chestnut'], density: 0.3 },
+    },
+    { ground: 'parkPath', shape: rect(9, 1, 28, 1) },
+    {
+      ground: 'grass',
+      shape: rect(10, 4, 34, 6),
       name: 'Jelení příkop',
-      trees: { kinds: ['tree.round', 'tree.pine'], density: 0.45 },
+      trees: { kinds: ['tree.round', 'tree.oak'], density: 0.55 },
+    },
+    {
+      ground: 'grass',
+      shape: rect(38, 0, 77, 3),
+      name: 'Letná',
+      trees: { kinds: ['tree.chestnut', 'tree.round'], density: 0.4 },
+    },
+    {
+      ground: 'grass',
+      shape: rect(38, 4, 41, 7),
+      name: 'Chotkovy sady',
+      trees: { kinds: ['tree.round'], density: 0.35 },
     },
     // Petřín hill (wooded) in the south-west, with its paths.
     {
       ground: 'grass',
-      shape: rect(0, 24, 18, 52),
+      shape: rect(0, 29, 18, 57),
       name: 'Petřín',
-      trees: { kinds: ['tree.round', 'tree.round', 'tree.pine'], density: 0.45 },
+      trees: { kinds: ['tree.round', 'tree.round', 'tree.oak'], density: 0.45 },
     },
-    { ground: 'parkPath', shape: rect(4, 24, 4, 52) },
-    { ground: 'parkPath', shape: rect(4, 40, 18, 40) },
-    { ground: 'parkPath', shape: rect(13, 24, 13, 40) },
+    { ground: 'parkPath', shape: rect(4, 29, 4, 57) },
+    { ground: 'parkPath', shape: rect(4, 45, 18, 45) },
+    { ground: 'parkPath', shape: rect(13, 29, 13, 45) },
     // Kampa park on the Malá Strana bank.
     {
       ground: 'grass',
-      shape: rect(35, 23, 38, 30),
+      shape: rect(35, 28, 38, 35),
       name: 'Kampa',
       trees: { kinds: ['tree.round', 'tree.plane'], density: 0.35 },
     },
     // Karlovo náměstí (park square).
     {
       ground: 'grass',
-      shape: rect(52, 44, 58, 52),
+      shape: rect(52, 49, 58, 57),
       name: 'Karlovo náměstí',
       trees: { kinds: ['tree.plane', 'tree.round'], density: 0.3 },
     },
-    { ground: 'parkPath', shape: rect(55, 44, 55, 52) },
+    { ground: 'parkPath', shape: rect(55, 49, 55, 57) },
     // ── Top: the Castle hill.
     // Hradčanské náměstí (west end of the Castle) and the Na Valech terrace in front of the steps.
-    { ground: 'plaza', shape: rect(6, 2, 14, 11), layer: 'top', name: 'Hradčanské náměstí' },
-    { ground: 'plaza', shape: rect(14, 8, 30, 11), layer: 'top', name: 'Na Valech' },
+    { ground: 'plaza', shape: rect(6, 7, 14, 16), layer: 'top', name: 'Hradčanské náměstí' },
+    { ground: 'plaza', shape: rect(14, 13, 30, 16), layer: 'top', name: 'Na Valech' },
     // Gardens below the Castle: walled from the terrace (dead-end greenery on the slope).
     {
       ground: 'grass',
-      shape: rect(23, 13, 29, 15),
+      shape: rect(23, 18, 29, 20),
       layer: 'top',
       name: 'Zahrady pod Pražským hradem',
-      trees: { kinds: ['tree.round', 'tree.cypress'], density: 0.45 },
+      trees: { kinds: ['tree.round', 'tree.chestnut'], density: 0.45 },
     },
-    { ground: 'lot', shape: rect(23, 12, 30, 12), layer: 'top', reserve: true },
+    { ground: 'lot', shape: rect(23, 17, 30, 17), layer: 'top', reserve: true },
     // Klárov (Mánes Bridge head), Malostranské náměstí, Křižovnické náměstí.
-    { ground: 'asphalt', shape: rect(35, 3, 38, 13), layer: 'top', name: 'Klárov' },
+    { ground: 'asphalt', shape: rect(35, 8, 38, 18), layer: 'top', name: 'Klárov' },
     // Na Opyši: the east gate forecourt where the Old Castle Steps arrive.
-    { ground: 'plaza', shape: rect(29, 3, 30, 7), layer: 'top', name: 'Na Opyši' },
-    { ground: 'plaza', shape: rect(25, 17, 32, 23), layer: 'top', name: 'Malostranské náměstí' },
-    { ground: 'plaza', shape: rect(48, 17, 53, 25), layer: 'top', name: 'Křižovnické náměstí' },
+    { ground: 'plaza', shape: rect(29, 8, 30, 12), layer: 'top', name: 'Na Opyši' },
+    { ground: 'plaza', shape: rect(25, 22, 32, 28), layer: 'top', name: 'Malostranské náměstí' },
+    { ground: 'plaza', shape: rect(48, 22, 53, 30), layer: 'top', name: 'Křižovnické náměstí' },
     // Staroměstské náměstí (Old Town Square).
-    { ground: 'cobble', shape: rect(57, 11, 66, 19), layer: 'top', name: 'Staroměstské náměstí' },
+    { ground: 'cobble', shape: rect(57, 16, 66, 24), layer: 'top', name: 'Staroměstské náměstí' },
     // Střelecký ostrov (island between Charles Bridge and the Legion Bridge).
     {
       ground: 'grass',
-      shape: rect(41, 25, 45, 30),
+      shape: rect(41, 30, 45, 35),
       layer: 'top',
       name: 'Střelecký ostrov',
       trees: { kinds: ['tree.round'], density: 0.4 },
     },
     // Václavské náměstí: the long sloping square with its central gardens, up to the Museum.
-    { ground: 'plaza', shape: rect(60, 34, 67, 54), layer: 'top', name: 'Václavské náměstí' },
+    { ground: 'plaza', shape: rect(60, 39, 67, 59), layer: 'top', name: 'Václavské náměstí' },
     {
       ground: 'grass',
-      shape: rect(63, 37, 64, 50),
+      shape: rect(63, 42, 64, 55),
       layer: 'top',
       trees: { kinds: ['tree.plane'], density: 0.5 },
     },
     // Jiráskovo náměstí at the Dancing House.
-    { ground: 'plaza', shape: rect(51, 55, 54, 60), layer: 'top', name: 'Jiráskovo náměstí' },
+    { ground: 'plaza', shape: rect(51, 60, 54, 65), layer: 'top', name: 'Jiráskovo náměstí' },
   ],
 
   rivers: [
     {
       name: 'Vltava',
       path: [
-        [RIVER_I, 74],
-        [RIVER_I, 6],
-        [48, 1.5],
-        [80, 1.5],
+        [RIVER_I, 79],
+        [RIVER_I, 11],
+        [48, 6.5],
+        [80, 6.5],
       ],
       width: 7,
       quay: 1,
@@ -176,7 +199,7 @@ export const prague: Blueprint = {
     {
       name: 'Ke Hradu',
       path: [
-        [KEHRADU_I, 11],
+        [KEHRADU_I, 16],
         [KEHRADU_I, NERUDOVA_J],
       ],
       width: 3,
@@ -186,8 +209,8 @@ export const prague: Blueprint = {
     {
       name: 'Zámecké schody',
       path: [
-        [SCHODY_I, 11.5],
-        [SCHODY_I, 15.5],
+        [SCHODY_I, 16.5],
+        [SCHODY_I, 20.5],
       ],
       width: 3,
       surface: 'plaza',
@@ -197,9 +220,9 @@ export const prague: Blueprint = {
     {
       name: 'Thunovská',
       path: [
-        [SCHODY_I, 15.5],
-        [24.5, 15.5],
-        [24.5, 17],
+        [SCHODY_I, 20.5],
+        [24.5, 20.5],
+        [24.5, 22],
       ],
       width: 3,
       surface: 'plaza',
@@ -208,8 +231,8 @@ export const prague: Blueprint = {
     {
       name: 'Staré zámecké schody',
       path: [
-        [31, 4],
-        [36, 4],
+        [31, 9],
+        [36, 9],
       ],
       width: 2,
       surface: 'plaza',
@@ -219,8 +242,8 @@ export const prague: Blueprint = {
     {
       name: 'Loretánská',
       path: [
-        [-1, 6.5],
-        [6, 6.5],
+        [-1, 11.5],
+        [6, 11.5],
       ],
       width: 3,
       surface: 'plaza',
@@ -229,16 +252,16 @@ export const prague: Blueprint = {
     {
       name: 'Letenská',
       path: [
-        [36.5, 12],
-        [36.5, 17.5],
-        [32, 17.5],
+        [36.5, 17],
+        [36.5, 22.5],
+        [32, 22.5],
       ],
       width: 3,
     },
     {
       name: 'Karmelitská',
       path: [
-        [UJEZD_I, 23],
+        [UJEZD_I, 28],
         [UJEZD_I, LEGII_J],
       ],
       width: 3,
@@ -247,7 +270,7 @@ export const prague: Blueprint = {
       name: 'Újezd',
       path: [
         [UJEZD_I, LEGII_J],
-        [UJEZD_I, 73],
+        [UJEZD_I, 78],
       ],
       width: 3,
     },
@@ -255,15 +278,15 @@ export const prague: Blueprint = {
     {
       name: 'Křižovnická',
       path: [
-        [EMB_I, 6],
-        [EMB_I, 17],
+        [EMB_I, 11],
+        [EMB_I, 22],
       ],
       width: 3,
     },
     {
       name: 'Smetanovo nábřeží',
       path: [
-        [EMB_I, 24],
+        [EMB_I, 29],
         [EMB_I, LEGII_J],
       ],
       width: 3,
@@ -273,7 +296,7 @@ export const prague: Blueprint = {
       name: 'Masarykovo nábřeží',
       path: [
         [EMB_I, LEGII_J],
-        [EMB_I, 54],
+        [EMB_I, 59],
       ],
       width: 3,
       trees: 'tree.plane',
@@ -281,8 +304,8 @@ export const prague: Blueprint = {
     {
       name: 'Rašínovo nábřeží',
       path: [
-        [EMB_I, 54],
-        [EMB_I, 73],
+        [EMB_I, 59],
+        [EMB_I, 78],
       ],
       width: 3,
       trees: 'tree.plane',
@@ -290,23 +313,23 @@ export const prague: Blueprint = {
     {
       name: 'Dvořákovo nábřeží',
       path: [
-        [EMB_I, 7.5],
-        [79, 7.5],
+        [EMB_I, 12.5],
+        [79, 12.5],
       ],
       width: 3,
       trees: 'tree.plane',
       labelPath: [
-        [64, 7.5],
-        [76, 7.5],
+        [64, 12.5],
+        [76, 12.5],
       ],
     },
     // ── Staré Město & Josefov.
     {
       name: 'Karlova',
       path: [
-        [53, 21],
-        [57, 21],
-        [57, 19],
+        [53, 26],
+        [57, 26],
+        [57, 24],
       ],
       width: 2,
       surface: 'plaza',
@@ -316,8 +339,8 @@ export const prague: Blueprint = {
     {
       name: 'Pařížská',
       path: [
-        [62.5, 7],
-        [62.5, 11],
+        [62.5, 12],
+        [62.5, 16],
       ],
       width: 3,
       trees: 'tree.plane',
@@ -326,8 +349,8 @@ export const prague: Blueprint = {
     {
       name: 'Celetná',
       path: [
-        [66, 17.5],
-        [74, 17.5],
+        [66, 22.5],
+        [74, 22.5],
       ],
       width: 3,
       surface: 'cobble',
@@ -337,8 +360,8 @@ export const prague: Blueprint = {
     {
       name: 'Melantrichova',
       path: [
-        [61.5, 19],
-        [61.5, 31],
+        [61.5, 24],
+        [61.5, 36],
       ],
       width: 3,
       surface: 'cobble',
@@ -348,8 +371,8 @@ export const prague: Blueprint = {
     {
       name: 'Husova',
       path: [
-        [56.5, 21],
-        [56.5, 31],
+        [56.5, 26],
+        [56.5, 36],
       ],
       width: 3,
       surface: 'cobble',
@@ -379,40 +402,40 @@ export const prague: Blueprint = {
     {
       name: 'Vodičkova',
       path: [
-        [EMB_I, 41.5],
-        [60, 41.5],
+        [EMB_I, 46.5],
+        [60, 46.5],
       ],
       width: 3,
     },
     {
       name: 'Resslova',
       path: [
-        [EMB_I, 54.5],
-        [60, 54.5],
+        [EMB_I, 59.5],
+        [60, 59.5],
       ],
       width: 3,
     },
     {
       name: 'Ječná',
       path: [
-        [55, 62.5],
-        [79, 62.5],
+        [55, 67.5],
+        [79, 67.5],
       ],
       width: 3,
     },
     {
       name: 'Žitná',
       path: [
-        [67, 46.5],
-        [79, 46.5],
+        [67, 51.5],
+        [79, 51.5],
       ],
       width: 3,
     },
     {
       name: 'Vinohradská',
       path: [
-        [66, 57.5],
-        [79, 57.5],
+        [66, 62.5],
+        [79, 62.5],
       ],
       width: 4,
       trees: 'tree.plane',
@@ -448,51 +471,53 @@ export const prague: Blueprint = {
   ],
 
   landmarks: [
-    { id: 'bridgeTower', i: 50, j: 20 },
-    { id: 'oldTownHall', i: 57, j: 16 },
-    { id: 'tynChurch', i: 67, j: 12 },
-    { id: 'dancingHouse', i: 51, j: 61 },
+    { id: 'bridgeTower', i: 50, j: 25 },
+    { id: 'oldTownHall', i: 57, j: 21 },
+    { id: 'tynChurch', i: 67, j: 17 },
+    { id: 'dancingHouse', i: 51, j: 66 },
   ],
 
-  capitol: { i: 15, j: 2, stepRows: 2, stepInset: 1 },
+  capitol: { i: 15, j: 7, stepRows: 2, stepInset: 1 },
 
   civic: [
-    { name: 'Arcibiskupský palác', i: 6, j: 2, w: 4, d: 3, storeys: 3, roof: 'pitched' },
-    { name: 'Schwarzenberský palác', i: 6, j: 12, w: 4, d: 4, storeys: 4, roof: 'pitched' },
-    { name: 'Poslanecká sněmovna', i: 26, j: 15, w: 5, d: 2, storeys: 3, roof: 'pitched' },
-    { name: 'Valdštejnský palác', i: 31, j: 13, w: 4, d: 4, storeys: 3, roof: 'pitched' },
-    { name: 'Kostel sv. Mikuláše', i: 27, j: 19, w: 4, d: 3, storeys: 6, roof: 'pitched' },
-    { name: 'Rudolfinum', i: 51, j: 10, w: 5, d: 4, storeys: 4, roof: 'pitched', rooftop: true },
+    // The Belvedere (Queen Anne's summer palace) closing the Royal Garden's east end.
+    { name: 'Letohrádek královny Anny', i: 29, j: 0, w: 4, d: 2, storeys: 2, roof: 'pitched' },
+    { name: 'Arcibiskupský palác', i: 6, j: 7, w: 4, d: 3, storeys: 3, roof: 'pitched' },
+    { name: 'Schwarzenberský palác', i: 6, j: 17, w: 4, d: 4, storeys: 4, roof: 'pitched' },
+    { name: 'Poslanecká sněmovna', i: 26, j: 20, w: 5, d: 2, storeys: 3, roof: 'pitched' },
+    { name: 'Valdštejnský palác', i: 31, j: 18, w: 4, d: 4, storeys: 3, roof: 'pitched' },
+    { name: 'Kostel sv. Mikuláše', i: 27, j: 24, w: 4, d: 3, storeys: 6, roof: 'pitched' },
+    { name: 'Rudolfinum', i: 51, j: 15, w: 5, d: 4, storeys: 4, roof: 'pitched', rooftop: true },
     {
       name: 'Národní divadlo',
       i: 51,
-      j: 34,
+      j: 39,
       w: 5,
       d: 4,
       storeys: 5,
       roof: 'pitched',
       rooftop: true,
     },
-    { name: 'Národní muzeum', i: 60, j: 55, w: 6, d: 4, storeys: 5, roof: 'pitched' },
-    { name: 'Prašná brána', i: 74, j: 15, w: 2, d: 2, storeys: 6, roof: 'pitched' },
-    { name: 'Klementinum', i: 51, j: 26, w: 5, d: 4, storeys: 4, roof: 'pitched', rooftop: true },
+    { name: 'Národní muzeum', i: 60, j: 60, w: 6, d: 4, storeys: 5, roof: 'pitched' },
+    { name: 'Prašná brána', i: 74, j: 20, w: 2, d: 2, storeys: 6, roof: 'pitched' },
+    { name: 'Klementinum', i: 51, j: 31, w: 5, d: 4, storeys: 4, roof: 'pitched', rooftop: true },
   ],
 
   zones: [
     // The Castle district and the hill: palaces, no homes.
     {
-      shape: rect(0, 0, 38, 17),
+      shape: rect(0, 0, 38, 22),
       storeys: [3, 4],
       residential: 0,
       kind: 'commercial',
       roofs: { pitched: 8, mansard: 1 },
     },
     // Baroque Malá Strana and the Old Town: lower, steep red roofs.
-    { shape: rect(22, 17, 72, 31), storeys: [3, 4], roofs: { pitched: 9, mansard: 1 } },
+    { shape: rect(22, 22, 72, 36), storeys: [3, 4], roofs: { pitched: 9, mansard: 1 } },
     // Josefov: Art Nouveau apartment houses along Pařížská and the embankment.
-    { shape: rect(50, 8, 77, 11), storeys: [4, 5], residential: 0.95, maxLen: 3 },
+    { shape: rect(50, 13, 77, 16), storeys: [4, 5], residential: 0.95, maxLen: 3 },
     // Vinohrady: tall Gründerzeit blocks.
-    { shape: rect(68, 34, 77, 71), storeys: [4, 6], residential: 0.9 },
+    { shape: rect(68, 39, 77, 76), storeys: [4, 6], residential: 0.9 },
   ],
 
   districts: [
@@ -500,30 +525,30 @@ export const prague: Blueprint = {
       id: 'staremesto',
       name: 'Staré Město',
       unlockWave: 1,
-      area: [51, 20, 68, 30],
-      rally: [52, 23],
+      area: [51, 25, 68, 35],
+      rally: [52, 28],
     },
     {
       id: 'malastrana',
       name: 'Malá Strana',
       unlockWave: 1,
-      area: [23, 24, 38, 50],
-      rally: [29, 38],
+      area: [23, 29, 38, 55],
+      rally: [29, 43],
     },
-    { id: 'josefov', name: 'Josefov', unlockWave: 2, area: [50, 5, 77, 12], rally: [62, 8] },
-    { id: 'hradcany', name: 'Hradčany', unlockWave: 3, area: [0, 0, 5, 23], rally: [2, 18] },
-    { id: 'novemesto', name: 'Nové Město', unlockWave: 4, area: [50, 36, 59, 71], rally: [55, 64] },
+    { id: 'josefov', name: 'Josefov', unlockWave: 2, area: [50, 10, 77, 17], rally: [62, 13] },
+    { id: 'hradcany', name: 'Hradčany', unlockWave: 3, area: [0, 5, 5, 28], rally: [2, 23] },
+    { id: 'novemesto', name: 'Nové Město', unlockWave: 4, area: [50, 41, 59, 76], rally: [55, 69] },
     {
       id: 'vinohrady',
       name: 'Vinohrady & Žižkov',
       unlockWave: 6,
-      area: [68, 34, 77, 71],
-      rally: [72, 58],
+      area: [68, 39, 77, 76],
+      rally: [72, 63],
     },
   ],
 
   chokepoints: [
-    { name: 'Zámecké schody', at: [SCHODY_I, 13], radius: 2 },
+    { name: 'Zámecké schody', at: [SCHODY_I, 18], radius: 2 },
     { name: 'Nerudova', at: [25, NERUDOVA_J], radius: 2 },
     { name: 'Karlův most', at: [RIVER_I, KARLUV_J], radius: 2 },
     { name: 'Mánesův most', at: [RIVER_I, MANES_J], radius: 2 },
@@ -534,25 +559,25 @@ export const prague: Blueprint = {
       name: 'Ke Hradu → Hradčanské náměstí',
       path: [
         [KEHRADU_I, NERUDOVA_J],
-        [KEHRADU_I, 10],
-        [15, 10],
+        [KEHRADU_I, 15],
+        [15, 15],
       ],
       final: true,
     },
     {
       name: 'Zámecké schody',
       path: [
-        [SCHODY_I, 15.5],
-        [SCHODY_I, 10],
+        [SCHODY_I, 20.5],
+        [SCHODY_I, 15],
       ],
       final: true,
     },
     {
       name: 'Staré zámecké schody (from Klárov)',
       path: [
-        [36, 4],
-        [29.5, 4],
+        [36, 9],
         [29.5, 9],
+        [29.5, 14],
       ],
       final: true,
     },
@@ -582,52 +607,56 @@ export const prague: Blueprint = {
       path: [
         [62, LEGII_J],
         [UJEZD_I, LEGII_J],
-        [UJEZD_I, 23],
+        [UJEZD_I, 28],
       ],
     },
   ],
 
   decor: [
     // The Castle: flags on the terrace, lamps.
-    { kind: 'flag', at: [17, 10] },
-    { kind: 'flag', at: [26, 10] },
-    { kind: 'lamp', at: [14, 11] },
-    { kind: 'lamp', at: [29, 11] },
-    { kind: 'statue', at: [9, 7] },
+    { kind: 'flag', at: [17, 15] },
+    { kind: 'flag', at: [26, 15] },
+    { kind: 'lamp', at: [14, 16] },
+    { kind: 'lamp', at: [29, 16] },
+    { kind: 'statue', at: [9, 12] },
+    // The Singing Fountain in front of the Belvedere.
+    { kind: 'fountain', at: [27, 2] },
     // Charles Bridge statues along the parapets.
-    { kind: 'statue', at: [41, 19] },
-    { kind: 'statue', at: [44, 19] },
-    { kind: 'statue', at: [42, 22] },
-    { kind: 'statue', at: [45, 22] },
+    { kind: 'statue', at: [41, 24] },
+    { kind: 'statue', at: [44, 24] },
+    { kind: 'statue', at: [42, 27] },
+    { kind: 'statue', at: [45, 27] },
     // Old Town Square: Jan Hus monument; Malostranské náměstí; Wenceslas on horseback.
-    { kind: 'statue', at: [62, 14] },
-    { kind: 'lamp', at: [26, 22] },
-    { kind: 'statue.equestrian', at: [63, 52] },
-    { kind: 'kiosk', at: [61, 40] },
-    { kind: 'kiosk', at: [66, 46] },
+    { kind: 'statue', at: [62, 19] },
+    { kind: 'lamp', at: [26, 27] },
+    { kind: 'statue.equestrian', at: [63, 57] },
+    { kind: 'kiosk', at: [61, 45] },
+    { kind: 'kiosk', at: [66, 51] },
     // Metro: Malostranská, Staroměstská, Můstek, Muzeum, Národní třída, Karlovo náměstí.
-    { kind: 'metro', at: [38, 14] },
-    { kind: 'metro', at: [54, 19] },
-    { kind: 'metro', at: [60, 34] },
-    { kind: 'metro', at: [66, 53] },
-    { kind: 'metro', at: [58, 34] },
-    { kind: 'metro', at: [52, 53] },
+    { kind: 'metro', at: [38, 19] },
+    { kind: 'metro', at: [54, 24] },
+    { kind: 'metro', at: [60, 39] },
+    { kind: 'metro', at: [66, 58] },
+    { kind: 'metro', at: [58, 39] },
+    { kind: 'metro', at: [52, 58] },
     // Karlovo náměstí fountain; boats on the Vltava.
-    { kind: 'fountain', at: [55, 48] },
-    { kind: 'boat', at: [43, 40] },
-    { kind: 'boat', at: [42, 15] },
-    { kind: 'boat', at: [60, 2] },
+    { kind: 'fountain', at: [55, 53] },
+    { kind: 'boat', at: [43, 45] },
+    { kind: 'boat', at: [42, 20] },
+    { kind: 'boat', at: [60, 7] },
   ],
 
   // The Castle hill: no automatic alleys through the palaces, so the streets and stairways
   // above stay the only ways up.
-  noLanes: [rect(0, 0, 38, 16)],
+  noLanes: [rect(0, 0, 38, 21)],
 
   labels: [
-    { text: 'Hradčany', at: [2, 4] },
-    { text: 'Petřín', at: [8, 32] },
-    { text: 'Václavské náměstí', at: [60, 44] },
-    { text: 'Staroměstské náměstí', at: [57, 12] },
-    { text: 'Malá Strana', at: [30, 24] },
+    { text: 'Hradčany', at: [2, 9] },
+    { text: 'Královská zahrada', at: [12, 2] },
+    { text: 'Letná', at: [64, 1] },
+    { text: 'Petřín', at: [8, 37] },
+    { text: 'Václavské náměstí', at: [60, 49] },
+    { text: 'Staroměstské náměstí', at: [57, 17] },
+    { text: 'Malá Strana', at: [30, 29] },
   ],
 };

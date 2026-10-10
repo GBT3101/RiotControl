@@ -8,11 +8,17 @@ in `src/maps/cities/index.ts`, and its key streets are pinned in `REQUIRED_STREE
 ![Vienna](progress/e2-central-vienna.png)
 ![Prague](progress/e2-central-prague.png)
 
+In game, at the default camera (zoom 2), with E4's Capitols and the stand-in building art:
+
+![Budapest in game](progress/e2-central-budapest-game.png)
+![Vienna in game](progress/e2-central-vienna-game.png)
+![Prague in game](progress/e2-central-prague-game.png)
+
 | City     | File                          | Size  | Capitol (contract)     | Landmarks placed                                   | Districts | Chokepoints |
 | -------- | ----------------------------- | ----- | ---------------------- | -------------------------------------------------- | --------- | ----------- |
 | Budapest | `src/maps/cities/budapest.ts` | 78×72 | Országház 16×6         | budaCastle, fishermansBastion, stStephens, kossuth | 6         | 3           |
 | Vienna   | `src/maps/cities/vienna.ts`   | 80×72 | Parlament 12×7         | rathaus, hofburg, stephansdom                      | 6         | 3           |
-| Prague   | `src/maps/cities/prague.ts`   | 78×72 | Castle + St Vitus 14×6 | bridgeTower, oldTownHall, tynChurch, dancingHouse  | 6         | 4           |
+| Prague   | `src/maps/cities/prague.ts`   | 78×77 | Castle + St Vitus 14×6 | bridgeTower, oldTownHall, tynChurch, dancingHouse  | 6         | 4           |
 
 All three follow the M2 convention: the Capitol's steps face +j (toward the camera) and the open
 ground in front of them (Kossuth tér, the Ring, the Na Valech terrace) gives the camera a wide,
@@ -123,13 +129,18 @@ the panorama over the Malá Strana roofs, faces +j onto the **Na Valech** rampar
     Zámecká is in reality.
   - **Staré zámecké schody**, from Klárov up to the east gate forecourt (Na Opyši).
 
-  The Stag Moat and Royal Garden lie behind the Castle (top).
+  Behind the Castle (top) lie the wooded **Jelení příkop** (Stag Moat) and the **Královská
+  zahrada** (Royal Garden), closed at its east end by the Belvedere (Letohrádek královny Anny)
+  with the Singing Fountain. They are a dead end, walled off from Klárov, so they add no route.
+  These five rows exist so that the Castle stands against greenery rather than black void at
+  the default camera: the whole map was shifted 5 rows down (h 72 → 77) for them.
 
 - **Steps:** the contract's `steps` ground only exists in front of the Capitol (rasterize.ts), and
   it is not `PLACEABLE_ROAD`. The stairways are therefore drawn as narrow paved streets
   (`surface: 'plaza'`) so that officers can hold them. See _Requested shared changes_.
 - **The Vltava:** the river runs north–south east of Malá Strana and bends east across the top past
-  Josefov. It has three crossings:
+  Josefov, under the **Letná** plateau on its far bank (reached from Klárov through the Chotkovy
+  sady, a dead end with no district). It has three crossings:
   - **Karlův most**, from Mostecká and Malostranské náměstí (St Nicholas). The Old Town Bridge
     Tower (`bridgeTower`) stands astride its Staré Město end on Křižovnické náměstí, so crowds file
     round it.
@@ -160,17 +171,20 @@ the panorama over the Malá Strana roofs, faces +j onto the **Na Valech** rampar
 ## Verification
 
 - **Validators:** `validateMap` reports no errors for seeds 0–12 in all three cities, and
-  `npx vitest run tests/maps-blueprints.test.ts -t "budapest|vienna|prague"` passes (47 tests).
-  Every spawn door and rally point reaches the steps, and every final approach is redundant.
-- **Headless playtests:** `npm run playtest -- --cities <city> --bots balanced --seeds 1 --minutes 10`
-  runs without errors for all three. At 10 minutes the Capitol's integrity is 100% in Budapest,
-  53% in Vienna and 98% in Prague. For comparison, London is at 41% and Paris at 69% with the
-  same probe on the current tree.
+  `npx vitest run tests/maps-blueprints.test.ts` passes (182 tests, 45 of them for these three
+  cities). Every spawn door and rally point reaches the steps, and every final approach is
+  redundant.
+- **Headless playtests:** a 10-minute balanced-bot game on seed 1 (`node tools/playtest.mjs`)
+  runs without errors for all three. At 10 minutes the Capitol's minimum integrity is 100% in
+  Budapest (wave 9, peak crowd 64), 53% in Vienna (wave 8, peak 104) and 100% in Prague (wave 9,
+  peak 67; 98% before the 5-row shift, which reshuffles the generated buildings). For
+  comparison, London is at 41% and Paris at 69% with the same probe on the current tree.
 
   I also ran full-length games (balanced bot, seeds 1–2). Budapest won once (51 min, integrity
   never below 100%) and lost once (13 min). Vienna lost twice (12 and 14 min) and Prague lost
-  twice (32 and 34 min). The original cities show the same spread on the current tree: Madrid
-  won once and lost once (47 min), London lost at 9 and 11 min, and Paris lost at 16 and 31 min.
+  twice (32 and 34 min, before the shift). The original cities show the same spread on the
+  current tree: Madrid won once and lost once (47 min), London lost at 9 and 11 min, and Paris
+  lost at 16 and 31 min.
   Per-city balance is left to E6.
 
 - **Crowd flow:** I ran a 10-minute balanced-bot game and counted the unique protesters seen on
@@ -192,18 +206,19 @@ the panorama over the Malá Strana roofs, faces +j onto the **Na Valech** rampar
   - The crossing over the Ring from the Volksgarten is never chosen. It stays as a redundant way
     in.
 
-  **Prague**
-  - Mánesův most: 100, from Josefov and the north of the Old Town.
-  - Karlův most: 22–52, from the Staré Město.
-  - Most Legií: Nové Město and Vinohrady.
-  - Nerudova: 87.
-  - Ke Hradu: 81, from Hradčany and Malá Strana.
-  - Old Castle Steps: 63.
-  - Zámecké schody: 20–27.
+  **Prague** (re-probed after the 5-row shift)
+  - Mánesův most: 74, from Josefov and the north of the Old Town.
+  - Karlův most: 200, from the Staré Město, Nové Město and Vinohrady.
+  - Most Legií: 303 on the Národní třída → Újezd approach, mostly Malá Strana.
+  - Nerudova: 294, from every district except Hradčany.
+  - Zámecké schody: 107 at the chokepoint, 54 on the final flight.
+  - Ke Hradu: 22, all from Hradčany.
+  - Old Castle Steps: 29, from the Staré Město and Josefov.
 
-- **Visual checks:** I took flat-colour viewer screenshots (above) and flat-iso viewer screenshots,
-  and an in-game shot with the stand-in art. Kossuth tér reads as Kossuth tér, with the
-  Országház art that E4 already has in progress.
+- **Visual checks:** flat-colour viewer screenshots and in-game shots at the default camera, all
+  above. Kossuth tér reads as Kossuth tér with E4's Országház, the Parlament sits on the Ring
+  with the Volksgarten opposite, and Prague's Castle and St Vitus now stand against the Stag Moat
+  and Royal Garden instead of the black void beyond the map edge.
 
 ## Known simplifications
 
@@ -217,7 +232,9 @@ the panorama over the Malá Strana roofs, faces +j onto the **Na Valech** rampar
   on the Ring.
 - **Prague:** Wenceslas Square runs north–south here, while the real square runs north-west to
   south-east. Josefov is a thin strip along the Dvořákovo nábřeží. The stairways are paved
-  streets, not stair tiles.
+  streets, not stair tiles. At the default camera a small corner of void still shows at the top
+  left, beyond Hradčany's west edge (the Castle is only 15 tiles from i 0); moving the camera
+  start to hide it crops St Vitus's spire, so the default camera is kept.
 - **No city-only decor kinds are used.** Every kind is shared (flag, lamp, statue, statue.lion,
   statue.equestrian, fountain, metro, kiosk, boat, tree.*), so each city resolves its props through
   `PROP_FALLBACK` until E3 adds its own.

@@ -8,6 +8,13 @@ Three hand-authored blueprints in the M2 format (docs/M2.md, src/maps/blueprint.
 ![Barcelona](progress/e2-south-barcelona.png)
 ![Milan](progress/e2-south-milan.png)
 
+In game, at the default camera (zoom 2), with E4's Capitols and landmarks and the stand-in
+building art:
+
+![Rome in game](progress/e2-south-rome-game.png)
+![Barcelona in game](progress/e2-south-barcelona-game.png)
+![Milan in game](progress/e2-south-milan-game.png)
+
 | City      | Size  | Capitol (contract)         | Landmarks placed                                    | Buildings (seed 0) |
 | --------- | ----- | -------------------------- | --------------------------------------------------- | ------------------ |
 | Rome      | 78×72 | Montecitorio 9×6 @ 32,14   | pantheon, trevi, vittoriano, colosseum (edge)       | 173 (88 rooftop)   |
@@ -238,6 +245,8 @@ decor kind plus E3 art: a `tree.palm` for Barcelona's seafront and Plaça Reial,
 - Chokepoint routes were checked twice: against `validateMap` and against an exact (float64)
   Dijkstra, because of the flow-field issue below. Both agree on which chokepoint each district
   uses.
+- `npx vitest run tests/maps-blueprints.test.ts`: 182 passed, 45 of them for Rome, Barcelona and
+  Milan (after Milan's re-layout). ESLint, Prettier and `npm run typecheck` are clean.
 - Playtest (`npm run playtest -- --cities <id> --bots balanced --seeds 1 --minutes 10`): see
   _Playtest_ below.
 
@@ -255,7 +264,9 @@ same settings for comparison.
 | Madrid    | 9     | 67         | —       | 100 %                 | 5    | 0      | 0.97    |
 | Paris     | 9     | 76         | —       | 69 %                  | 38   | 12     | 1.12    |
 
-The machine was heavily loaded by parallel agents, so treat ms/tick as relative only.
+The machine was heavily loaded by parallel agents, so treat ms/tick as relative only. A re-run on
+a lightly loaded machine gave the same waves, peaks, integrity, rams and climbs, at 0.10 (Rome),
+0.09 (Barcelona) and 0.08 (Milan) ms/tick.
 
 **Crowd flow:** each district's costed shortest route to the steps, from the exact field.
 
