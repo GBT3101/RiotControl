@@ -10,7 +10,7 @@ import { UNITS, UNIT_IDS } from '../src/data/units';
 
 describe('owner-fixed numbers (PLAN §1.2, §1.3, §1.6) are untouched by tuning', () => {
   it('costs and Legitimacy-on-death', () => {
-    // Owner-fixed (PLAN §1.3; owner later set Armed Cops 20, Soldiers 50). The ×0.6 re-price was rejected:
+    // Owner-fixed (PLAN §1.3; owner later set Armed Cops 20, Soldiers 50, Humvee 80, Brigade 100, Tank 200, Heli 300). The ×0.6 re-price was rejected:
     // original costs stay and the game is meant to be hard (docs/M12.md).
     const fixed: Record<string, [number, number]> = {
       riot: [5, 5],
@@ -20,10 +20,10 @@ describe('owner-fixed numbers (PLAN §1.2, §1.3, §1.6) are untouched by tuning
       mounted: [10, 15],
       armed: [20, 20],
       soldier: [50, 40],
-      humvee: [300, 60],
-      brigade: [500, 80],
-      tank: [600, 100],
-      heli: [1000, 0],
+      humvee: [80, 60],
+      brigade: [100, 80],
+      tank: [200, 100],
+      heli: [300, 0],
     };
     for (const id of UNIT_IDS) {
       expect([UNITS[id].cost, UNITS[id].legit], id).toEqual(fixed[id]);
