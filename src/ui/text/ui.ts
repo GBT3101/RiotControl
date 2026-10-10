@@ -25,12 +25,6 @@ export const UI_TEXT = {
     (lead ? ` LED BY ${lead.toUpperCase()}.` : ''),
 };
 
-export const CREDITS: ReadonlyArray<[string, string]> = [
-  ['DIRECTION', 'The Ministry of the Interior'],
-  ['DESIGN & CODE', 'Claude (Opus 5.5) agents'],
-  ['PIXEL ART', 'Hand-authored grids, in code'],
-  ['WRITING', 'The Ministry Press Office (redacted)'],
-  ['MUSIC & SFX', 'Procedural WebAudio'],
-  ['ENGINE', 'PixiJS · TypeScript · Vite'],
-  ['LEGAL', 'Any resemblance to real events is a coincidence we deeply regret.'],
-];
+export const CREDITS: ReadonlyArray<[string, string]> = [['MADE BY', 'GBT Digital Products']];
+/** Closing line under the credits. */
+export const CREDITS_LEGAL = 'Any resemblance to real events is a coincidence we deeply regret.';

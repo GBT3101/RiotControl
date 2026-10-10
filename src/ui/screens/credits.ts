@@ -6,7 +6,7 @@ import { stamp } from '../../art/fx/draw';
 import { Button, stampFaces } from '../core/button';
 import { makeInteractive } from '../core/node';
 import { swapOwned, destroyOwned } from '../core/tex';
-import { CREDITS, UI_TEXT } from '../strings';
+import { CREDITS, CREDITS_LEGAL } from '../strings';
 import type { HudLayout } from '../layout';
 import type { UiApp } from '../app';
 import { dossier } from './common';
@@ -36,8 +36,10 @@ export class CreditsScreen implements Screen {
       h += bh;
       return { k, v, bh };
     });
-    const dm = measureText(FONTS.small, UI_TEXT.disclaimer, inner);
-    h += dm.h + 10 + this.back.h + 8;
+    const dm = measureText(FONTS.small, CREDITS_LEGAL, inner);
+    // The stamp sits under the text (right-aligned) so it never covers a credit line.
+    const st = rubberStamp('TOP SECRET', 'crim1', { font: FONTS.smallBold, tilt: 0.07, seed: 9 });
+    h += dm.h + 8 + st.h + 8 + this.back.h + 8;
     h = Math.min(h, l.H - l.safe.top - l.safe.bottom - 14);
     const b = dossier(w, h, 'FILE: PERSONNEL');
     let y = 10 + 10;
@@ -46,9 +48,8 @@ export class CreditsScreen implements Screen {
       drawText(b, FONTS.mono, bl.v, 12, y + 10, 'gray1', { maxWidth: inner });
       y += bl.bh;
     }
-    drawText(b, FONTS.small, UI_TEXT.disclaimer, 12, y + 2, 'stone1', { maxWidth: inner });
-    const st = rubberStamp('TOP SECRET', 'crim1', { font: FONTS.smallBold, tilt: 0.07, seed: 9 });
-    stamp(b, st, w - st.w - 12, 16);
+    drawText(b, FONTS.small, CREDITS_LEGAL, 12, y + 2, 'stone1', { maxWidth: inner });
+    stamp(b, st, w - st.w - 12, y + 2 + dm.h + 8);
     swapOwned(this.panel, b, 'ui:credits');
     const x = Math.floor((l.W - w) / 2);
     const y0 = Math.max(l.safe.top + 2, Math.floor((l.H - b.h) / 2));
