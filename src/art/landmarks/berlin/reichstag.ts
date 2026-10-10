@@ -687,7 +687,7 @@ export function buildReichstag(state: DamageState): Build {
     const z = c.fz;
     if (c.side === 'left' && letterAt(INSCRIPTION, c, textC0, 55)) {
       if (state >= 3 && c.fx > textC0 + 20 && c.fx < textC0 + 32) return lv(R.char, c.level);
-      return state >= 1 && c.fx >= textC0 + 52 && c.fx < textC0 + 56 && c.fz < 53
+      return state >= 1 && c.fx >= textC0 + 62 && c.fx < textC0 + 66 && c.fz < 53
         ? 'crim2' // someone sprayed over the K
         : 'earth1';
     }
@@ -737,7 +737,7 @@ export function buildReichstag(state: DamageState): Build {
   for (const u of [2.5, 7.5])
     s.sprite(lp.img, 2, 14, u, 7.2, 6, { emit: state >= 2 ? undefined : lp.night });
   for (const u of [1.0, 9.0]) s.sprite(lp.img, 2, 14, u, 7.4, 1, { emit: lp.night });
-  banner(s, state, 3.15, 6.85, 6.4, 44, 10, 'NEIN DANKE');
+  banner(s, state, 3.15, 6.85, 6.4, 44, 10, 'ES REICHT');
   rubble(s, state, 2.8, 7.2, 5.6, 6.35, 16, 9, seed);
   rubble(s, state, 0.3, 2.3, 6.0, 7.8, 1, 6, seed + 1);
   rubble(s, state, 7.7, 9.7, 6.0, 7.8, 1, 6, seed + 2);

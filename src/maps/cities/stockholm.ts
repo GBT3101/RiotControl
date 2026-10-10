@@ -335,17 +335,6 @@ export const stockholm: Blueprint = {
       rooftops: true,
     },
     {
-      name: 'Västerlånggatan',
-      path: [
-        [36, 49],
-        [36, 63],
-      ],
-      width: 2,
-      surface: 'plaza',
-      cafes: true,
-      rooftops: true,
-    },
-    {
       name: 'Storkyrkobrinken',
       path: [
         [30, 51],
@@ -373,6 +362,18 @@ export const stockholm: Blueprint = {
       width: 2,
       surface: 'cobble',
       cafes: true,
+    },
+    // Painted after the cobble cross streets so the pedestrian axis stays plaza at the crossings.
+    {
+      name: 'Västerlånggatan',
+      path: [
+        [36, 49],
+        [36, 63],
+      ],
+      width: 2,
+      surface: 'plaza',
+      cafes: true,
+      rooftops: true,
     },
     {
       name: 'Skeppsbron',

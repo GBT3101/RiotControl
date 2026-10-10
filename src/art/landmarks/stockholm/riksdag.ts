@@ -510,7 +510,7 @@ export function buildRiksdag(state: DamageState): Build {
     s.sprite(lp.img, 2, 14, u, Math.min(5.8, frontV(u) + 1.3), 1, {
       emit: state >= 2 && u < 5 ? undefined : lp.night,
     });
-  banner(s, state, 4.15, 5.85, BAY.vc + colR + 0.25, 40, 9, 'NEJ TACK');
+  banner(s, state, 4.15, 5.85, BAY.vc + colR + 0.25, 40, 9, 'NOG NU');
   rubble(s, state, 3.6, 6.4, 5.3, 5.95, 1, 7, seed);
   rubble(s, state, 0.4, 3.0, 4.2, 5.9, 1, 5, seed + 1);
   rubble(s, state, 7.0, 9.6, 4.2, 5.9, 1, 5, seed + 2);

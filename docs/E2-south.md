@@ -8,11 +8,11 @@ Three hand-authored blueprints in the M2 format (docs/M2.md, src/maps/blueprint.
 ![Barcelona](progress/e2-south-barcelona.png)
 ![Milan](progress/e2-south-milan.png)
 
-| City      | Size  | Capitol (contract)       | Landmarks placed                                   | Buildings (seed 0) |
-| --------- | ----- | ------------------------ | -------------------------------------------------- | ------------------ |
-| Rome      | 78×72 | Montecitorio 9×6 @ 32,14 | pantheon, trevi, vittoriano, colosseum (edge)      | 174 (94 rooftop)   |
-| Barcelona | 80×80 | Parlament 9×6 @ 25,10    | cascada, arcTriomf, columbus, sagradaFamilia (edge) | 150 (99 rooftop)   |
-| Milan     | 76×76 | Palazzo Marino 9×6 @ 25,30 | duomo, galleria, laScala, castello (edge)        | 220 (110 rooftop)  |
+| City      | Size  | Capitol (contract)         | Landmarks placed                                    | Buildings (seed 0) |
+| --------- | ----- | -------------------------- | --------------------------------------------------- | ------------------ |
+| Rome      | 78×72 | Montecitorio 9×6 @ 32,14   | pantheon, trevi, vittoriano, colosseum (edge)       | 173 (88 rooftop)   |
+| Barcelona | 80×80 | Parlament 9×6 @ 25,10      | cascada, arcTriomf, columbus, sagradaFamilia (edge) | 150 (99 rooftop)   |
+| Milan     | 76×76 | Palazzo Marino 9×6 @ 20,30 | duomo, galleria, laScala, castello (edge)           | 209 (109 rooftop)  |
 
 Geography is redrawn from memory (OSM blocked) and condensed ~2–3× around the Capitol, like the
 original three. Each map is a pure rotation of the real city (never mirrored), chosen so that the
@@ -64,13 +64,13 @@ Montecitorio, so the +j front is the true front.
   - Via della Scrofa: Prati over Ponte Umberto I, and Flaminio;
   - Via della Maddalena: Testaccio and Trastevere via Via della Rotonda.
 
-| District            | Wave | Where                                              |
-| ------------------- | ---- | -------------------------------------------------- |
-| Trastevere          | 1    | across the Tiber, bottom-left (Ponte Sisto / Garibaldi) |
-| Monti               | 1    | east of the Fori, between Via Nazionale and Via Cavour |
-| Esquilino & Termini | 2    | right edge round Piazza della Repubblica           |
-| Prati               | 3    | across the Tiber, top-left (Ponte Cavour / Umberto I) |
-| Testaccio           | 4    | bottom edge, south of the Ghetto (Via Marmorata)  |
+| District            | Wave | Where                                                                                |
+| ------------------- | ---- | ------------------------------------------------------------------------------------ |
+| Trastevere          | 1    | across the Tiber, bottom-left (Ponte Sisto / Garibaldi)                              |
+| Monti               | 1    | east of the Fori, between Via Nazionale and Via Cavour                               |
+| Esquilino & Termini | 2    | right edge round Piazza della Repubblica                                             |
+| Prati               | 3    | across the Tiber, top-left (Ponte Cavour / Umberto I)                                |
+| Testaccio           | 4    | bottom edge, south of the Ghetto (Via Marmorata)                                     |
 | Flaminio            | 6    | top edge, Via di Ripetta / Via del Corso from Piazza del Popolo — behind the Capitol |
 
 ## Barcelona — Parlament de Catalunya
@@ -123,14 +123,14 @@ It is a pure rotation.
   - Portal de Picasso (Carrer de la Princesa): Raval, Barceloneta and Gràcia;
   - Carrer de Wellington: Poblenou and Sant Martí.
 
-| District       | Wave | Where                                                   |
-| -------------- | ---- | ------------------------------------------------------- |
-| El Raval       | 1    | right edge, beyond La Rambla                            |
+| District       | Wave | Where                                                     |
+| -------------- | ---- | --------------------------------------------------------- |
+| El Raval       | 1    | right edge, beyond La Rambla                              |
 | Poblenou       | 1    | left edge by the sea (Vila Olímpica, Carrer de la Marina) |
-| La Barceloneta | 2    | top, between the beach and Port Vell                    |
-| L'Eixample     | 3    | centre-bottom (Dreta de l'Eixample, Girona / Pau Claris) |
-| Gràcia         | 4    | bottom-right, up Passeig de Gràcia                      |
-| Sant Martí     | 6    | left edge, Marina / Gran Via (toward Glòries)           |
+| La Barceloneta | 2    | top, between the beach and Port Vell                      |
+| L'Eixample     | 3    | centre-bottom (Dreta de l'Eixample, Girona / Pau Claris)  |
+| Gràcia         | 4    | bottom-right, up Passeig de Gràcia                        |
+| Sant Martí     | 6    | left edge, Marina / Gran Via (toward Glòries)             |
 
 ## Milan — Palazzo Marino (Comune) on Piazza della Scala
 
@@ -138,13 +138,17 @@ It is a pure rotation.
 the Duomo's west façade face the camera (+i) across its piazza and puts Palazzo Marino's real
 front on Piazza della Scala on +j.
 
-- **Around the Capitol:**
-  - Piazza della Scala is the forecourt, with Leonardo's monument; the **Teatro alla Scala** is
-    across it.
-  - The **Galleria Vittorio Emanuele II** links Piazza della Scala to **Piazza del Duomo**
-    (Vittorio Emanuele II on horseback), and the **Duomo** fronts the piazza.
-  - Also: Palazzo Reale, the Arengario, Piazza dei Mercanti (Palazzo della Ragione), Cordusio,
-    Piazza San Fedele (Manzoni's statue) and Piazza Fontana.
+- **Around the Capitol** (laid out to match E4's art, where both the Duomo façade and the
+  Galleria's triumphal arch are drawn on +u):
+  - The **Duomo**'s west façade faces +i onto **Piazza del Duomo** (Vittorio Emanuele II on
+    horseback, Palazzo Reale and the Arengario at its top).
+  - The **Galleria Vittorio Emanuele II** sits below the Duomo, across the pedestrian Corso
+    Vittorio Emanuele II. Its arch (+u) opens onto the lower part of Piazza del Duomo, and its
+    cross arm (+v) onto **Piazza della Scala**.
+  - **Palazzo Marino** is left of the Galleria, i.e. truly east of it, with Via Marino between
+    them. Its front faces +j onto Piazza della Scala (Leonardo's monument), with the **Teatro
+    alla Scala** across the piazza.
+  - Also: Piazza dei Mercanti (Palazzo della Ragione), Cordusio and Piazza Fontana.
 - **Streets:**
   - **Via Manzoni**, **Via Montenapoleone**, Via della Spiga (the Quadrilatero).
   - **Corso Vittorio Emanuele II** (pedestrian, Duomo → San Babila), Corso Venezia, Corso
@@ -162,27 +166,31 @@ front on Piazza della Scala on +j.
   laghetto, the Arco della Pace), plus the Navigli along the top.
 - **Galleria (format limitation):** landmarks are `blocking: true` and their tiles must be `lot`
   (contract + validator), so the Galleria cannot be a walkable covered passage. It is a blocking
-  landmark, and the march Duomo → Scala goes round it on both sides: **Via Silvio Pellico** (right)
-  and **Via Marino** (left, between the Galleria and the palazzo). Both are final approaches.
-  Via Santa Margherita runs parallel, one block further right.
+  landmark (E4 draws it solid, with dark arch openings), and the march Duomo → Scala goes round
+  it on both sides: **Via Silvio Pellico**, the short paved link from the arch end of Piazza del
+  Duomo down to Piazza della Scala, and **Via Marino**, between the Galleria and the palazzo off
+  Corso Vittorio Emanuele II. Both are final approaches. Via Santa Margherita runs parallel, one
+  block further right.
 - **Final approaches:** Via Silvio Pellico, Via Marino, Via Manzoni and Via Verdi.
 - **Chokepoints:**
-  - Via Silvio Pellico (Galleria): Navigli and Sant'Ambrogio crowds coming over Piazza del Duomo;
+  - Via Silvio Pellico (Galleria): Navigli, Sant'Ambrogio and (via Via Verdi) Brera crowds
+    coming over Piazza del Duomo;
   - Via Manzoni: Porta Venezia and Isola;
   - Corso Vittorio Emanuele II: Città Studi via San Babila.
 
-| District                 | Wave | Where                                         |
-| ------------------------ | ---- | --------------------------------------------- |
-| Navigli & Porta Ticinese | 1    | top edge along the Naviglio / Darsena         |
-| Città Studi              | 1    | left edge (east), Corso di Porta Vittoria     |
+| District                 | Wave | Where                                          |
+| ------------------------ | ---- | ---------------------------------------------- |
+| Navigli & Porta Ticinese | 1    | top edge along the Naviglio / Darsena          |
+| Città Studi              | 1    | left edge (east), Corso di Porta Vittoria      |
 | Porta Venezia            | 2    | left edge, Corso Venezia / Giardini Montanelli |
-| Brera                    | 3    | bottom, Via Brera / Solferino                 |
-| Sant'Ambrogio            | 4    | right edge, Corso Magenta                     |
-| Isola                    | 6    | bottom edge, Via Manzoni toward Porta Nuova   |
+| Brera                    | 3    | bottom, Via Brera / Solferino                  |
+| Sant'Ambrogio            | 4    | right edge, Corso Magenta                      |
+| Isola                    | 6    | bottom edge, Via Manzoni toward Porta Nuova    |
 
 ## Decor kinds used
 
 All three cities place only kinds that resolve today, directly or through `PROP_FALLBACK`:
+
 - `tree.plane`, `tree.pine` (Rome's umbrella pines), `tree.round`, `tree.chestnut`;
 - `lamp`, `bench`, `bin`, `bollard`, `hydrant`, `kiosk`, `busstop`, `planter`, `bike`, `cafe`;
 - `metro`, `flag`, `statue`, `statue.equestrian`, `fountain`, `wallace`, `column.gilded`;
@@ -200,8 +208,10 @@ decor kind plus E3 art: a `tree.palm` for Barcelona's seafront and Plaça Reial,
 - **Rome**
   - The Pantheon's piazza is on its +j side, so the portico can face the camera.
   - The Trevi faces +j onto its piazza (true).
-  - The Vittoriano sits south of Piazza Venezia, so its real front faces −j, toward the piazza
-    and the Corso. Its +j face looks onto the Campidoglio side.
+  - The Vittoriano is the one unavoidable mismatch. It sits south of Piazza Venezia at the end
+    of the Corso, so its real front faces −j (north). E4 draws the front on +v, which looks onto
+    the Campidoglio / Via del Teatro di Marcello side. Fixing that would mean rotating Rome 180°,
+    which would turn Montecitorio's true front away from the camera.
   - The Colosseum is in the corner, surrounded by its piazza.
 - **Barcelona**
   - The Arc de Triomf straddles Lluís Companys, which runs along j. The promenade passes either
@@ -213,10 +223,10 @@ decor kind plus E3 art: a `tree.palm` for Barcelona's seafront and Plaça Reial,
     façade.
 - **Milan**
   - The Duomo's west façade faces +i onto Piazza del Duomo.
-  - The Galleria's 8-tile long side (+j) faces Piazza della Scala and its −j side faces Piazza
-    del Duomo. The main arm therefore runs along j, through the 5-tile depth.
+  - The Galleria's arch (+u) faces the lower part of Piazza del Duomo (+i side) and its cross
+    arm (+v) faces Piazza della Scala. This matches E4's art.
   - La Scala sits across the piazza from Palazzo Marino, so its real front faces −j, toward the
-    piazza.
+    piazza. Facing buildings cannot both show their +v front.
   - The Castello's Filarete tower faces −j, toward Largo Cairoli and Via Dante, with Parco
     Sempione at +j.
 
@@ -241,13 +251,14 @@ same settings for comparison.
 | --------- | ----- | ---------- | ------- | --------------------- | ---- | ------ | ------- |
 | Rome      | 9     | 68         | 423     | 99 %                  | 13   | 9      | 1.37    |
 | Barcelona | 9     | 63         | 420     | 100 %                 | 10   | 2      | 1.40    |
-| Milan     | 8     | 66         | 371     | 85 %                  | 16   | 0      | 1.58    |
+| Milan     | 8     | 55         | —       | 95 %                  | 23   | 0      | 0.53    |
 | Madrid    | 9     | 67         | —       | 100 %                 | 5    | 0      | 0.97    |
 | Paris     | 9     | 76         | —       | 69 %                  | 38   | 12     | 1.12    |
 
 The machine was heavily loaded by parallel agents, so treat ms/tick as relative only.
 
 **Crowd flow:** each district's costed shortest route to the steps, from the exact field.
+
 - **Rome:** the crowds funnel into three alleys.
   - Monti (69) and Esquilino (52) come up the Corso through Piazza Colonna. The bots' riot
     lines meet them at Largo Chigi.
@@ -266,12 +277,16 @@ The machine was heavily loaded by parallel agents, so treat ms/tick as relative 
     Catalunya → Ronda de Sant Pere → Passeig de Picasso) converge on the Portal de Picasso.
   - The long park avenues give defenders depth; the Capitol was never seriously threatened in
     10 minutes.
-- **Milan:** the shortest routes, with four entries into a small piazza.
-  - Porta Venezia (32) and Isola (38) come down Via Manzoni, and Brera (37) down Via Verdi.
-  - Città Studi (47) arrives along Corso Vittorio Emanuele II via San Babila and Via Marino.
-  - Navigli (59, via Via Torino) and Sant'Ambrogio (46, via Cordusio/Piazza dei Mercanti) cross
-    Piazza del Duomo and squeeze past the Galleria on Via Silvio Pellico.
-  - The short Manzoni/Verdi legs explain the deeper integrity dip (85 %, still above Paris's 69 %).
+- **Milan:** four short final legs into a small piazza, after the re-layout to E4's Galleria
+  orientation.
+  - Porta Venezia (27) and Isola (37) come down Via Manzoni.
+  - Città Studi (42) arrives along Corso Vittorio Emanuele II from San Babila and turns into Via
+    Marino beside the palazzo.
+  - Navigli (64, via Via Torino), Sant'Ambrogio (50, via Cordusio and Piazza dei Mercanti) and
+    Brera (42, up Via Verdi) all meet at the Galleria's arch end. They squeeze down Via Silvio
+    Pellico into Piazza della Scala, which is the hottest spot.
+  - The crowd dented the palazzo slightly (95 %), and 23 rams show mobs pushing through the riot
+    lines in the narrow links.
 
 ## Known issue found: `src/maps/flow.ts` costed fields drop cobbled tiles
 

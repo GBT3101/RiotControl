@@ -20,14 +20,15 @@
 import type { Blueprint } from '../blueprint';
 import { poly, rect } from '../blueprint';
 
-const MANZONI_I = 24.5; // Via Manzoni (w3: i 23..25) at the piazza
-const MARINO_I = 35; // Via Marino (w2: i 34..35), left of the Galleria
-const PELLICO_I = 45; // Via Silvio Pellico (w2: i 44..45), right of the Galleria
-const MARGHERITA_I = 49.5; // Via Santa Margherita (w3: i 48..50)
-const VERDI_I = 38.5; // Via Verdi → Via Brera (w3: i 37..39)
-const CVE_J = 29.5; // Corso Vittorio Emanuele II (w3: j 28..30)
+const MANZONI_I = 19.5; // Via Manzoni (w3: i 18..20) at the piazza
+const MARINO_I = 30; // Via Marino (w2: i 29..30), between the palazzo and the Galleria
+const PELLICO_I = 40; // Via Silvio Pellico (w2: i 39..40), off the Galleria's arch
+const MARGHERITA_I = 44.5; // Via Santa Margherita (w3: i 43..45)
+const VERDI_I = 39.5; // Via Verdi → Via Brera (w3: i 38..40)
+const CVE_J = 28.5; // Corso Vittorio Emanuele II (w3: j 27..29)
 const MAGENTA_J = 33.5; // Corso Magenta (w3: j 32..34)
-const VENEZIA_I = 7; // Corso Venezia (w4: i 5..8)
+const VENEZIA_I = 6; // Corso Venezia (w4: i 4..7)
+const RING_L = 12; // Via Francesco Sforza / Via Senato (ring, w4: i 10..13)
 const RING_W = 4;
 
 export const milan: Blueprint = {
@@ -73,21 +74,20 @@ export const milan: Blueprint = {
     { ground: 'water', shape: rect(54, 72, 58, 74), name: 'Laghetto' },
     {
       ground: 'grass',
-      shape: rect(0, 60, 4, 75),
+      shape: rect(0, 58, 3, 75),
       name: 'Giardini Indro Montanelli',
       trees: { kinds: ['tree.round', 'tree.chestnut'], density: 0.45 },
     },
     // --- Top layer: piazzas.
     // Piazza della Scala — the forecourt (Leonardo's monument); steps painted over it.
-    { ground: 'plaza', shape: rect(23, 36, 50, 41), layer: 'top', name: 'Piazza della Scala' },
+    { ground: 'plaza', shape: rect(17, 35, 45, 41), layer: 'top', name: 'Piazza della Scala' },
     // Piazza del Duomo.
-    { ground: 'plaza', shape: rect(34, 19, 48, 30), layer: 'top', name: 'Piazza del Duomo' },
+    { ground: 'plaza', shape: rect(39, 18, 51, 33), layer: 'top', name: 'Piazza del Duomo' },
     // Piazza dei Mercanti, Piazza Cordusio.
-    { ground: 'plaza', shape: rect(49, 23, 53, 28), layer: 'top', name: 'Piazza dei Mercanti' },
-    { ground: 'plaza', shape: rect(54, 29, 59, 35), layer: 'top', name: 'Piazza Cordusio' },
-    // Piazza San Fedele (Manzoni's statue), Piazza San Babila, Piazza Fontana.
-    { ground: 'plaza', shape: rect(19, 32, 23, 36), layer: 'top', name: 'Piazza San Fedele' },
-    { ground: 'plaza', shape: rect(4, 25, 13, 32), layer: 'top', name: 'Piazza San Babila' },
+    { ground: 'plaza', shape: rect(52, 23, 55, 28), layer: 'top', name: 'Piazza dei Mercanti' },
+    { ground: 'plaza', shape: rect(55, 29, 59, 34), layer: 'top', name: 'Piazza Cordusio' },
+    // Piazza San Babila, Piazza Fontana.
+    { ground: 'plaza', shape: rect(2, 25, 11, 32), layer: 'top', name: 'Piazza San Babila' },
     { ground: 'plaza', shape: rect(18, 20, 22, 24), layer: 'top', name: 'Piazza Fontana' },
     // Largo Cairoli + Foro Buonaparte forecourt of the Castello.
     { ground: 'plaza', shape: rect(58, 52, 70, 55), layer: 'top', name: 'Largo Cairoli' },
@@ -123,8 +123,8 @@ export const milan: Blueprint = {
     {
       name: 'Via Santa Sofia',
       path: [
-        [16, 18],
-        [22, 12],
+        [RING_L, 18],
+        [18, 12],
         [54, 12],
       ],
       width: RING_W,
@@ -168,8 +168,8 @@ export const milan: Blueprint = {
       name: 'Via Fatebenefratelli',
       path: [
         [40, 60],
-        [22, 60],
-        [16, 54],
+        [18, 60],
+        [RING_L, 54],
       ],
       width: RING_W,
       trees: 'tree.plane',
@@ -177,8 +177,8 @@ export const milan: Blueprint = {
     {
       name: 'Via Senato',
       path: [
-        [16, 54],
-        [16, 36],
+        [RING_L, 54],
+        [RING_L, 36],
       ],
       width: RING_W,
       trees: 'tree.plane',
@@ -186,8 +186,8 @@ export const milan: Blueprint = {
     {
       name: 'Via Francesco Sforza',
       path: [
-        [16, 36],
-        [16, 18],
+        [RING_L, 36],
+        [RING_L, 18],
       ],
       width: RING_W,
       trees: 'tree.plane',
@@ -196,8 +196,8 @@ export const milan: Blueprint = {
     {
       name: 'Corso Vittorio Emanuele II',
       path: [
-        [34, CVE_J],
-        [12, CVE_J],
+        [39, CVE_J],
+        [RING_L, CVE_J],
       ],
       width: 3,
       surface: 'plaza',
@@ -209,7 +209,7 @@ export const milan: Blueprint = {
     {
       name: 'Via Marino',
       path: [
-        [MARINO_I, 30],
+        [MARINO_I, 29],
         [MARINO_I, 36],
       ],
       width: 2,
@@ -219,7 +219,7 @@ export const milan: Blueprint = {
     {
       name: 'Via Silvio Pellico',
       path: [
-        [PELLICO_I, 30],
+        [PELLICO_I, 33],
         [PELLICO_I, 36],
       ],
       width: 2,
@@ -230,8 +230,8 @@ export const milan: Blueprint = {
     {
       name: 'Via Santa Margherita',
       path: [
-        [MARGHERITA_I, 28],
-        [MARGHERITA_I, 40],
+        [MARGHERITA_I, 33],
+        [MARGHERITA_I, 41],
       ],
       width: 3,
       rooftops: true,
@@ -241,8 +241,8 @@ export const milan: Blueprint = {
       name: 'Via Manzoni',
       path: [
         [MANZONI_I, 41],
-        [MANZONI_I, 56],
-        [20.5, 77],
+        [MANZONI_I, 58],
+        [16.5, 77],
       ],
       width: 3,
       rooftops: true,
@@ -266,8 +266,8 @@ export const milan: Blueprint = {
     {
       name: 'Via della Spiga',
       path: [
-        [17, 54],
-        [VENEZIA_I, 54],
+        [18, 53],
+        [VENEZIA_I, 53],
       ],
       width: 2,
       surface: 'cobble',
@@ -287,7 +287,7 @@ export const milan: Blueprint = {
       name: 'Corso di Porta Vittoria',
       path: [
         [-1, 22],
-        [16, 22],
+        [RING_L, 22],
       ],
       width: 4,
       trees: 'tree.plane',
@@ -295,9 +295,8 @@ export const milan: Blueprint = {
     {
       name: 'Corso di Porta Romana',
       path: [
-        [22, 12],
-        [22, 0],
-        [18, -1],
+        [24, 12],
+        [24, -1],
       ],
       width: 3,
     },
@@ -351,8 +350,8 @@ export const milan: Blueprint = {
     {
       name: 'Via dei Mercanti',
       path: [
-        [48, 25.5],
-        [49, 25.5],
+        [51, 25.5],
+        [52, 25.5],
       ],
       width: 2,
       surface: 'plaza',
@@ -381,8 +380,8 @@ export const milan: Blueprint = {
     {
       name: 'Via Meravigli',
       path: [
-        [53, 31.5],
-        [MARGHERITA_I, 31.5],
+        [55, 31.5],
+        [52, 31.5],
       ],
       width: 2,
       surface: 'cobble',
@@ -418,7 +417,7 @@ export const milan: Blueprint = {
     {
       name: 'Via Torino',
       path: [
-        [48, 21],
+        [51.5, 18],
         [56, 12],
         [56, 7],
       ],
@@ -426,7 +425,7 @@ export const milan: Blueprint = {
       rooftops: true,
       storeyBonus: 1,
       labelPath: [
-        [49, 20],
+        [52, 17],
         [55, 13],
       ],
     },
@@ -462,7 +461,7 @@ export const milan: Blueprint = {
     {
       name: 'Via Larga',
       path: [
-        [34, 18.5],
+        [39, 18.5],
         [22, 18.5],
       ],
       width: 3,
@@ -480,17 +479,17 @@ export const milan: Blueprint = {
   bridges: [],
 
   landmarks: [
-    { id: 'duomo', i: 24, j: 21 },
-    { id: 'galleria', i: 36, j: 31 },
-    { id: 'laScala', i: 40, j: 42 },
+    { id: 'duomo', i: 29, j: 21 },
+    { id: 'galleria', i: 31, j: 30 },
+    { id: 'laScala', i: 32, j: 42 },
     { id: 'castello', i: 60, j: 57 },
   ],
 
-  capitol: { i: 25, j: 30, stepRows: 2, stepInset: 1 },
+  capitol: { i: 20, j: 30, stepRows: 2, stepInset: 1 },
 
   civic: [
-    { name: 'Palazzo Reale', i: 35, j: 14, w: 5, d: 4, storeys: 4, roof: 'pitched' },
-    { name: 'Arengario', i: 43, j: 15, w: 4, d: 3, storeys: 4, roof: 'flat', rooftop: true },
+    { name: 'Palazzo Reale', i: 43, j: 13, w: 4, d: 4, storeys: 4, roof: 'pitched', rooftop: true },
+    { name: 'Arengario', i: 47, j: 14, w: 4, d: 3, storeys: 4, roof: 'flat', rooftop: true },
     { name: 'Pinacoteca di Brera', i: 40, j: 63, w: 6, d: 4, storeys: 4, roof: 'pitched' },
     { name: "Basilica di Sant'Ambrogio", i: 66, j: 37, w: 5, d: 4, storeys: 3, roof: 'pitched' },
     {
@@ -504,8 +503,8 @@ export const milan: Blueprint = {
     },
     {
       name: 'Palazzo della Ragione',
-      i: 50,
-      j: 23,
+      i: 53,
+      j: 24,
       w: 3,
       d: 2,
       storeys: 3,
@@ -521,7 +520,7 @@ export const milan: Blueprint = {
       residential: 0.4,
       roofs: { flat: 4, terrace: 3, pitched: 3 },
     },
-    { shape: rect(18, 26, 52, 46), storeys: [5, 6], residential: 0, kind: 'commercial' },
+    { shape: rect(14, 26, 50, 46), storeys: [5, 6], residential: 0, kind: 'commercial' },
     // Brera: lower, older, ochre houses.
     {
       shape: rect(28, 61, 54, 75),
@@ -568,12 +567,12 @@ export const milan: Blueprint = {
       area: [64, 8, 75, 50],
       rally: [70, 33],
     },
-    { id: 'isola', name: 'Isola', unlockWave: 6, area: [14, 62, 29, 75], rally: [21, 70] },
+    { id: 'isola', name: 'Isola', unlockWave: 6, area: [14, 62, 29, 75], rally: [17, 70] },
   ],
 
   chokepoints: [
-    { name: 'Via Silvio Pellico (Galleria)', at: [PELLICO_I, 33], radius: 2 },
-    { name: 'Via Manzoni', at: [MANZONI_I, 51], radius: 2 },
+    { name: 'Via Silvio Pellico (Galleria)', at: [PELLICO_I, 35], radius: 2 },
+    { name: 'Via Manzoni', at: [MANZONI_I, 50], radius: 2 },
     { name: 'Corso Vittorio Emanuele II', at: [20, CVE_J], radius: 2 },
   ],
 
@@ -581,7 +580,7 @@ export const milan: Blueprint = {
     {
       name: 'Via Silvio Pellico (round the Galleria)',
       path: [
-        [PELLICO_I, 21],
+        [PELLICO_I, 17],
         [PELLICO_I, 37],
       ],
       final: true,
@@ -589,7 +588,7 @@ export const milan: Blueprint = {
     {
       name: 'Via Marino (round the Galleria)',
       path: [
-        [24, CVE_J],
+        [22, CVE_J],
         [MARINO_I, CVE_J],
         [MARINO_I, 37],
       ],
@@ -614,8 +613,8 @@ export const milan: Blueprint = {
     {
       name: 'Corso Vittorio Emanuele II',
       path: [
-        [12, CVE_J],
-        [34, CVE_J],
+        [RING_L, CVE_J],
+        [MARINO_I, CVE_J],
       ],
     },
     {
@@ -623,7 +622,7 @@ export const milan: Blueprint = {
       path: [
         [56, 7],
         [56, 12],
-        [48, 21],
+        [51.5, 18],
       ],
     },
     {
@@ -638,17 +637,16 @@ export const milan: Blueprint = {
 
   decor: [
     // Piazza della Scala: Leonardo's monument; Palazzo Marino's flags.
-    { kind: 'statue', at: [36, 40] },
-    { kind: 'flag', at: [26, 37] },
-    { kind: 'flag', at: [33, 37] },
+    { kind: 'statue', at: [31, 39] },
+    { kind: 'flag', at: [19, 37] },
+    { kind: 'flag', at: [29, 37] },
     // Piazza del Duomo: Vittorio Emanuele II on horseback, lamps, pigeons.
-    { kind: 'statue.equestrian', at: [41, 24] },
-    { kind: 'pigeon', at: [38, 27] },
-    { kind: 'pigeon', at: [44, 21] },
-    { kind: 'metro', at: [46, 28] },
-    { kind: 'metro', at: [35, 20] },
-    // Piazza San Fedele (Manzoni), Piazza Fontana, San Babila, Cordusio, Cairoli.
-    { kind: 'statue', at: [21, 34] },
+    { kind: 'statue.equestrian', at: [45, 25] },
+    { kind: 'pigeon', at: [42, 28] },
+    { kind: 'pigeon', at: [48, 21] },
+    { kind: 'metro', at: [50, 31] },
+    { kind: 'metro', at: [40, 20] },
+    // Piazza Fontana, San Babila, Cordusio, Cairoli.
     { kind: 'fountain', at: [20, 22] },
     { kind: 'metro', at: [8, 28] },
     { kind: 'metro', at: [56, 31] },
@@ -665,7 +663,7 @@ export const milan: Blueprint = {
     { kind: 'boat', at: [56, 73] },
   ],
 
-  noLanes: [rect(18, 26, 52, 46)],
+  noLanes: [rect(14, 26, 50, 46)],
 
   labels: [
     { text: 'Quadrilatero della Moda', at: [12, 44] },
