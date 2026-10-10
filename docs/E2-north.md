@@ -9,9 +9,12 @@ Capitol steps.
 ![Stockholm](progress/e2-north-stockholm.png)
 ![Amsterdam](progress/e2-north-amsterdam.png)
 
-In game at zoom 2 (Berlin, with the Reichstag art from E4 and Madrid's stand-in environment):
+In game at zoom 2, with the E4 Capitol and landmark art already landed and Madrid's stand-in
+environment:
 
 ![Berlin in game](progress/e2-north-berlin-game.png)
+![Stockholm in game](progress/e2-north-stockholm-game.png)
+![Amsterdam in game](progress/e2-north-amsterdam-game.png)
 
 | City      | Size  | Capitol (contract)                | Landmarks placed                                              | Buildings / rooftop | Districts |
 | --------- | ----- | --------------------------------- | ------------------------------------------------------------- | ------------------- | --------- |
@@ -237,10 +240,11 @@ comparison.
 - **Stockholm** is the most contested of the three. The bot's blockades on the island bridges
   get rammed (38 rams, 15 climbs), and the crowds that cross reach Riksplan, so the Capitol takes some
   damage.
-- **Berlin** splits its pressure between the Platz der Republik and the bridge landings, a
-  little like Madrid.
-- **Amsterdam's** narrow canal bridges stretch the crowds into long single files that the
-  balanced bot holds easily: no climbs, and the Capitol was never touched in 10 minutes.
+- **Berlin** plays much like Madrid (7 rams, 7 climbs, the Capitol never below 99 %). The bot
+  holds the crowds before they reach the Platz der Republik.
+- **Amsterdam** is the easiest for the bot: no climbs, 4 rams, and the Capitol was never touched
+  in 10 minutes. The 1–4-wide canal bridges seem to string the crowds out before they reach the
+  Dam.
 
 **Balance.** Levels and peaks are in Madrid's range. E6's balance pass may want slightly more
 pressure for Amsterdam, for example earlier waves for De Wallen and Centrum-Oost.
@@ -271,7 +275,7 @@ pressure for Amsterdam, for example earlier waves for De Wallen and Centrum-Oost
   distances this re-expands combinatorially. Stockholm first took **240 s** for one costed field,
   because Södermalm inherited fractional distances through two cobble crossings on
   Västerlånggatan; vitest timed out and a worker was SIGKILLed.
-  - **Fix in this file.** Västerlånggatan is painted after its cobble cross streets, so the
+  - **Fix in `stockholm.ts`.** Västerlånggatan is painted after its cobble cross streets, so the
     pedestrian axis stays plaza.
   - **Result.** Costed fields now take ≤ 20 ms for every seed 0–12 in all three cities.
   - **Recommendation.** Fix `flow.ts` (`Math.fround` on the relaxed distance) together with the
