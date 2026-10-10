@@ -30,20 +30,54 @@ import type { UiApp } from '../app';
 
 /* ── Pixel compositions ───────────────────────────────────────────────────────────── */
 
-/** Unlock dossier (190×84 + tab above): returns the base (without stamps) and stamp layers. */
+const DOSSIER_TEXT_W = 112;
+const NOTES_GAP = -1;
+
+/**
+ * Text flow on the unlock dossier's paper (y relative to the dossier top, before the tab
+ * offset): name, notes and footnote stack top-down so a long name that wraps (MOUNTED POLICE)
+ * pushes the rest down instead of overprinting it; the paper grows to fit.
+ */
+export function unlockDossierLayout(unit: UnitId): {
+  title: { y: number; h: number; w: number };
+  notes: { y: number; h: number; w: number };
+  footnote: { y: number; h: number; w: number };
+  paperH: number;
+  H: number;
+} {
+  const copy = UNIT_COPY[unit];
+  const tm = measureText(FONTS.smallBold, UNITS[unit].name.toUpperCase(), DOSSIER_TEXT_W);
+  const nm = measureText(FONTS.mono, copy.notes, DOSSIER_TEXT_W);
+  const notesH = (nm.lines.length - 1) * (FONTS.mono.lineHeight + NOTES_GAP) + FONTS.mono.capHeight;
+  const fm = measureText(FONTS.small, copy.footnote, DOSSIER_TEXT_W);
+  const titleY = 12;
+  const notesY = Math.max(24, titleY + tm.h + 5);
+  const footY = Math.max(53, notesY + notesH + 5);
+  const paperH = Math.max(58, footY + fm.h + 5 - 7);
+  return {
+    title: { y: titleY, h: tm.h, w: tm.w },
+    notes: { y: notesY, h: notesH, w: nm.w },
+    footnote: { y: footY, h: fm.h, w: fm.w },
+    paperH,
+    H: paperH + 26,
+  };
+}
+
+/** Unlock dossier (190×84+ and a tab above): returns the base (without stamps) and stamp layers. */
 export function unlockDossier(
   unit: UnitId,
   level: number,
 ): { base: PixelBuffer; approved: PixelBuffer; levelStamp: PixelBuffer } {
+  const lay = unlockDossierLayout(unit);
   const W = 190;
-  const H = 84;
+  const H = lay.H;
   const b = buf(W + 4, H + 14);
   const oy = 10;
   stamp(b, panel('manila', W, H), 0, oy);
   stamp(b, folderTab(46), 8, oy - 8);
   rect(b, 9, oy - 1, 44, 2, 'stone4');
   drawText(b, FONTS.small, `FILE ${String(level).padStart(2, '0')}`, 14, oy - 7, 'earth2');
-  stamp(b, panel('paper', 128, 58), 54, oy + 7);
+  stamp(b, panel('paper', 128, lay.paperH), 54, oy + 7);
   const card = deployCard({
     portrait: unitPortrait(unit),
     cost: UNITS[unit].cost,
@@ -53,11 +87,16 @@ export function unlockDossier(
   stamp(b, card, 10, oy + 12);
   stamp(b, PAPERCLIP, 168, oy - 4);
   const copy = UNIT_COPY[unit];
-  drawText(b, FONTS.smallBold, UNITS[unit].name.toUpperCase(), 65, oy + 12, 'ink', {
-    maxWidth: 112,
+  drawText(b, FONTS.smallBold, UNITS[unit].name.toUpperCase(), 65, oy + lay.title.y, 'ink', {
+    maxWidth: DOSSIER_TEXT_W,
   });
-  drawText(b, FONTS.mono, copy.notes, 65, oy + 24, 'gray1', { lineGap: -1 });
-  drawText(b, FONTS.small, copy.footnote, 65, oy + 53, 'stone1');
+  drawText(b, FONTS.mono, copy.notes, 65, oy + lay.notes.y, 'gray1', {
+    lineGap: NOTES_GAP,
+    maxWidth: DOSSIER_TEXT_W,
+  });
+  drawText(b, FONTS.small, copy.footnote, 65, oy + lay.footnote.y, 'stone1', {
+    maxWidth: DOSSIER_TEXT_W,
+  });
   return {
     base: b,
     approved: rubberStamp('APPROVED', 'green2', { tilt: -0.1 }),
@@ -193,11 +232,16 @@ export class Moments {
     approved.anchor.set(0.5);
     lvl.anchor.set(0.5);
     dossier.addChild(approved, lvl);
+    // Stamps keep their place relative to the dossier's bottom edge (it grows for long copy).
+    const grow = d.base.h - 14 - 84;
     approved.position.set(
       106 + Math.floor(d.approved.w / 2),
-      10 + 50 + Math.floor(d.approved.h / 2),
+      10 + 50 + grow + Math.floor(d.approved.h / 2),
     );
-    lvl.position.set(2 + Math.floor(d.levelStamp.w / 2), 10 + 67 + Math.floor(d.levelStamp.h / 2));
+    lvl.position.set(
+      2 + Math.floor(d.levelStamp.w / 2),
+      10 + 67 + grow + Math.floor(d.levelStamp.h / 2),
+    );
     approved.visible = lvl.visible = false;
     root.addChild(ribbonS, dossier);
     const st: Stage = {
@@ -284,17 +328,18 @@ export class Moments {
     rib.alpha = 1 - out;
     const a = st.parts.approved!;
     const lv = st.parts.lvl!;
+    const grow = dosS.texture.height - 14 - 84; // see makeLevelUp
     const ta = t - 0.85;
     if (ta >= 0) {
       if (!a.visible) this.app.sfx('stamp');
       a.visible = true;
-      a.y = 10 + 50 + Math.floor(a.texture.height / 2) + stampDrop(ta / 0.2);
+      a.y = 10 + 50 + grow + Math.floor(a.texture.height / 2) + stampDrop(ta / 0.2);
     }
     const tl = t - 1.25;
     if (tl >= 0) {
       if (!lv.visible) this.app.sfx('stamp');
       lv.visible = true;
-      lv.y = 10 + 67 + Math.floor(lv.texture.height / 2) + stampDrop(tl / 0.2);
+      lv.y = 10 + 67 + grow + Math.floor(lv.texture.height / 2) + stampDrop(tl / 0.2);
     }
     return t < st.dur;
   }

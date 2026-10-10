@@ -3,10 +3,11 @@ import { frontPage } from '../src/art/uikit/newspaper';
 import { resolveColor } from '../src/art/palette';
 import { compactCard } from '../src/ui/art';
 import { tooltipCard } from '../src/ui/widgets/tooltip';
-import { alertCard, unlockDossier } from '../src/ui/widgets/moments';
+import { alertCard, unlockDossier, unlockDossierLayout } from '../src/ui/widgets/moments';
 import { frontPageBox, ledgerSections, newsprintPhoto } from '../src/ui/screens/end';
 import { minimapBase, minimapTiles, minimapToTile, tileToMinimap } from '../src/ui/hud/minimap';
 import { createStats } from '../src/sim/stats';
+import { UNIT_IDS } from '../src/data/units';
 import { loadMap } from '../src/maps';
 import { SWATCHES, hexToRgba } from '../src/art/palette';
 import type { PixelBuffer } from '../src/art/lib/pixels';
@@ -115,5 +116,19 @@ describe('minimap projection', () => {
       if (c === gold) n++;
     }
     expect(n).toBeGreaterThan(4);
+  });
+});
+
+describe('unlock dossier text', () => {
+  it('name, notes and footnote never overlap and stay on the paper, for every unit', () => {
+    for (const id of UNIT_IDS) {
+      const l = unlockDossierLayout(id);
+      expect(l.title.y + l.title.h, id).toBeLessThan(l.notes.y);
+      expect(l.notes.y + l.notes.h, id).toBeLessThan(l.footnote.y);
+      expect(l.footnote.y + l.footnote.h, id).toBeLessThanOrEqual(7 + l.paperH - 2);
+      for (const part of [l.title, l.notes, l.footnote])
+        expect(part.w, id).toBeLessThanOrEqual(112);
+      expect(paletteOnly(unlockDossier(id, 1).base), id).toBe(true);
+    }
   });
 });
