@@ -92,10 +92,24 @@ export interface AttackDef {
   gasLinger?: number;
 }
 
-export interface AbilityDef {
-  id: 'gasGrenade';
-  /** Seconds to charge. */
+/** Special skill ids (docs/specials.md). */
+export type AbilityId = 'gasGrenade' | 'ram' | 'rapidFire' | 'fragGrenade' | 'missile' | 'airStrike';
+
+/**
+ * How the player aims a skill: `auto` fires on a tap (the sim picks the target), `point` enters
+ * the tank's aim mode (reticle + range ring), `line` the helicopter's paint mode (drag a line).
+ */
+export type AbilityAim = 'auto' | 'point' | 'line';
+
+interface AbilityBase {
+  /** Seconds to charge (pauses while the unit is stunned or knocked down). */
   charge: number;
+  aim: AbilityAim;
+}
+
+/** Tear Gas Shooter: a gas grenade at the densest crowd in range. */
+export interface GasGrenadeAbility extends AbilityBase {
+  id: 'gasGrenade';
   /** Max throw distance (tiles). */
   range: number;
   /** Cloud radius (tiles). */
@@ -108,6 +122,82 @@ export interface AbilityDef {
   stun: number;
   projectileSpeed: number;
 }
+
+/** Mounted Riot Police: gallop a straight lane, bowling over everyone in it (non-lethal). */
+export interface RamAbility extends AbilityBase {
+  id: 'ram';
+  /** Lane length (tiles); the run stops early at a wall, a blockade or the end of the road. */
+  length: number;
+  /** Lane half-width (tiles) around the horse's path. */
+  halfWidth: number;
+  /** Gallop speed (tiles/s). */
+  speed: number;
+  /** Seconds the lane flashes before the gallop starts. */
+  windup: number;
+  /** Damage to each protester bowled over (KO when it drops them; never lethal). */
+  damage: number;
+  /** Stun (s) for survivors, and the sideways knock-back impulse (tiles/s). */
+  stun: number;
+  impulse: number;
+}
+
+/** Armed Cops: a burst of piercing pistol shots at the nearest targets. */
+export interface RapidFireAbility extends AbilityBase {
+  id: 'rapidFire';
+  shots: number;
+  /** Seconds between shots. */
+  interval: number;
+  range: number;
+  damage: number;
+  /** Each shot pierces up to N protesters within `pierceWidth` of its line. */
+  pierce: number;
+  pierceWidth: number;
+}
+
+/** Soldiers: a real (lethal) frag grenade at the densest crowd in range. */
+export interface FragAbility extends AbilityBase {
+  id: 'fragGrenade';
+  range: number;
+  radius: number;
+  damage: number;
+  /** Seconds on the ground before it goes off. */
+  fuse: number;
+}
+
+/** Tank: a player-aimed missile with a huge blast. */
+export interface MissileAbility extends AbilityBase {
+  id: 'missile';
+  /** Max distance of the aimed point from the tank (tiles). */
+  range: number;
+  radius: number;
+  damage: number;
+}
+
+/** Helicopter: a strafing run along a line the player paints. */
+export interface AirStrikeAbility extends AbilityBase {
+  id: 'airStrike';
+  /** Painted line length limits (tiles). */
+  maxLength: number;
+  minLength: number;
+  /** Everything within this distance (tiles) of the line dies. */
+  width: number;
+  damage: number;
+  /** Seconds from the call to the first impact at the least (the heli also has to get there). */
+  lead: number;
+  /** Impact spacing along the line (tiles) and seconds between impacts. */
+  spacing: number;
+  cadence: number;
+  /** Speed (tiles/s) of the heli's dive toward the start of the line. */
+  diveSpeed: number;
+}
+
+export type AbilityDef =
+  | GasGrenadeAbility
+  | RamAbility
+  | RapidFireAbility
+  | FragAbility
+  | MissileAbility
+  | AirStrikeAbility;
 
 /** Behaviour module ids — see `src/sim/behaviours/unit/`. */
 export type UnitBehaviourId =
@@ -304,6 +394,7 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     },
     ability: {
       id: 'gasGrenade',
+      aim: 'auto',
       charge: 14,
       range: 7,
       radius: 2.5,
@@ -346,6 +437,19 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
       cooldown: 1.0,
       range: 1.2,
     },
+    // docs/specials.md: the higher the unit's level, the longer the charge (18/22/28/45/60 s).
+    ability: {
+      id: 'ram',
+      aim: 'auto',
+      charge: 18,
+      length: 6,
+      halfWidth: 0.55,
+      speed: 8,
+      windup: 0.5,
+      damage: 80,
+      stun: 2.5,
+      impulse: 4,
+    },
     squad: 1,
     guardsRooftops: true,
     vehicle: false,
@@ -380,6 +484,17 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
       lethal: true,
       cooldown: 1.2,
       range: 7,
+      pierce: 4,
+      pierceWidth: 0.35,
+    },
+    ability: {
+      id: 'rapidFire',
+      aim: 'auto',
+      charge: 22,
+      shots: 5,
+      interval: 0.12,
+      range: 7,
+      damage: 60,
       pierce: 4,
       pierceWidth: 0.35,
     },
@@ -420,6 +535,15 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
       burst: { count: 3, interval: 0.1 },
       spread: 1.5,
       spreadChance: 0.6,
+    },
+    ability: {
+      id: 'fragGrenade',
+      aim: 'auto',
+      charge: 28,
+      range: 6,
+      radius: 2.2,
+      damage: 1000,
+      fuse: 0.15,
     },
     squad: 1,
     guardsRooftops: false,
@@ -529,6 +653,14 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
       aoe: { radius: 2.5, friendlyFire: 1 },
       projectileSpeed: 14,
     },
+    ability: {
+      id: 'missile',
+      aim: 'point',
+      charge: 45,
+      range: 16,
+      radius: 4.5,
+      damage: 600,
+    },
     squad: 1,
     guardsRooftops: false,
     vehicle: true,
@@ -566,6 +698,19 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
       spread: 1.2,
       spreadChance: 0.5,
     },
+    ability: {
+      id: 'airStrike',
+      aim: 'line',
+      charge: 60,
+      maxLength: 14,
+      minLength: 1.5,
+      width: 1.2,
+      damage: 1000,
+      lead: 0.6,
+      spacing: 0.7,
+      cadence: 0.075,
+      diveSpeed: 12,
+    },
     squad: 1,
     guardsRooftops: false,
     vehicle: true,
@@ -586,3 +731,12 @@ export const UNIT_ORDER: readonly UnitId[] = UNIT_IDS;
 
 /** Numeric index of a unit type (stable; used in typed arrays and bodies). */
 export const unitIndex = (id: UnitId): number => UNIT_IDS.indexOf(id);
+
+/** The skill of a unit type, narrowed to one kind (undefined when it has another or none). */
+export function abilityOf<K extends AbilityId>(
+  def: UnitDef,
+  id: K,
+): Extract<AbilityDef, { id: K }> | undefined {
+  const a = def.ability;
+  return a && a.id === id ? (a as Extract<AbilityDef, { id: K }>) : undefined;
+}

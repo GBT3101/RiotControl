@@ -14,7 +14,7 @@
 import type { EventBus } from '../core/events';
 import type { DamageType } from '../data/damage';
 import type { ProtesterId } from '../data/protesters';
-import type { UnitId, WeaponKind } from '../data/units';
+import type { AbilityId, UnitId, WeaponKind } from '../data/units';
 import type { StatsLedger } from './stats';
 
 export type ActorKind = 'protester' | 'unit' | 'capitol' | 'none';
@@ -114,8 +114,60 @@ export interface SimEventMap {
   };
   climbStart: { handle: number; building: number; x: number; y: number; duration: number };
   reachedRoof: { handle: number; building: number };
-  abilityReady: { unitId: number };
+  /** A unit's special skill finished charging. */
+  abilityReady: { unitId: number; skill: AbilityId };
+  /** The Tear Gas Shooter threw its grenade at (x, y) (the `fired` gasGrenade carries the rest). */
   abilityUsed: { unitId: number; x: number; y: number };
+  /**
+   * One of the five special skills went off (docs/specials.md). (x0, y0) = the unit, (x1, y1) =
+   * the target point (ram: the end of the lane; rapid fire: the first target; air strike: the end
+   * of the line). `path` = the air strike's line as flat [u0, v0, u1, v1, …] (null otherwise).
+   * `impactAt` = seconds until the blast / the ram's gallop / the strike's first impact; `dur` =
+   * seconds until it is over. `seed` keys the view's FX recipe. Effects resolve in the sim as
+   * `skillHit` / `skillShot` events at those times.
+   */
+  skillUsed: {
+    unitId: number;
+    unit: UnitId;
+    skill: AbilityId;
+    x0: number;
+    y0: number;
+    x1: number;
+    y1: number;
+    path: number[] | null;
+    impactAt: number;
+    /** Air strike: the run's lead time (s) — the recipe's `lead` option. */
+    lead: number;
+    dur: number;
+    radius: number;
+    seed: number;
+  };
+  /**
+   * A skill landed: the frag / missile blast, air-strike impact `index` (k-th along the line), or
+   * a protester bowled over by the ram (index = that hit's number in the run). `kills` = protesters
+   * it dropped.
+   */
+  skillHit: {
+    unitId: number;
+    skill: AbilityId;
+    x: number;
+    y: number;
+    radius: number;
+    index: number;
+    kills: number;
+  };
+  /** One rapid-fire shot (`index` 0…shots-1): tracer from (x0, y0) to (x1, y1). */
+  skillShot: {
+    unitId: number;
+    x0: number;
+    y0: number;
+    x1: number;
+    y1: number;
+    hits: number;
+    index: number;
+  };
+  /** A ram / air strike run is over (the unit is free again). */
+  skillEnded: { unitId: number; skill: AbilityId };
   /** Paparazzi flash blinded a unit. */
   flash: { handle: number; x: number; y: number; unitId: number };
   bretaSpawned: { handle: number; x: number; y: number; paparazzi: number };

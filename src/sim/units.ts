@@ -69,6 +69,11 @@ export class Unit {
   /** Ability charge (s accumulated) and readiness. */
   charge = 0;
   abilityReady = false;
+  /**
+   * A special skill drives this unit (ram gallop, rapid-fire burst, air-strike run): its own
+   * behaviour pauses until the run ends (sim/skills.ts).
+   */
+  skillLock = false;
   /** Status effects (s remaining). */
   stun = 0;
   blind = 0;
@@ -148,6 +153,7 @@ export class UnitPool {
     u.tiles = [];
     u.charge = 0;
     u.abilityReady = false;
+    u.skillLock = false;
     u.stun = u.blind = u.burnT = u.burnDps = 0;
     u.lastAttack = -1;
     u.lastHurt = -1;

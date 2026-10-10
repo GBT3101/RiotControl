@@ -233,7 +233,7 @@ export function commandUnit(w: World, u: Unit, i: number, j: number): boolean {
  * Arrived: claim the tile, or — when another unit already holds it — walk on to the nearest
  * free road tile next to it (commandable units never stack, M7).
  */
-function arrive(w: World, u: Unit): void {
+export function arrive(w: World, u: Unit): void {
   if (u.def.placement === 'road') {
     const t = w.nav.tileAt(u.x, u.y);
     if (t >= 0 && w.unitTile[t]! >= 0 && w.unitTile[t] !== u.slot) {

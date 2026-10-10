@@ -487,8 +487,9 @@ export function dist2(ax: number, ay: number, bx: number, by: number): number {
 // ── Hitscan ─────────────────────────────────────────────────────────────────────────────
 
 const shotBuf = new Int32Array(512);
-const pierceS = new Int32Array(16);
-const pierceT = new Float32Array(16);
+/** `lineHits` results: protester slots and their distances along the line. */
+export const pierceS = new Int32Array(16);
+export const pierceT = new Float32Array(16);
 
 /** Random protester within `r` of (x, y) (or -1). */
 export function randomNear(w: World, x: number, y: number, r: number): number {
@@ -582,7 +583,7 @@ export function fireHitscan(w: World, u: Unit, t: number, a: AttackDef): void {
  * Protesters within `width` of the ray (x, y) + t·(ux, uy), 0 < t ≤ len, sorted by t,
  * at most `max` (≤ 16). Results in pierceS/pierceT; returns the count.
  */
-function lineHits(
+export function lineHits(
   w: World,
   x: number,
   y: number,
