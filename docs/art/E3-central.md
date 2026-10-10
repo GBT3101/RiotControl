@@ -114,7 +114,7 @@ road centre lines, all three cities), `CityMats.fills` (Prague's mosaic pavement
 ## Verification
 
 - `npx vitest run tests/cities-complete.test.ts tests/env-*.test.ts tests/palette-compliance.test.ts`:
-  3819 passed (env style, cars, item, tag and decor-prop checks of the three cities included).
+  3832 passed (with tests/vehicles*) (env style, cars, item, tag and decor-prop checks of the three cities included).
 - Madrid / London / Paris unchanged: 3122 hashes (every registered non-new-city sprite — props,
   decals, tiles, building samples, previews, vehicles, landmarks — plus 300 random buildings per
   city with lights, shadow, anchors, roof data and climb points) before vs. after: 0 differences.
