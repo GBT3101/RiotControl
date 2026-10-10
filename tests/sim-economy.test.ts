@@ -46,10 +46,10 @@ describe('economy & progression', () => {
   it('own unit deaths pay +1 Hate and the unit Legitimacy (blockades count)', () => {
     const w = avenueWorld();
     const riot = w.deploy('riot', 6, 8)!;
-    expect(w.hate).toBe(97);
+    expect(w.hate).toBe(95);
     hurtUnit(w, riot, 1e6, DMG.melee, true, 'protester', -1);
     expect(riot.alive).toBe(false);
-    expect(w.hate).toBe(98);
+    expect(w.hate).toBe(96);
     expect(w.legit).toBe(5);
     w.economy.level = 2;
     w.economy.hate = 100;
@@ -57,12 +57,12 @@ describe('economy & progression', () => {
     expect(bl).not.toBeNull();
     hurtUnit(w, bl, 1e6, DMG.melee, true, 'protester', -1);
     expect(w.legit).toBe(15);
-    expect(w.hate).toBe(100 - 4 + 1);
+    expect(w.hate).toBe(100 - 7 + 1);
     const ev = w.events.drain();
     expect(eventsOf(ev, 'unitDied').map((e) => e.unit)).toEqual(['riot', 'blockade']);
     expect(eventsOf(ev, 'legitGained').map((e) => e.amount)).toEqual([5, 10]);
     expect(w.stats.officersLost.riot).toBe(1);
-    expect(w.stats.hateSpent).toBe(3 + 4);
+    expect(w.stats.hateSpent).toBe(5 + 7);
   });
 
   it('Sniper Brigade: +1 Hate per member, Legitimacy when the squad is gone', () => {

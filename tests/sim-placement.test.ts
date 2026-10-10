@@ -4,7 +4,7 @@ import { avenueWorld, eventsOf } from './sim-fixtures';
 describe('placement validation', () => {
   it('road units: placeable road, unlocked, affordable, not occupied', () => {
     const w = avenueWorld();
-    expect(w.canDeploy('riot', 6, 8)).toMatchObject({ ok: true, cost: 3 });
+    expect(w.canDeploy('riot', 6, 8)).toMatchObject({ ok: true, cost: 5 });
     expect(w.canDeploy('riot', 4, 8).ok).toBe(true); // sidewalk is road
     expect(w.canDeploy('riot', 1, 8).reason).toBe('notRoad'); // lot
     expect(w.canDeploy('riot', 7, 15).ok).toBe(true); // Capitol steps: the last line (M12)
@@ -21,7 +21,7 @@ describe('placement validation', () => {
     expect(w.canDeploy('riot', 7, 8).reason).toBe('hate');
     const ev = w.events.drain();
     expect(eventsOf(ev, 'unitDeployed')).toHaveLength(1);
-    expect(eventsOf(ev, 'hateSpent')[0]!.amount).toBe(3);
+    expect(eventsOf(ev, 'hateSpent')[0]!.amount).toBe(5);
   });
 
   it('rooftop: building with rooftop flag, one unit per roof (brigade squad of 3)', () => {

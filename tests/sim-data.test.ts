@@ -19,11 +19,11 @@ describe('data tables', () => {
     expect(UNIT_IDS).toHaveLength(11);
     const t = (id: keyof typeof UNITS) => UNITS[id];
     expect([t('riot').cost, t('riot').legit, t('riot').hp, t('riot').meleeSlots]).toEqual([
-      3, 5, 60, 3,
+      5, 5, 60, 3,
     ]);
     expect(t('riot').attack).toMatchObject({ damage: 12, cleave: 2, cooldown: 1, lethal: false });
     expect(t('riot').armour.melee).toBe(0.3);
-    expect(t('sniper')).toMatchObject({ cost: 4, legit: 10, placement: 'rooftop', hp: 40 });
+    expect(t('sniper')).toMatchObject({ cost: 7, legit: 10, placement: 'rooftop', hp: 40 });
     expect(t('sniper').attack).toMatchObject({
       damage: 22,
       cooldown: 1.8,
@@ -31,18 +31,18 @@ describe('data tables', () => {
       lethal: false,
     });
     expect(t('blockade')).toMatchObject({
-      cost: 4,
+      cost: 7,
       legit: 10,
       hp: 600,
       maxTiles: 3,
       attack: null,
     });
-    expect(t('gas')).toMatchObject({ cost: 6, legit: 15, hp: 70 });
+    expect(t('gas')).toMatchObject({ cost: 10, legit: 15, hp: 70 });
     expect(t('gas').attack).toMatchObject({ range: 3, damage: 10, stun: 0.4 });
     expect(t('gas').ability).toMatchObject({ charge: 14, radius: 2.5, duration: 6 });
-    expect(t('mounted')).toMatchObject({ cost: 6, hp: 120, commandable: true });
+    expect(t('mounted')).toMatchObject({ cost: 10, hp: 120, commandable: true });
     expect(t('mounted').attack?.damage).toBe(20);
-    expect(t('armed')).toMatchObject({ cost: 30, legit: 20, hp: 95 });
+    expect(t('armed')).toMatchObject({ cost: 50, legit: 20, hp: 95 });
     expect(t('armed').attack).toMatchObject({
       damage: 60,
       cooldown: 1.2,
@@ -50,19 +50,19 @@ describe('data tables', () => {
       pierce: 4,
       lethal: true,
     });
-    expect(t('soldier')).toMatchObject({ cost: 60, legit: 40, hp: 140 });
+    expect(t('soldier')).toMatchObject({ cost: 100, legit: 40, hp: 140 });
     expect(t('soldier').attack).toMatchObject({
       damage: 25,
       cooldown: 1.4,
       range: 8,
       burst: { count: 3 },
     });
-    expect(t('humvee')).toMatchObject({ cost: 180, legit: 60, hp: 480, commandable: true });
+    expect(t('humvee')).toMatchObject({ cost: 300, legit: 60, hp: 480, commandable: true });
     expect(t('humvee').attack).toMatchObject({ damage: 15, range: 8 });
     expect(t('humvee').attack!.cooldown).toBeCloseTo(0.1);
     expect(t('humvee').armour.melee).toBe(0.5);
     expect(t('brigade')).toMatchObject({
-      cost: 300,
+      cost: 500,
       legit: 80,
       hp: 90,
       squad: 3,
@@ -75,7 +75,7 @@ describe('data tables', () => {
       splash: { radius: 1 },
     });
     expect(t('tank')).toMatchObject({
-      cost: 360,
+      cost: 600,
       legit: 100,
       hp: 1800,
       crushes: true,
@@ -89,7 +89,7 @@ describe('data tables', () => {
     });
     expect(t('tank').attack!.aoe!.friendlyFire).toBeGreaterThan(0);
     expect(t('heli')).toMatchObject({
-      cost: 600,
+      cost: 1000,
       placement: 'air',
       invulnerable: true,
       commandable: true,
