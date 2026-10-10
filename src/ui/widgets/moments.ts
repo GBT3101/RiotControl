@@ -12,7 +12,7 @@ import { Container, Sprite, type Texture } from 'pixi.js';
 import { buf, rect, stamp } from '../../art/fx/draw';
 import type { PixelBuffer } from '../../art/lib/pixels';
 import { ribbon, rubberStamp, waveBanner } from '../../art/uikit/banners';
-import { deployCard } from '../../art/uikit/cards';
+import { CARD_H, CARD_W, deployCard } from '../../art/uikit/cards';
 import { ICONS } from '../../art/uikit/icons';
 import { PAPERCLIP, folderTab, panel } from '../../art/uikit/panels';
 import { bretaPortrait } from '../../art/uikit/portraits';
@@ -23,89 +23,187 @@ import { UNITS, type UnitId } from '../../data/units';
 import { HOTKEYS } from '../../game/controller';
 import { protesterFigure, scaleUp, unitPortrait } from '../art';
 import { ease, prog, stampDrop } from '../core/anim';
+import { capBlockH, textBelow, textBox, type Box, type TextBox } from '../core/boxes';
 import { makeInteractive } from '../core/node';
 import { ownTex, uiTex, destroyOwned } from '../core/tex';
 import { CAPITOL_COPY, PROTESTER_COPY, UI_TEXT, UNIT_COPY, waveLine } from '../strings';
 import type { UiApp } from '../app';
+import type { HudLayout } from '../layout';
 
 /* ── Pixel compositions ───────────────────────────────────────────────────────────── */
 
 const DOSSIER_TEXT_W = 112;
 const NOTES_GAP = -1;
+/** Folder tab height above the dossier panel (buffer y of the panel's top edge). */
+const DOSSIER_TAB = 10;
+
+/** The two rubber stamps that slam onto the unlock dossier. */
+export function approvedStamp(): PixelBuffer {
+  return rubberStamp('APPROVED', 'green2', { tilt: -0.1 });
+}
+
+export function levelStamp(level: number): PixelBuffer {
+  return rubberStamp(`LEVEL ${level}`, 'crim1', { font: FONTS.smallBold, tilt: 0.08, seed: 3 });
+}
+
+export interface UnlockDossierLayout {
+  /** Stamps in a column right of the paper (wide screens) or in a strip under it (narrow). */
+  wide: boolean;
+  /** Buffer size (the panel starts DOSSIER_TAB px down, under the folder tab). */
+  w: number;
+  h: number;
+  card: Box;
+  paper: Box;
+  clip: Box;
+  title: TextBox;
+  notes: TextBox;
+  footnote: TextBox;
+  approved: Box;
+  level: Box;
+}
 
 /**
- * Text flow on the unlock dossier's paper (y relative to the dossier top, before the tab
- * offset): name, notes and footnote stack top-down so a long name that wraps (MOUNTED POLICE)
- * pushes the rest down instead of overprinting it; the paper grows to fit.
+ * Unlock dossier geometry in buffer px. The paper's text flows top-down (a long name that wraps,
+ * MOUNTED RIOT POLICE, pushes the notes and the footnote down; the paper grows to fit), and the
+ * APPROVED / LEVEL n stamps get boxes of their own, clear of the card, the paper text and the
+ * paper clip: a column right of the paper when `wide`, else a strip under the card and paper.
  */
-export function unlockDossierLayout(unit: UnitId): {
-  title: { y: number; h: number; w: number };
-  notes: { y: number; h: number; w: number };
-  footnote: { y: number; h: number; w: number };
-  paperH: number;
-  H: number;
-} {
+export function unlockDossierLayout(unit: UnitId, level = 10, wide = false): UnlockDossierLayout {
   const copy = UNIT_COPY[unit];
-  const tm = measureText(FONTS.smallBold, UNITS[unit].name.toUpperCase(), DOSSIER_TEXT_W);
-  const nm = measureText(FONTS.mono, copy.notes, DOSSIER_TEXT_W);
-  const notesH = (nm.lines.length - 1) * (FONTS.mono.lineHeight + NOTES_GAP) + FONTS.mono.capHeight;
-  const fm = measureText(FONTS.small, copy.footnote, DOSSIER_TEXT_W);
-  const titleY = 12;
-  const notesY = Math.max(24, titleY + tm.h + 5);
-  const footY = Math.max(53, notesY + notesH + 5);
-  const paperH = Math.max(58, footY + fm.h + 5 - 7);
+  const oy = DOSSIER_TAB;
+  const card: Box = { x: 10, y: oy + 12, w: CARD_W, h: CARD_H };
+  const paper: Box = { x: 54, y: oy + 7, w: 128, h: 0 };
+  const tx = paper.x + 11;
+  const W = DOSSIER_TEXT_W;
+  // Designed spacing (cap lines), nudged down only if ink would touch the block above.
+  const title = textBox(FONTS.smallBold, UNITS[unit].name.toUpperCase(), tx, paper.y + 5, W);
+  const titleH = capBlockH(FONTS.smallBold, UNITS[unit].name.toUpperCase(), W);
+  const notesCap = Math.max(paper.y + 17, title.capY + titleH + 5);
+  const notes = textBelow(
+    FONTS.mono,
+    copy.notes,
+    tx,
+    notesCap,
+    title.y + title.h + 1,
+    W,
+    NOTES_GAP,
+  );
+  const notesH = capBlockH(FONTS.mono, copy.notes, W, NOTES_GAP);
+  const footCap = Math.max(paper.y + 46, notes.capY + notesH + 5);
+  const footnote = textBelow(FONTS.small, copy.footnote, tx, footCap, notes.y + notes.h + 1, W);
+  const footH = capBlockH(FONTS.small, copy.footnote, W);
+  paper.h = Math.max(
+    58,
+    footnote.capY + footH + 5 - paper.y,
+    footnote.y + footnote.h + 3 - paper.y,
+  );
+  const a = approvedStamp();
+  const l = levelStamp(level);
+  let w: number;
+  let approved: Box;
+  let lvl: Box;
+  let bottom: number;
+  if (wide) {
+    // Column right of the paper: APPROVED under the paper clip, LEVEL n below it.
+    const colX = paper.x + paper.w + 6;
+    const colW = Math.max(a.w, l.w);
+    w = colX + colW + 8;
+    approved = { x: colX + Math.floor((colW - a.w) / 2), y: oy + 10, w: a.w, h: a.h };
+    lvl = { x: colX + Math.floor((colW - l.w) / 2), y: approved.y + a.h + 1, w: l.w, h: l.h };
+    bottom = Math.max(paper.y + paper.h, card.y + card.h, lvl.y + lvl.h);
+  } else {
+    // Strip under the card and the paper: LEVEL n left, APPROVED right.
+    w = 190;
+    const y = Math.max(paper.y + paper.h, card.y + card.h) + 3;
+    lvl = { x: 6, y: y + Math.floor((a.h - l.h) / 2), w: l.w, h: l.h };
+    approved = { x: w - a.w - 6, y, w: a.w, h: a.h };
+    bottom = Math.max(lvl.y + lvl.h, approved.y + approved.h);
+  }
+  const clip: Box = { x: w - 22, y: oy - 4, w: PAPERCLIP.w, h: PAPERCLIP.h };
   return {
-    title: { y: titleY, h: tm.h, w: tm.w },
-    notes: { y: notesY, h: notesH, w: nm.w },
-    footnote: { y: footY, h: fm.h, w: fm.w },
-    paperH,
-    H: paperH + 26,
+    wide,
+    w,
+    h: bottom + 5,
+    card,
+    paper,
+    clip,
+    title,
+    notes,
+    footnote,
+    approved,
+    level: lvl,
   };
 }
 
-/** Unlock dossier (190×84+ and a tab above): returns the base (without stamps) and stamp layers. */
+/** Unlock dossier (manila folder + tab): the base (without stamps) and the two stamp layers. */
 export function unlockDossier(
   unit: UnitId,
   level: number,
-): { base: PixelBuffer; approved: PixelBuffer; levelStamp: PixelBuffer } {
-  const lay = unlockDossierLayout(unit);
-  const W = 190;
-  const H = lay.H;
-  const b = buf(W + 4, H + 14);
-  const oy = 10;
-  stamp(b, panel('manila', W, H), 0, oy);
+  wide = false,
+): {
+  base: PixelBuffer;
+  approved: PixelBuffer;
+  levelStamp: PixelBuffer;
+  layout: UnlockDossierLayout;
+} {
+  const lay = unlockDossierLayout(unit, level, wide);
+  const b = buf(lay.w, lay.h);
+  const oy = DOSSIER_TAB;
+  stamp(b, panel('manila', lay.w, lay.h - oy), 0, oy);
   stamp(b, folderTab(46), 8, oy - 8);
   rect(b, 9, oy - 1, 44, 2, 'stone4');
   drawText(b, FONTS.small, `FILE ${String(level).padStart(2, '0')}`, 14, oy - 7, 'earth2');
-  stamp(b, panel('paper', 128, lay.paperH), 54, oy + 7);
+  stamp(b, panel('paper', lay.paper.w, lay.paper.h), lay.paper.x, lay.paper.y);
   const card = deployCard({
     portrait: unitPortrait(unit),
     cost: UNITS[unit].cost,
     hotkey: HOTKEYS[unit],
     state: 'ready',
   });
-  stamp(b, card, 10, oy + 12);
-  stamp(b, PAPERCLIP, 168, oy - 4);
+  stamp(b, card, lay.card.x, lay.card.y);
+  stamp(b, PAPERCLIP, lay.clip.x, lay.clip.y);
   const copy = UNIT_COPY[unit];
-  drawText(b, FONTS.smallBold, UNITS[unit].name.toUpperCase(), 65, oy + lay.title.y, 'ink', {
+  drawText(b, FONTS.smallBold, UNITS[unit].name.toUpperCase(), lay.title.x, lay.title.capY, 'ink', {
     maxWidth: DOSSIER_TEXT_W,
   });
-  drawText(b, FONTS.mono, copy.notes, 65, oy + lay.notes.y, 'gray1', {
+  drawText(b, FONTS.mono, copy.notes, lay.notes.x, lay.notes.capY, 'gray1', {
     lineGap: NOTES_GAP,
     maxWidth: DOSSIER_TEXT_W,
   });
-  drawText(b, FONTS.small, copy.footnote, 65, oy + lay.footnote.y, 'stone1', {
+  drawText(b, FONTS.small, copy.footnote, lay.footnote.x, lay.footnote.capY, 'stone1', {
     maxWidth: DOSSIER_TEXT_W,
   });
-  return {
-    base: b,
-    approved: rubberStamp('APPROVED', 'green2', { tilt: -0.1 }),
-    levelStamp: rubberStamp(`LEVEL ${level}`, 'crim1', {
-      font: FONTS.smallBold,
-      tilt: 0.08,
-      seed: 3,
-    }),
+  return { base: b, approved: approvedStamp(), levelStamp: levelStamp(level), layout: lay };
+}
+
+/**
+ * Resting boxes of the level-up ribbon and the dossier under it (UI px). The pair sits under the
+ * top bar and above the deploy bar; when that gap is too short (phone landscape) the pair moves
+ * up over the top bar first, and the dossier only then reaches over the deploy bar — it never
+ * slides up over the ribbon's text.
+ */
+export function levelUpPlacement(
+  l: Pick<HudLayout, 'W' | 'bannerY' | 'safe'> & { deploy: { y: number } },
+  rib: { width: number; height: number },
+  dos: { width: number; height: number },
+): { ribbon: Box; dossier: Box } {
+  const gap = 2;
+  const groupH = rib.height + gap + dos.height;
+  const floor = l.deploy.y - gap;
+  const top = Math.max(l.safe.top + 2, Math.min(l.bannerY, floor - groupH));
+  const ribbon = {
+    x: Math.floor((l.W - rib.width) / 2),
+    y: top,
+    w: rib.width,
+    h: rib.height,
   };
+  const dossier = {
+    x: Math.floor((l.W - dos.width) / 2),
+    y: top + rib.height + gap,
+    w: dos.width,
+    h: dos.height,
+  };
+  return { ribbon, dossier };
 }
 
 export type AlertKind = 'threat' | 'breta' | 'prophets' | 'capitol' | 'info';
@@ -147,6 +245,13 @@ export function alertCard(
   return b;
 }
 
+/** Bottom (UI px) of the wave banner + its sub-line at rest (see updateStage). */
+function waveStageBottom(l: HudLayout, st: Stage): number {
+  const b = st.parts.banner?.texture.height ?? 0;
+  const sub = st.parts.sub?.texture.height ?? 0;
+  return l.bannerY + 4 + b + 2 + sub;
+}
+
 /* ── Runtime ─────────────────────────────────────────────────────────────────────── */
 
 interface Alert {
@@ -169,6 +274,8 @@ interface Stage {
   owned: Texture[];
   dismissed: boolean;
   holder?: Container;
+  /** Resting centre y of each stamp sprite (level-up). */
+  stampY?: Record<string, number>;
 }
 
 export class Moments {
@@ -218,9 +325,12 @@ export class Moments {
 
   private makeLevelUp(level: number, unit: UnitId): Stage {
     const root = new Container({ label: 'levelup' });
-    const narrow = this.app.layout.W < 310;
+    const l = this.app.layout;
+    const narrow = l.W < 310;
     const rib = ribbon(UI_TEXT.levelUp, narrow ? FONTS.smallBold : FONTS.large);
-    const d = unlockDossier(unit, level);
+    // Stamps beside the paper when the screen is wide enough, else under it.
+    const wideW = unlockDossierLayout(unit, level, true).w;
+    const d = unlockDossier(unit, level, l.W - l.safe.left - l.safe.right >= wideW + 8);
     const owned = [ownTex(rib, 'levelup:ribbon'), ownTex(d.base, 'levelup:dossier')];
     const ribbonS = new Sprite(owned[0]!);
     const dossierSprite = new Sprite(owned[1]!);
@@ -232,16 +342,11 @@ export class Moments {
     approved.anchor.set(0.5);
     lvl.anchor.set(0.5);
     dossier.addChild(approved, lvl);
-    // Stamps keep their place relative to the dossier's bottom edge (it grows for long copy).
-    const grow = d.base.h - 14 - 84;
-    approved.position.set(
-      106 + Math.floor(d.approved.w / 2),
-      10 + 50 + grow + Math.floor(d.approved.h / 2),
-    );
-    lvl.position.set(
-      2 + Math.floor(d.levelStamp.w / 2),
-      10 + 67 + grow + Math.floor(d.levelStamp.h / 2),
-    );
+    // Each stamp lands in its own reserved box (unlockDossierLayout): never on the text.
+    const centre = (s: Sprite, b: Box): void =>
+      void s.position.set(b.x + Math.floor(b.w / 2), b.y + Math.floor(b.h / 2));
+    centre(approved, d.layout.approved);
+    centre(lvl, d.layout.level);
     approved.visible = lvl.visible = false;
     root.addChild(ribbonS, dossier);
     const st: Stage = {
@@ -253,6 +358,10 @@ export class Moments {
       holder: dossier,
       owned,
       dismissed: false,
+      stampY: {
+        approved: d.layout.approved.y + Math.floor(d.layout.approved.h / 2),
+        lvl: d.layout.level.y + Math.floor(d.layout.level.h / 2),
+      },
     };
     makeInteractive(dossierSprite, { tap: () => (st.dismissed = true) });
     makeInteractive(ribbonS, { tap: () => (st.dismissed = true) });
@@ -313,33 +422,32 @@ export class Moments {
     const dos = st.holder ?? dosS;
     if (st.dismissed && st.dur > t + 0.3) st.dur = t + 0.3;
     const out = st.dur - t < 0.3 ? 1 - (st.dur - t) / 0.3 : 0;
-    const rx = Math.floor((l.W - rib.texture.width) / 2);
-    const ry = l.bannerY;
+    const at = levelUpPlacement(l, rib.texture, dosS.texture);
     const rp = prog(t, 0, 0.45);
-    rib.position.set(rx, Math.round(ry - 40 * (1 - ease.outBounce(rp))) - Math.round(out * 60));
-    const dx = Math.floor((l.W - dosS.texture.width) / 2);
-    const dyTarget = ry + rib.texture.height + 2;
+    rib.position.set(
+      at.ribbon.x,
+      Math.round(at.ribbon.y - 40 * (1 - ease.outBounce(rp))) - Math.round(out * 60),
+    );
     const dp = prog(t, 0.25, 0.4);
-    // Keep the dossier clear of the deploy bar on short screens.
-    const maxY = l.deploy.y - dosS.texture.height - 2;
-    const dy = Math.min(dyTarget, maxY);
-    dos.position.set(dx, Math.round(dy - 30 * (1 - ease.outBack(dp))) + Math.round(out * 20));
+    dos.position.set(
+      at.dossier.x,
+      Math.round(at.dossier.y - 30 * (1 - ease.outBack(dp))) + Math.round(out * 20),
+    );
     dos.alpha = dp <= 0 ? 0 : 1 - out;
     rib.alpha = 1 - out;
     const a = st.parts.approved!;
     const lv = st.parts.lvl!;
-    const grow = dosS.texture.height - 14 - 84; // see makeLevelUp
     const ta = t - 0.85;
     if (ta >= 0) {
       if (!a.visible) this.app.sfx('stamp');
       a.visible = true;
-      a.y = 10 + 50 + grow + Math.floor(a.texture.height / 2) + stampDrop(ta / 0.2);
+      a.y = (st.stampY?.approved ?? 0) + stampDrop(ta / 0.2);
     }
     const tl = t - 1.25;
     if (tl >= 0) {
       if (!lv.visible) this.app.sfx('stamp');
       lv.visible = true;
-      lv.y = 10 + 67 + grow + Math.floor(lv.texture.height / 2) + stampDrop(tl / 0.2);
+      lv.y = (st.stampY?.lvl ?? 0) + stampDrop(tl / 0.2);
     }
     return t < st.dur;
   }
@@ -448,8 +556,17 @@ export class Moments {
       this.endStage(this.current);
       this.current = null;
     }
-    // Alerts: slide/fade in from the left, stack downward under the top bar.
-    let y = l.topBar.h + 4;
+    // Alerts: slide/fade in from the left, stack downward under the top bar — and never over
+    // a centre-stage moment: they wait (hidden, timers held) while a level-up dossier is up and
+    // stack under the wave banner while it shows.
+    const cur = this.current;
+    const held = cur?.kind === 'levelup';
+    if (held) for (const a of this.alerts) a.t0 += dt;
+    this.alertLayer.visible = !held;
+    let y = Math.max(l.topBar.h + 4, cur?.kind === 'wave' ? waveStageBottom(l, cur) + 3 : 0);
+    // …and stop above the advisor, the unit panel, the wave button and the deploy bar: an
+    // alert that does not fit stays hidden (the stack is newest-first, so the oldest go).
+    const floor = this.alertFloor(l);
     for (let k = 0; k < this.alerts.length; k++) {
       const a = this.alerts[k]!;
       const t = this.now - a.t0;
@@ -471,7 +588,10 @@ export class Moments {
         Math.round(a.y),
       );
       a.sprite.alpha = Math.max(0, Math.min(1, inP * (1 - outP)));
-      y += a.tex.height + 3;
+      a.sprite.visible = y + a.tex.height <= floor;
+      if (a.sprite.visible) y += a.tex.height + 3;
+      // Held back for lack of room: its time on screen starts when it gets some.
+      else a.t0 = Math.min(this.now, a.t0 + dt);
     }
     // Info toast: centred above the wave button area.
     if (this.info) {
@@ -489,6 +609,58 @@ export class Moments {
         s.alpha = t > 1.5 ? 1 - (t - 1.5) / 0.3 : 1;
       }
     }
+  }
+
+  /** Lowest y (UI px) of the alert stack: above everything bottom-anchored under it. */
+  private alertFloor(l: HudLayout): number {
+    const x0 = l.safe.left + 4;
+    const x1 = x0 + Math.min(200, l.W - 12);
+    const under: Box[] = [{ ...l.deploy }];
+    const adv = this.app.advisor.extent();
+    if (adv) under.push(adv);
+    const hud = this.app.hud;
+    if (hud?.info.root.visible) under.push(hud.info.rect());
+    const wb = hud?.wave.rect();
+    // The wave button and its countdown line above it.
+    if (wb) under.push({ x: wb.x, y: wb.y - 12, w: wb.w, h: wb.h + 12 });
+    let floor = l.H;
+    for (const r of under) if (r.x < x1 && r.x + r.w > x0) floor = Math.min(floor, r.y - 3);
+    return floor;
+  }
+
+  /** Resting rects (UI px) of the alerts on screen, for HUD pieces that keep clear of them. */
+  alertRects(): Box[] {
+    if (!this.alertLayer.visible) return [];
+    return this.alerts
+      .filter((a) => a.sprite.visible && a.sprite.alpha > 0.05)
+      .map((a) => ({
+        x: this.app.layout.safe.left + 4,
+        y: Math.round(a.targetY),
+        w: a.tex.width,
+        h: a.tex.height,
+      }));
+  }
+
+  /** Rect (UI px) of the centre-stage moment (wave banner + line, or ribbon + dossier). */
+  stageRect(): Box | null {
+    const st = this.current;
+    if (!st) return null;
+    const l = this.app.layout;
+    if (st.kind === 'wave') {
+      const w = Math.max(st.parts.banner?.texture.width ?? 0, st.parts.sub?.texture.width ?? 0);
+      const y = l.bannerY + 4;
+      return { x: Math.floor((l.W - w) / 2), y, w, h: waveStageBottom(l, st) - y };
+    }
+    const rib = st.parts.ribbon!.texture;
+    const dos = st.parts.dossier!.texture;
+    const at = levelUpPlacement(l, rib, dos);
+    const x = Math.min(at.ribbon.x, at.dossier.x);
+    return {
+      x,
+      y: at.ribbon.y,
+      w: Math.max(at.ribbon.x + at.ribbon.w, at.dossier.x + at.dossier.w) - x,
+      h: at.dossier.y + at.dossier.h - at.ribbon.y,
+    };
   }
 
   /** Is a level-up dossier on screen (tutorial can wait for it). */

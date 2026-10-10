@@ -3,7 +3,10 @@
  * selected unit, deploy-mode tile highlights (valid / invalid diamonds around the cursor),
  * rooftop deploy mode's roof highlights (the standable roof surface of every free rooftop
  * building; the hovered one in hi-vis), the placement ghost (unit art remapped to the
- * blue/red ghost ramp) and command waypoints. Never colour-graded.
+ * blue/red ghost ramp) and command waypoints. Units that take a road *or* a roof (Soldiers)
+ * get both: every free roof glows, road diamonds glow around the cursor, and the ghost
+ * stands where the tap would put the unit (on the hovered roof, or on the hovered road
+ * tile). Never colour-graded.
  *
  * Sorting: ground marks (tile highlights, range ring, selection ring of ground units) live in
  * the `marks` layer under every standing thing, so buildings in front hide them; upright
@@ -17,7 +20,7 @@ import { px } from '../art/fx/draw';
 import { createBuffer, type PixelBuffer } from '../art/lib/pixels';
 import { bufferTexture } from '../art/uikit/pixi';
 import { depthKey, tileToWorld } from '../core/iso';
-import { UNITS, type UnitId } from '../data/units';
+import { UNITS, deploysOnRoofs, type UnitId } from '../data/units';
 import type { World } from '../sim/world';
 import type { ViewLayers } from './layers';
 import { setTex } from './sprites';
@@ -250,9 +253,10 @@ export class OverlayView {
     this.cross.visible = false;
     this.pip.visible = false;
     for (const m of this.roofMarks.values()) m.sprite.visible = false;
-    if (st.deploy && UNITS[st.deploy].placement === 'rooftop') this.updateRoofs(st, now);
-    else if (st.deploy && st.hasHover) {
-      const def = UNITS[st.deploy];
+    const def = st.deploy ? UNITS[st.deploy] : null;
+    // Roof-capable units: roof highlights (+ the ghost when a rooftop building is hovered).
+    const onRoof = !!def && deploysOnRoofs(def) && this.updateRoofs(st, now);
+    if (st.deploy && def && def.placement !== 'rooftop' && !onRoof && st.hasHover) {
       const R = 4;
       const valid = art.has('ui.tile.valid') ? art.anim('ui.tile.valid') : null;
       const invalid = art.has('ui.tile.invalid') ? art.anim('ui.tile.invalid') : null;
@@ -264,7 +268,8 @@ export class OverlayView {
             const j = st.hoverJ + dj;
             if (!w.nav.inBounds(i, j)) continue;
             const chk = w.canDeploy(st.deploy, i, j);
-            const ok = chk.ok || chk.reason === 'hate';
+            // Roof spots (road-or-roof units) glow as roofs, not as ground diamonds.
+            const ok = (chk.ok || chk.reason === 'hate') && chk.building < 0;
             if (!ok && !(di === 0 && dj === 0)) continue;
             const isHover = di === 0 && dj === 0;
             const clip = ok
@@ -360,8 +365,11 @@ export class OverlayView {
     this.cross.visible = true;
   }
 
-  /** Rooftop deploy: highlight every free rooftop; the hovered building in hi-vis / red. */
-  private updateRoofs(st: OverlayState, now: number): void {
+  /**
+   * Rooftop deploy: highlight every free rooftop; the hovered building in hi-vis / red, with
+   * the ghost on it. Returns true when a rooftop building is hovered (the ghost is placed).
+   */
+  private updateRoofs(st: OverlayState, now: number): boolean {
     const w = this.world;
     const unit = st.deploy!;
     const map = w.map;
@@ -388,18 +396,19 @@ export class OverlayView {
       }
     }
     // Ghost on the hovered roof.
-    if (hovered < 0) return;
+    if (hovered < 0) return false;
     const bd = map.buildings[hovered];
     const roof = this.deps.roof(hovered);
-    if (!bd?.rooftop || !roof) return;
+    if (!bd?.rooftop || !roof) return false;
     const chk = w.canDeploy(unit, bd.i, bd.j);
     const g = ghostTexture(unit, chk.ok);
-    if (!g) return;
+    if (!g) return true;
     setTex(this.ghost, g);
     if (this.ghost.parent !== this.layers.entities) this.layers.entities.addChild(this.ghost);
     this.ghost.alpha = 0.75;
     this.ghost.position.set(roof.x, roof.y - roof.top);
     this.ghost.zIndex = roof.frontKey + 2;
     this.ghost.visible = true;
+    return true;
   }
 }

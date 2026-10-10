@@ -98,6 +98,37 @@ function silhouetteOf(src: PixelBuffer, ref: string, rim: string): PixelBuffer {
   return out;
 }
 
+/** Width of the tiny Hate face on the cards' cost strips. */
+export const HATE_FACE_W = 8;
+
+/**
+ * Cost strip of a card face `W` px wide starting at `x0`: the tiny Hate face at `faceInset` and
+ * the cost right-aligned `rightInset` px from the edge, at least 1 px apart. Wide costs nudge
+ * the face 1 px left, then drop it (the number is centred). Pure (unit-tested for every cost).
+ */
+export function costStrip(
+  cost: number,
+  x0: number,
+  W: number,
+  faceInset: number,
+  rightInset: number,
+): { text: string; textX: number; textW: number; faceX: number | null } {
+  const text = String(cost);
+  const tw = measureText(FONTS.smallBold, text).w;
+  const textX = x0 + W - rightInset - tw;
+  for (const fx of [x0 + faceInset, x0 + faceInset - 1]) {
+    if (fx > x0 && textX - (fx + HATE_FACE_W) >= 1) return { text, textX, textW: tw, faceX: fx };
+  }
+  return { text, textX: x0 + Math.floor((W - 1 - tw) / 2), textW: tw, faceX: null };
+}
+
+/** "LVL n" badge text, shortened ("LV n", "Ln") until it fits `maxW` px. */
+export function lockLabel(level: number | undefined, maxW: number): string {
+  const n = level ?? '?';
+  const tries = [`LVL ${n}`, `LV ${n}`, `L${n}`];
+  return tries.find((t) => measureText(FONTS.smallBold, t).w <= maxW) ?? tries[2]!;
+}
+
 export interface CardSpec {
   portrait?: PixelBuffer | null;
   cost: number;
@@ -167,27 +198,27 @@ export function deployCard(spec: CardSpec): PixelBuffer {
   if (st === 'locked') {
     const pl = ICONS.padlock();
     stamp(b, pl, sx + 14 - Math.floor(pl.w / 2), sy + 7);
-    // "LVL n" red rubber stamp across the strip.
-    const t = `LVL ${spec.level ?? '?'}`;
+    // "LVL n" red rubber stamp across the strip (shortened so it stays inside the card).
+    const t = lockLabel(spec.level, W - 6);
     const m = measureText(FONTS.smallBold, t);
     const bx = x0 + Math.floor((W - m.w) / 2) - 3;
     rect(b, bx, cy + 1, m.w + 6, 11, 'crim1');
     rect(b, bx + 1, cy + 2, m.w + 4, 9, face);
     drawText(b, FONTS.smallBold, t, bx + 3, cy + 3, 'crim1');
   } else {
-    stamp(b, ICONS.hateTiny(), x0 + 3, cy + 2);
-    const t = String(spec.cost);
-    const m = measureText(FONTS.smallBold, t);
+    const cs = costStrip(spec.cost, x0, W, 3, 4);
+    if (cs.faceX !== null) stamp(b, ICONS.hateTiny(), cs.faceX, cy + 2);
     drawText(
       b,
       FONTS.smallBold,
-      t,
-      x0 + W - 4 - m.w,
+      cs.text,
+      cs.textX,
       cy + 3,
       st === 'unaffordable' ? 'crim2' : 'ink',
     );
     // Dotted leader between the angry face and cost (typewriter form field).
-    for (let x = x0 + 12; x < x0 + W - 6 - m.w; x += 2) px(b, x, cy + 9, lo);
+    if (cs.faceX !== null)
+      for (let x = cs.faceX + HATE_FACE_W + 1; x < cs.textX - 2; x += 2) px(b, x, cy + 9, lo);
   }
   // Hotkey tab (brass) over the top-left corner.
   if (spec.hotkey) {

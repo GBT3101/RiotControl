@@ -5,6 +5,7 @@
  */
 import { Container, Sprite } from 'pixi.js';
 import { rubberStamp } from '../../art/uikit/banners';
+import { clearSpot } from '../core/boxes';
 import { makeInteractive, type Rect } from '../core/node';
 import { uiTex, destroyOwned } from '../core/tex';
 import type { UnitId } from '../../data/units';
@@ -107,7 +108,10 @@ export class Hud {
     this.placement.update(l);
     this.paused.visible =
       h.paused && !this.app.topScreen && !this.game.attract && !this.app.params.freeze;
-    this.paused.position.set(Math.floor(l.W / 2), Math.floor(l.H / 2) - 20);
+    if (this.paused.visible) {
+      const p = this.pausedSpot(l);
+      this.paused.position.set(p.x, p.y);
+    }
   }
 
   /** HUD pieces the forecast's edge pointers stay clear of. */
@@ -122,8 +126,32 @@ export class Hud {
         w: this.mapToggle.w,
         h: this.mapToggle.h,
       });
-    if (this.info.root.visible) out.push(l.info);
+    if (this.info.root.visible) out.push(this.info.rect());
+    // Overlays with text: the advisor, the alerts and the wave banner / level-up dossier.
+    const adv = this.app.advisor.extent();
+    if (adv) out.push(adv);
+    out.push(...this.app.moments.alertRects());
+    const st = this.app.moments.stageRect();
+    if (st) out.push(st);
     return out;
+  }
+
+  /** Quick-pause stamp spot: screen centre, nudged off the advisor, alerts and wave button. */
+  private pausedSpot(l: HudLayout): { x: number; y: number } {
+    const t = this.paused.texture;
+    const avoid = this.forecastAvoid();
+    const wb = this.wave.rect();
+    if (wb) avoid.push(wb);
+    const area = { x: 0, y: l.topBar.h + 2, w: l.W, h: l.deploy.y - l.topBar.h - 4 };
+    const b = clearSpot(
+      t.width,
+      t.height,
+      Math.floor(l.W / 2),
+      Math.floor(l.H / 2) - 20,
+      avoid,
+      area,
+    );
+    return { x: b.x + Math.floor(t.width / 2), y: b.y + Math.floor(t.height / 2) };
   }
 
   /** Select a unit card (hotkeys). */

@@ -10,6 +10,7 @@ import type { SfxPolicy } from '../limiter';
 import type { BusName, SfxId } from '../types';
 import * as C from './combat';
 import type { Synth } from './kit';
+import { SPECIAL_SFX } from './specials';
 import * as U from './ui';
 import * as W from './world';
 
@@ -153,6 +154,8 @@ export const SFX: Readonly<Record<SfxId, SfxDef>> = {
     jitter: 0,
     duck: { bus: 'music', db: 12, hold: 2.4 },
   }),
+  // special skills (playtest round 2)
+  ...SPECIAL_SFX,
 };
 
 const UNKNOWN: SfxPolicy = { priority: 0, maxVoices: 1, minInterval: 0.1, aggregate: true, steal: false, dur: 0.5 };

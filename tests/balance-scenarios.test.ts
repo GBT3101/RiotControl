@@ -49,10 +49,11 @@ describe('balance scenarios (real maps, headless bots)', () => {
       // Waves grow from dozens toward hundreds.
       expect(r.trace.waves[0]!.size).toBe(30);
       expect(r.trace.waves.at(-1)!.size).toBeGreaterThan(100);
-      // Economy (playtest round: kills pay a third): tight, but not starved.
+      // Economy (playtest round: kills pay a third): tight, but not starved. Aggro (protesters
+      // go after units in range) costs the bot more officers, so it holds less in hand: ~11.
       const hs = r.trace.hateSamples;
       const avg = hs.reduce((a, b) => a + b, 0) / hs.length;
-      expect(avg).toBeGreaterThan(20);
+      expect(avg).toBeGreaterThan(8);
       expect(avg).toBeLessThan(400);
     },
     LONG,

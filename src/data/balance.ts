@@ -124,6 +124,8 @@ export const BALANCE = {
     /** A new prey must score below this fraction of the current one to switch. */
     hysteresis: 0.6,
     standOff: 0.85,
+    /** Unarmed types (Students) hunt too (1) or keep marching (0). */
+    unarmed: 1,
   },
 
   // ── Climbing / rooftops (PLAN §1.4) ───────────────────────────────────────────────────

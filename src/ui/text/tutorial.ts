@@ -36,17 +36,17 @@ export const TUTORIAL_TEXT: Record<TutorialStepId, readonly TutorialLine[]> = {
   ],
   hate: [
     {
-      text: 'This is Hate, our currency. Every death generates Hate. Ours are worth ten.',
+      text: 'This is Hate, our currency. Every death generates Hate. Ours are worth one.',
       mood: 'smug',
     },
     {
-      text: 'Theirs are worth one. We did not set the exchange rate. We just enjoy it.',
+      text: 'Theirs, a third. We did not set the exchange rate. We just enjoy it.',
       mood: 'smug',
     },
   ],
   wave: [
     {
-      text: 'A few more cops on {choke} would be wise. They always come that way.',
+      text: 'More cops on {choke}, close together. Lone cops get rammed.',
       mood: 'idle',
     },
     {
@@ -76,7 +76,7 @@ export const TUTORIAL_TEXT: Record<TutorialStepId, readonly TutorialLine[]> = {
   ],
   guard: [
     {
-      text: 'Careful: the angry ones climb drainpipes and throw snipers off roofs.',
+      text: 'Careful: the angry ones climb drainpipes. Far, lonely snipers go first.',
       mood: 'sweat',
     },
     {

@@ -3,7 +3,17 @@ import { frontPage } from '../src/art/uikit/newspaper';
 import { resolveColor } from '../src/art/palette';
 import { compactCard } from '../src/ui/art';
 import { tooltipCard } from '../src/ui/widgets/tooltip';
-import { alertCard, unlockDossier, unlockDossierLayout } from '../src/ui/widgets/moments';
+import {
+  alertCard,
+  levelUpPlacement,
+  unlockDossier,
+  unlockDossierLayout,
+} from '../src/ui/widgets/moments';
+import { firstOverlap, inside, overlaps } from '../src/ui/core/boxes';
+import { NO_INSETS, computeHudLayout } from '../src/ui/layout';
+import { ribbon } from '../src/art/uikit/banners';
+import { FONTS } from '../src/art/uikit/text';
+import { UI_TEXT } from '../src/ui/strings';
 import { frontPageBox, ledgerSections, newsprintPhoto } from '../src/ui/screens/end';
 import { minimapBase, minimapTiles, minimapToTile, tileToMinimap } from '../src/ui/hud/minimap';
 import { createStats } from '../src/sim/stats';
@@ -123,12 +133,55 @@ describe('unlock dossier text', () => {
   it('name, notes and footnote never overlap and stay on the paper, for every unit', () => {
     for (const id of UNIT_IDS) {
       const l = unlockDossierLayout(id);
-      expect(l.title.y + l.title.h, id).toBeLessThan(l.notes.y);
-      expect(l.notes.y + l.notes.h, id).toBeLessThan(l.footnote.y);
-      expect(l.footnote.y + l.footnote.h, id).toBeLessThanOrEqual(7 + l.paperH - 2);
-      for (const part of [l.title, l.notes, l.footnote])
+      expect(firstOverlap({ title: l.title, notes: l.notes, footnote: l.footnote }), id).toBe(null);
+      for (const part of [l.title, l.notes, l.footnote]) {
         expect(part.w, id).toBeLessThanOrEqual(112);
+        expect(inside(part, l.paper, 1), id).toBe(true);
+      }
       expect(paletteOnly(unlockDossier(id, 1).base), id).toBe(true);
+    }
+  });
+
+  it('APPROVED and LEVEL n stamps never cover the card, the text or the clip (all units, levels, both layouts)', () => {
+    for (const wide of [false, true])
+      for (const id of UNIT_IDS)
+        for (let level = 1; level <= 10; level++) {
+          const l = unlockDossierLayout(id, level, wide);
+          const msg = `${id} L${level} ${wide ? 'wide' : 'narrow'}`;
+          const fixed = { card: l.card, title: l.title, notes: l.notes, footnote: l.footnote };
+          for (const st of [l.approved, l.level]) {
+            for (const [k, b] of Object.entries({ ...fixed, clip: l.clip }))
+              expect(overlaps(st, b), `${msg}: stamp × ${k}`).toBe(false);
+            expect(inside(st, { x: 0, y: 10, w: l.w, h: l.h - 10 }, 1), msg).toBe(true);
+          }
+          expect(overlaps(l.approved, l.level), msg).toBe(false);
+          expect(inside(l.card, { x: 0, y: 10, w: l.w, h: l.h - 10 }), msg).toBe(true);
+        }
+  });
+
+  it('the ribbon and the dossier never overlap on phone and desktop screens', () => {
+    for (const [W, H] of [
+      [234, 506],
+      [506, 234],
+      [480, 300],
+      [640, 360],
+      [195, 422],
+    ] as const) {
+      const hud = computeHudLayout(W, H, NO_INSETS, { touch: W < 300 || H < 280 });
+      const rib = ribbon(UI_TEXT.levelUp, W < 310 ? FONTS.smallBold : FONTS.large);
+      for (const id of UNIT_IDS) {
+        const wide = W >= unlockDossierLayout(id, 10, true).w + 8;
+        const d = unlockDossierLayout(id, 10, wide);
+        const at = levelUpPlacement(
+          hud,
+          { width: rib.w, height: rib.h },
+          { width: d.w, height: d.h },
+        );
+        expect(overlaps(at.ribbon, at.dossier), `${W}x${H} ${id}`).toBe(false);
+        expect(at.dossier.x, `${W}x${H} ${id}`).toBeGreaterThanOrEqual(0);
+        expect(at.dossier.x + at.dossier.w, `${W}x${H} ${id}`).toBeLessThanOrEqual(W);
+        expect(at.ribbon.y, `${W}x${H} ${id}`).toBeGreaterThanOrEqual(0);
+      }
     }
   });
 });

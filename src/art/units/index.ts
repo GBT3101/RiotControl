@@ -12,6 +12,7 @@ import { HORSE } from './horse';
 import { COP_SKINS, RIOT } from './riot';
 import { SNIPER, SNIPER_THROWN } from './sniper';
 import { SOLDIER } from './soldier';
+import { SOLDIER_THROWN } from './soldierThrown';
 
 export { unitAnimCatalog, unitAnimMeta, BRIGADE_SQUAD_OFFSETS, type UnitAnimMeta } from './catalog';
 export { BLOCKADE_PIECES, BLOCKADE_STATES } from './blockade';
@@ -30,6 +31,7 @@ export function registerUnits(reg: SpriteRegistry): void {
   );
   registerUnitDef(reg, COP);
   registerUnitDef(reg, SOLDIER);
+  registerUnitDef(reg, SOLDIER_THROWN); // road-or-roof: can be thrown off a roof too
   registerUnitDef(reg, GAS);
   registerUnitDef(reg, HORSE);
   registerUnitDef(reg, SNIPER);

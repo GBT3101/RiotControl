@@ -311,7 +311,7 @@ export class UnitView {
     if (thr && now - e.throwT < thr.duration) return [thr, frameOnce(thr, now - e.throwT)];
     // Hit flash.
     const hit = get('hit');
-    if (hit && now - e.hurtT < 0.17 && u.def.placement !== 'rooftop') {
+    if (hit && now - e.hurtT < 0.17 && u.building < 0) {
       return [hit, frameOnce(hit, now - e.hurtT)];
     }
     if (u.moving || u.state === US.MOVING) {
@@ -386,7 +386,7 @@ export class UnitView {
       s.zIndex = key + k;
       s.tint = this.grade;
     }
-    this.drawStars(u, e, clip, fi, x, y - e.lift, key, mirror, now);
+    this.drawStars(u, e, clip, fi, x, y - e.lift, mirror, now);
     // Gas spray drift puffs.
     if (u.type === 'gas' && u.state === US.ATTACKING && now - e.gasPuffT > 0.22) {
       e.gasPuffT = now;
@@ -396,7 +396,7 @@ export class UnitView {
     this.updateGhost(e, e.sprites[0]!, e.lift === 0, u.id === this.selected, engaged);
   }
 
-  /** KO stars over a rammed officer while he is down (sprite slot 3, follows the frames). */
+  /** KO stars over a rammed officer while he is down (sprite slot 3, follows his frames). */
   private drawStars(
     u: Unit,
     e: UnitEnt,
@@ -404,7 +404,6 @@ export class UnitView {
     fi: number,
     x: number,
     y: number,
-    key: number,
     mirror: number,
     now: number,
   ): void {
@@ -417,11 +416,11 @@ export class UnitView {
       if (e.sprites[3]) e.sprites[3].visible = false;
       return;
     }
-    const s = this.sprite(e, 3, this.layers.entities);
+    // Over everything (like the Legitimacy seals): a rammed officer is usually buried in the
+    // mob that bowled him over, and the stars are what says "he's down".
+    const s = this.sprite(e, 3, this.layers.overlays);
     setTex(s, stars.frames[stars.frameAt(now - u.rammedAt)]!);
     s.position.set(x + off.x * mirror, y + off.y);
-    s.zIndex = key + 4;
-    s.tint = this.grade;
   }
 
   private updateGhost(

@@ -14,6 +14,7 @@ import type { PixelBuffer } from '../../art/lib/pixels';
 import { BUBBLE_TAIL_LEFT, panel } from '../../art/uikit/panels';
 import { ministerAnims, portraitBox, type MinisterAnims } from '../../art/uikit/portraits';
 import { FONTS, drawText, measureText } from '../../art/uikit/text';
+import { overlaps, textBox, type Box, type TextBox } from '../core/boxes';
 import { makeInteractive } from '../core/node';
 import { ownTex, uiTex } from '../core/tex';
 import type { UiApp } from '../app';
@@ -44,6 +45,11 @@ function faces(): MinisterAnims {
   return anims;
 }
 
+/** Height of the brass portrait box (face + frame). */
+function faceBoxH(): number {
+  return (faces().idle[0]?.h ?? 54) + 10;
+}
+
 /** Name plate: brass panel with the speaker's name. */
 function namePlate(name: string): PixelBuffer {
   const w = measureText(FONTS.smallBold, name).w + 12;
@@ -53,6 +59,78 @@ function namePlate(name: string): PixelBuffer {
     shadowOffset: { x: 0, y: 1 },
   });
   return p;
+}
+
+/** Portrait box width (the face is 48×?, framed by 5 px of brass). */
+const BOX_W = 58;
+
+export interface AdvisorLayout {
+  box: Box;
+  plate: Box;
+  bubble: Box;
+  /** Ink box of the typed text (first cap line at `text.capY`). */
+  text: TextBox;
+  tail: { x: number; y: number };
+  /** Blinking "more" triangle in the bubble's bottom-right corner. */
+  hint: Box;
+  /** Wrapped lines. */
+  lines: string[];
+  /** The name plate rides on the bubble (tall bubble) instead of on the portrait box. */
+  plateOnBubble: boolean;
+}
+
+/**
+ * Advisor geometry (UI px) for a line of text: portrait box at the bottom-left corner point,
+ * its name plate on top, the bubble to the right (bottom-aligned with the box). The bubble
+ * widens before it grows taller than the box; when it must still rise past the name plate,
+ * the plate moves onto the bubble's top edge so it never covers a line of text. The "more"
+ * triangle has its own row under the last line. Pure (unit-tested with every real line).
+ */
+export function advisorLayout(o: {
+  x: number;
+  bottom: number;
+  maxW: number;
+  text: string;
+  plateW: number;
+  boxH: number;
+  boxW?: number;
+}): AdvisorLayout {
+  const boxW = o.boxW ?? BOX_W;
+  const box = { x: o.x, y: o.bottom - o.boxH, w: boxW, h: o.boxH };
+  const bx = o.x + boxW + 8;
+  const avail = o.maxW - boxW - 10;
+  const lowTop = o.bottom - o.boxH + 6;
+  const fit = (w: number): { w: number; lines: string[]; h: number } => {
+    const lines = measureText(FONTS.mono, o.text, w - 14).lines;
+    const th = (lines.length - 1) * FONTS.mono.lineHeight + FONTS.mono.capHeight;
+    return { w, lines, h: th + 20 };
+  };
+  let f = fit(Math.max(110, Math.min(190, avail)));
+  // Too tall for the box's height: widen (up to the room there is) before rising.
+  if (o.bottom - f.h < lowTop && avail > f.w) f = fit(Math.min(avail, 300));
+  let plate = { x: o.x + 6, y: box.y - 10, w: o.plateW, h: 15 };
+  let by = Math.min(o.bottom - f.h, lowTop);
+  let bubble = { x: bx, y: by, w: f.w, h: f.h };
+  let ty = 7;
+  const plateOnBubble = overlaps(plate, bubble);
+  if (plateOnBubble) {
+    // Leave room under the plate for the first line (and its accents).
+    ty = 11;
+    bubble = { ...bubble, y: o.bottom - f.h - 4, h: f.h + 4 };
+    by = bubble.y;
+    plate = { x: bx + 6, y: by - 10, w: o.plateW, h: 15 };
+  }
+  const text = textBox(FONTS.mono, f.lines.join('\n'), bx + 7, by + ty);
+  return {
+    box,
+    plate,
+    bubble,
+    text,
+    tail: { x: bx - 7, y: Math.max(by + 10, box.y + 16) },
+    hint: { x: bx + f.w - 12, y: by + bubble.h - 9, w: 7, h: 5 },
+    lines: f.lines,
+    plateOnBubble,
+  };
 }
 
 export class Advisor {
@@ -77,6 +155,8 @@ export class Advisor {
   private x = 4;
   private bottom = 200;
   private maxW = 220;
+  private geo: AdvisorLayout | null = null;
+  private geoKey = '';
 
   constructor(private readonly app: UiApp) {
     this.root.addChild(this.bubble, this.tail, this.text, this.hint, this.box, this.plate);
@@ -115,11 +195,11 @@ export class Advisor {
   /** UI rect covered by the portrait box, name plate and bubble (null when silent). M10. */
   extent(): { x: number; y: number; w: number; h: number } | null {
     if (!this.line || !this.root.visible) return null;
-    const boxH = this.box.texture.height || 64;
-    const bh = this.bubble.texture.height;
-    const top = Math.min(this.bottom - boxH - 10, this.bottom - bh);
-    const w = (this.box.texture.width || 58) + 8 + this.bubbleW;
-    return { x: this.x, y: top, w, h: this.bottom - top };
+    const g = this.geometry();
+    if (!g) return null;
+    const top = Math.min(g.plate.y, g.box.y, g.bubble.y);
+    const right = Math.max(g.bubble.x + g.bubble.w, g.plate.x + g.plate.w);
+    return { x: this.x, y: top, w: right - this.x, h: this.bottom - top };
   }
 
   private next(): void {
@@ -135,10 +215,8 @@ export class Advisor {
     this.doneAt = -1;
     this.enterT = this.t;
     this.textKey = '';
+    this.plate.texture = this.plateTex();
     this.layoutBubble();
-    this.plate.texture = uiTex(`plate:${this.line.opts.speaker ?? 'THE MINISTER'}`, () =>
-      namePlate(this.line?.opts.speaker ?? 'THE MINISTER'),
-    );
   }
 
   private tap(): void {
@@ -152,22 +230,48 @@ export class Advisor {
 
   /** Place the advisor: bottom-left corner point and max width. */
   place(x: number, bottom: number, maxW: number): void {
+    // The bubble's shape depends on the placement (it may widen, or carry the name plate).
+    const moved = x !== this.x || bottom !== this.bottom || maxW !== this.maxW;
     this.x = x;
     this.bottom = bottom;
-    if (maxW !== this.maxW) {
-      this.maxW = maxW;
-      if (this.line) this.layoutBubble();
-    }
+    this.maxW = maxW;
+    if (moved && this.line) this.layoutBubble();
+  }
+
+  private plateTex(): Texture {
+    const name = this.line?.opts.speaker ?? 'THE MINISTER';
+    return uiTex(`plate:${name}`, () => namePlate(name));
+  }
+
+  /** Geometry for the current line at the current placement. */
+  private geometry(): AdvisorLayout | null {
+    if (!this.line) return null;
+    const boxH = this.box.texture.height || faceBoxH();
+    const plateW = this.plateTex().width;
+    const key = `${this.x},${this.bottom},${this.maxW},${boxH},${plateW},${this.line.text}`;
+    if (key === this.geoKey && this.geo) return this.geo;
+    this.geoKey = key;
+    this.geo = advisorLayout({
+      x: this.x,
+      bottom: this.bottom,
+      maxW: this.maxW,
+      text: this.line.text,
+      plateW,
+      boxH,
+    });
+    return this.geo;
   }
 
   private layoutBubble(): void {
-    if (!this.line) return;
-    const boxW = 58;
-    this.bubbleW = Math.max(110, Math.min(190, this.maxW - boxW - 10));
-    const lines = measureText(FONTS.mono, this.line.text, this.bubbleW - 14).lines;
-    this.wrapped = lines.join('\n');
-    const h = measureText(FONTS.mono, this.wrapped).h + 16;
-    this.bubble.texture = ownTexReplace(this.bubble.texture, panel('bubble', this.bubbleW, h));
+    const g = this.geometry();
+    if (!g) return;
+    this.bubbleW = g.bubble.w;
+    this.wrapped = g.lines.join('\n');
+    this.textKey = '';
+    this.bubble.texture = ownTexReplace(
+      this.bubble.texture,
+      panel('bubble', g.bubble.w, g.bubble.h),
+    );
   }
 
   private boxTex(face: PixelBuffer, key: string): Texture {
@@ -202,8 +306,10 @@ export class Advisor {
     if (visible !== this.textKey) {
       this.textKey = visible;
       const m = measureText(FONTS.mono, this.wrapped);
-      const b = buf(Math.max(1, m.w + 2), Math.max(1, m.h + 4));
-      drawText(b, FONTS.mono, visible, 0, 0, 'ink');
+      // Accents above the caps and descenders below the last line stay inside the buffer.
+      const f = FONTS.mono;
+      const b = buf(Math.max(1, m.w + 2), Math.max(1, m.h + f.ascent + f.descent + 1));
+      drawText(b, f, visible, 0, f.ascent, 'ink');
       this.text.texture = ownTexReplace(this.text.texture, b);
     }
     // Face: talking while typing (mouth from the character), else mood.
@@ -237,21 +343,21 @@ export class Advisor {
       key = `${l.mood}${k}`;
     }
     this.box.texture = this.boxTex(face, key);
-    // Layout: box bottom-left, plate above it, bubble to its right.
-    const boxH = this.box.texture.height;
+    // Layout (advisorLayout): box bottom-left, plate above it, bubble to its right.
+    const g = this.geometry()!;
+    if (g.bubble.w !== this.bubbleW || g.bubble.h !== this.bubble.texture.height)
+      this.layoutBubble();
     const enter = Math.min(1, (this.t - this.enterT) / 0.18);
     const slide = Math.round((1 - enter) * -70);
-    this.box.position.set(this.x + slide, this.bottom - boxH);
-    this.plate.position.set(this.x + 6 + slide, this.bottom - boxH - 10);
-    const bx = this.x + this.box.texture.width + 8;
-    const bh = this.bubble.texture.height;
-    const by = Math.min(this.bottom - bh, this.bottom - boxH + 6);
-    this.bubble.position.set(bx, by);
+    this.box.position.set(g.box.x + slide, g.box.y);
+    this.plate.position.set(g.plate.x + (g.plateOnBubble ? 0 : slide), g.plate.y);
+    this.plate.alpha = g.plateOnBubble ? enter : 1;
+    this.bubble.position.set(g.bubble.x, g.bubble.y);
     this.bubble.alpha = enter;
-    this.tail.position.set(bx - 7, by + 10);
-    this.text.position.set(bx + 7, by + 7);
+    this.tail.position.set(g.tail.x, g.tail.y);
+    this.text.position.set(g.text.x, g.text.capY - FONTS.mono.ascent);
     this.hint.visible = done && Math.floor(this.t * 2) % 2 === 0;
-    this.hint.position.set(bx + this.bubbleW - 12, by + bh - 9);
+    this.hint.position.set(g.hint.x, g.hint.y);
     // Auto-dismiss.
     if (done && !l.opts.sticky) {
       const hold = l.opts.hold ?? 2.2 + l.text.length * 0.045;

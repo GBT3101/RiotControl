@@ -7,6 +7,7 @@ import { AudioEngine } from '../engine';
 import { SFX } from '../sfx/catalog';
 import { LOOP_IDS, SFX_IDS, type LoopId, type MusicPhase, type SfxId, type VolumeChannel } from '../types';
 import { VOLUME_CHANNELS } from '../settings';
+import { SPECIAL_SFX_IDS, type SpecialSfxId } from '../sfx/specialIds';
 import { renderCatalogue, renderMusic, renderStress, reportGrains, reportLoops, reportSfx } from './offline';
 
 const audio = new AudioEngine();
@@ -47,7 +48,8 @@ function pos(): { x?: number; y?: number } {
   return { x: (Math.random() * 2 - 1) * 900, y: (Math.random() * 2 - 1) * 300 };
 }
 const groups: Record<string, SfxId[]> = {};
-for (const id of SFX_IDS) (groups[SFX[id].bus] ??= []).push(id);
+const specials = new Set<string>(SPECIAL_SFX_IDS);
+for (const id of SFX_IDS) if (!specials.has(id)) (groups[SFX[id].bus] ??= []).push(id);
 const grid = $('#sfx');
 for (const [bus, ids] of Object.entries(groups)) {
   const box = el('fieldset', {}, [el('legend', { textContent: bus })]);
@@ -56,6 +58,35 @@ for (const [bus, ids] of Object.entries(groups)) {
     b.addEventListener('click', () => audio.play(id, pos()));
     box.append(b);
   }
+  grid.append(box);
+}
+
+// Special skills (playtest round 2): every sound, plus the sequences the integrator will fire.
+{
+  const box = el('fieldset', {}, [el('legend', { textContent: 'special skills' })]);
+  for (const id of SPECIAL_SFX_IDS) {
+    const b = el('button', { textContent: id, title: `${SFX[id].variants ? `baked ×${SFX[id].variants}` : 'live'}` });
+    b.addEventListener('click', () => audio.play(id, pos()));
+    box.append(b);
+  }
+  const seq = (label: string, steps: Array<[SpecialSfxId, number]>): void => {
+    const b = el('button', { textContent: `▶ ${label}` });
+    b.addEventListener('click', () => {
+      const p = pos();
+      for (const [id, delay] of steps) audio.play(id, { ...p, delay });
+    });
+    box.append(b);
+  };
+  seq('ram: gallop → 3 hits', [['ramGallop', 0], ['ramImpact', 1.1], ['ramImpact', 1.25], ['ramImpact', 1.45]]);
+  seq('frag: pin → throw → boom', [['fragPin', 0], ['fragThrow', 0.35], ['fragBoom', 1.0]]);
+  seq('missile: launch → boom', [['missileLaunch', 0], ['missileBoom', 0.9]]);
+  seq('air strike: swoop → salvo → chain', [['airSwoop', 0], ['rocketSalvo', 0.45], ['strikeChain', 0.65]]);
+  seq('ready tiers 1 · 2 · 3', [['skillReady1', 0], ['skillReady2', 0.8], ['skillReady3', 1.7]]);
+  seq('aim: ticks → lock', [['aimTick', 0], ['aimTick', 0.12], ['aimTick', 0.24], ['aimLock', 0.45]]);
+  seq('paint: stroke → cancel', [
+    ...[0, 0.07, 0.14, 0.21, 0.28, 0.35, 0.42].map((d): [SpecialSfxId, number] => ['paintTick', d]),
+    ['aimCancel', 0.7],
+  ]);
   grid.append(box);
 }
 

@@ -18,7 +18,7 @@ import { buf, col, hline, px, rect, stamp } from '../../art/fx/draw';
 import { crop, opaqueBounds, type PixelBuffer } from '../../art/lib/pixels';
 import { rubberStamp } from '../../art/uikit/banners';
 import { textMask } from '../../art/uikit/logo';
-import { frontPage, masthead } from '../../art/uikit/newspaper';
+import { frontPage, frontPageLayout } from '../../art/uikit/newspaper';
 import { FONTS, drawText, measureText } from '../../art/uikit/text';
 import { tileToWorld } from '../../core/iso';
 import { PROTESTER_IDS, protesterDef, type ProtesterId } from '../../data/protesters';
@@ -41,32 +41,37 @@ import { backdrop, fitBackdrop, type Screen } from './screen';
 
 /* ── Newspaper ───────────────────────────────────────────────────────────────────── */
 
-/** Picture-box rect of `frontPage(city, headline, deck, w, h)` (mirrors its layout). */
+/**
+ * Picture-box rect (inside the frame) of `frontPage(city, headline, deck, w, h, _, reserve)`:
+ * the picture stops above the stamp's corner when the stamp would land on it.
+ */
 export function frontPageBox(
   city: 'madrid' | 'london' | 'paris',
   headline: string,
   deck: string,
   w: number,
   h: number,
+  reserve?: { w: number; h: number },
 ): { x: number; y: number; w: number; h: number } {
-  const mh = masthead(city, w - 12, w - 12);
-  let y = 6 + mh.h + 4;
-  const lines: string[] = [];
-  let cur = '';
-  for (const word of headline.split(' ')) {
-    const t = cur ? `${cur} ${word}` : word;
-    if (cur && measureText(FONTS.large, t).w * 2 > w - 20) {
-      lines.push(cur);
-      cur = word;
-    } else cur = t;
-  }
-  lines.push(cur);
-  y += lines.length * (FONTS.large.capHeight * 2 + 5);
-  const dm = measureText(FONTS.small, deck, w - 24);
-  y += dm.h + 6 + 4;
-  const colW = Math.floor((w - 16 - 8) / 3);
-  const pbH = Math.max(20, h - y - 14);
-  return { x: 9, y: y + 1, w: colW * 2 + 2, h: Math.floor(pbH * 0.7) - 2 };
+  const p = frontPageLayout(city, headline, deck, w, h, reserve).photo;
+  return { x: p.x + 1, y: p.y + 1, w: p.w - 2, h: p.h - 2 };
+}
+
+/**
+ * Front-page height for a page `w` wide: the usual 4:3-ish sheet, taller when the headline and
+ * deck wrap (narrow phones) so the picture keeps ≥ 40 px above the stamp's corner; ≤ `maxH`.
+ */
+export function paperHeight(
+  city: 'madrid' | 'london' | 'paris',
+  headline: string,
+  deck: string,
+  w: number,
+  maxH: number,
+  st: { w: number; h: number },
+): number {
+  const top = frontPageLayout(city, headline, deck, w, 400, st).photo.y;
+  const need = top + 40 + 3 + st.h + 12;
+  return Math.min(maxH, Math.max(Math.round(w * 0.76), need));
 }
 
 const NEWS_TONES = ['ink', 'gray2', 'gray4', 'stone3', 'stone4', 'stone5'];
@@ -416,34 +421,44 @@ export class EndScreen implements Screen {
   private buildPaper(l: HudLayout): void {
     const city = this.game.world.map.city;
     const w = this.sideBySide ? Math.min(280, l.W - this.ledgerW - 36) : Math.min(300, l.W - 12);
-    const h = Math.min(Math.round(w * 0.76), l.H - l.safe.top - l.safe.bottom - 16);
     const headline = this.victory ? UI_TEXT.victoryHeadline : UI_TEXT.defeatHeadline;
     const deck = this.deck;
-    const page = frontPage(city, headline, deck, w, h);
-    const box = frontPageBox(city, headline, deck, w, h);
+    const st = this.stamp;
+    const h = paperHeight(city, headline, deck, w, l.H - l.safe.top - l.safe.bottom - 16, st);
+    // The stamp's corner is kept clear (frontPageLayout): it lands on blank newsprint.
+    const page = frontPage(city, headline, deck, w, h, undefined, st);
+    const lay = frontPageLayout(city, headline, deck, w, h, st);
+    const box = frontPageBox(city, headline, deck, w, h, st);
     // Live photo of the Capitol.
     const cap = this.game.world.map.capitol;
     const c = tileToWorld(cap.i + cap.w / 2, cap.j + cap.d / 2);
-    const snap = worldSnapshot(
-      this.game,
-      this.app.stage.app.renderer as Renderer,
-      c.x,
-      c.y - 24,
-      box.w * 2,
-      box.h * 2,
-    );
-    if (snap && box.w > 4 && box.h > 4) {
+    const snap =
+      box.w > 4 && box.h > 4
+        ? worldSnapshot(
+            this.game,
+            this.app.stage.app.renderer as Renderer,
+            c.x,
+            c.y - 24,
+            box.w * 2,
+            box.h * 2,
+          )
+        : null;
+    if (snap) {
       const photo = newsprintPhoto(snap.pixels, snap.width, snap.height, box.w, box.h);
       stamp(page, photo, box.x, box.y);
-      // Caption strip.
+      // Caption strip (wrapped to the photo; dropped when the photo is too small for it).
       const cap1 = this.victory ? 'Order, restored. Photo: Ministry.' : 'The scene this morning.';
-      const cm = measureText(FONTS.small, cap1);
-      rect(page, box.x, box.y + box.h - 11, Math.min(box.w, cm.w + 6), 11, 'stone4');
-      hline(page, box.x, box.y + box.h - 12, Math.min(box.w, cm.w + 6), 'gray3');
-      drawText(page, FONTS.small, cap1, box.x + 3, box.y + box.h - 9, 'ink');
+      const cm = measureText(FONTS.small, cap1, box.w - 6);
+      const ch = cm.h + 4;
+      if (ch + 6 <= box.h) {
+        const cy = box.y + box.h - ch;
+        rect(page, box.x, cy, Math.min(box.w, cm.w + 6), ch, 'stone4');
+        hline(page, box.x, cy - 1, Math.min(box.w, cm.w + 6), 'gray3');
+        drawText(page, FONTS.small, cap1, box.x + 3, cy + 2, 'ink', { maxWidth: box.w - 6 });
+      }
     }
     this.paperBuf = page;
-    this.stampAt = { x: w - this.stamp.w - 10, y: h - this.stamp.h - 12 };
+    this.stampAt = { x: lay.stamp!.x, y: lay.stamp!.y };
     const old = this.paper.texture;
     this.paper.texture = ownTex(page, 'ui:paper');
     if (old && old.label === 'ui:paper') old.destroy(true);
@@ -464,22 +479,27 @@ export class EndScreen implements Screen {
     else h = this.sections.reduce((n, s) => n + sectionHeight(s) + 8, -8);
     const w = cols * colW + (cols - 1) * gap + 24;
     this.ledgerW = w;
-    const head = 18;
+    const cityName = CITY_COPY[this.game.world.map.city].name.toUpperCase();
+    const title = `LEDGER · ${cityName}`;
+    const res = this.victory ? 'ORDER RESTORED' : 'REGIME FALLEN';
+    const tm = measureText(FONTS.smallBold, title);
+    const rm = measureText(FONTS.smallBold, res);
+    // Result right of the title, or on its own line when both don't fit side by side.
+    const oneLine = tm.w + 8 + rm.w <= w - 24;
+    const head = oneLine ? 18 : 29;
+    // NEW RECORD stamp: its own strip under the last row (never over a ledger line).
     const rec = this.newBest
       ? rubberStamp('NEW RECORD', 'navy2', { font: FONTS.smallBold, tilt: 0.08, seed: 4 })
       : null;
-    const foot = rec ? rec.h + 2 : 0;
+    const foot = rec ? rec.h + 4 : 0;
     const b = dossier(w, h + head + 14 + foot, `FILE: AT WHAT COST`);
-    const cityName = CITY_COPY[this.game.world.map.city].name.toUpperCase();
-    drawText(b, FONTS.smallBold, `LEDGER · ${cityName}`, 12, 10 + 8, 'ink');
-    const res = this.victory ? 'ORDER RESTORED' : 'REGIME FALLEN';
-    const rm = measureText(FONTS.smallBold, res);
+    drawText(b, FONTS.smallBold, title, 12, 10 + 8, 'ink');
     drawText(
       b,
       FONTS.smallBold,
       res,
-      w - 12 - rm.w - (this.newBest ? 0 : 0),
-      10 + 8,
+      oneLine ? w - 12 - rm.w : 12,
+      oneLine ? 10 + 8 : 10 + 19,
       this.victory ? 'green2' : 'crim1',
     );
     let left = this.rowsShown;
@@ -508,7 +528,7 @@ export class EndScreen implements Screen {
         y += sectionHeight(s) + 8;
       }
     }
-    if (rec && this.rowsShown >= this.totalRows) stamp(b, rec, w - rec.w - 14, b.h - rec.h - 7);
+    if (rec && this.rowsShown >= this.totalRows) stamp(b, rec, w - rec.w - 14, y0 + h + 2);
     this.ledgerH = b.h;
     const old = this.ledger.texture;
     this.ledger.texture = ownTex(b, 'ui:ledger');

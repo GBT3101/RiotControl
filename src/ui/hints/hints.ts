@@ -117,6 +117,12 @@ export class Hints {
       b.on('attacked', (e) => {
         if (e.attackerKind === 'unit' && e.targetKind === 'unit' && e.attackerId !== e.targetId)
           this.offerFixed('friendlyFire');
+        // Rammed over by the mob (the crush hit of sim/mob.ts): the first one teaches grouping.
+        if (e.targetKind === 'unit' && e.dmgType === 'crush') this.offerFixed('rammed');
+      }),
+      // A climber heads up a roof nobody on the ground covers: lone snipers get stormed.
+      b.on('climbStart', (e) => {
+        if (e.building >= 0 && !game.world.roofCovered[e.building]) this.offerFixed('roofStormed');
       }),
       b.on('waveEnd', (e) => {
         this.breathers++;

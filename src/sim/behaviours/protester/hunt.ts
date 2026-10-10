@@ -40,10 +40,16 @@ export function endHunt(w: World, s: number): void {
   if (c.state[s] === PS.HUNT) c.state[s] = PS.MARCH;
 }
 
+/** Per type: carries something to hurt a unit with (melee, a gun or a bomb). */
+const ARMED = Uint8Array.from(
+  PROTESTERS.map((p) => (p.explode || p.loadouts.some((l) => l.melee || l.ranged) ? 1 : 0)),
+);
+
 export const aggro: ProtesterBehaviour = {
   id: 'aggro',
   think(w, s) {
     const c = w.crowd;
+    if (!ARMED[c.type[s]!] && !BALANCE.aggro.unarmed) return;
     const st = c.state[s]!;
     if (
       st !== PS.MARCH &&

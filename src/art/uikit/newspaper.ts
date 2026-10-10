@@ -141,24 +141,46 @@ function columnText(
   }
 }
 
+interface PageBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** Geometry of a front page (page px): every text block, the picture box and the stamp. */
+export interface FrontPageLayout {
+  masthead: PageBox;
+  /** Headline lines (×2 display text), wrapped at the page width. */
+  headline: Array<PageBox & { text: string }>;
+  deck: PageBox;
+  /** Picture box (outer frame; the photo goes 1 px inside). */
+  photo: PageBox;
+  /** Typeset column blocks. */
+  columns: PageBox[];
+  /** Column rule (x, y, h). */
+  rule: { x: number; y: number; h: number };
+  /** Rubber-stamp spot (bottom-right corner) — nothing else is set there. */
+  stamp: PageBox | null;
+}
+
 /**
- * Front page: newsprint sheet, masthead, ×2 headline (wrapped), sub-deck, 3 columns of text,
- * a picture box (left for the screen to fill) and an optional rubber stamp over the corner.
+ * Front-page layout. The stamp (when its size is given) owns the bottom-right corner: the
+ * picture box and the column text that would run under it stop above it, so the stamp only
+ * ever lands on blank newsprint. Pure.
  */
-export function frontPage(
+export function frontPageLayout(
   city: City,
   headline: string,
   deck: string,
   w = 300,
   h = 220,
-  stampKey?: [string, string],
-): PixelBuffer {
-  const b = panel('newsprint', w, h);
+  stampSize?: { w: number; h: number },
+): FrontPageLayout {
   const mh = masthead(city, w - 12, w - 12);
-  stamp(b, mh, 6, 6);
   let y = 6 + mh.h + 4;
   // Headline ×2 (wrap at the page width).
-  const lines = [];
+  const lines: string[] = [];
   let cur = '';
   for (const word of headline.split(' ')) {
     const t = cur ? `${cur} ${word}` : word;
@@ -168,43 +190,97 @@ export function frontPage(
     } else cur = t;
   }
   lines.push(cur);
-  for (const l of lines) {
-    const tm = textMask(FONTS.large, l, 2, 0);
-    slabSerifs(tm.m, FONTS.large.capHeight * 2);
-    const x0 = Math.floor((w - tm.m.w) / 2);
-    for (let yy = 0; yy < tm.m.h; yy++)
-      for (let xx = 0; xx < tm.m.w; xx++)
-        if (tm.m.m[yy * tm.m.w + xx]) px(b, x0 + xx, y + yy, 'ink');
+  const head = lines.map((text) => {
+    const tw = textMask(FONTS.large, text, 2, 0).m.w;
+    const box = { text, x: Math.floor((w - tw) / 2), y, w: tw, h: FONTS.large.capHeight * 2 };
     y += FONTS.large.capHeight * 2 + 5;
-  }
-  const dm = measureText(FONTS.small, deck, w - 24);
-  drawText(b, FONTS.small, deck, Math.floor(w / 2), y, 'gray1', {
-    align: 'center',
-    maxWidth: w - 24,
+    return box;
   });
+  const dm = measureText(FONTS.small, deck, w - 24);
+  const deckBox = {
+    x: Math.floor(w / 2) - Math.floor(dm.w / 2),
+    y: y - FONTS.small.ascent,
+    w: dm.w,
+    h: dm.h + FONTS.small.ascent + FONTS.small.descent,
+  };
   y += dm.h + 6;
-  hline(b, 8, y, w - 16, 'gray3');
   y += 4;
   // Picture box (left two columns) + columns.
   const colW = Math.floor((w - 16 - 8) / 3);
   const pbH = Math.max(20, h - y - 14);
-  rect(b, 8, y, colW * 2 + 4, Math.floor(pbH * 0.7), 'gray5');
-  rect(b, 9, y + 1, colW * 2 + 2, Math.floor(pbH * 0.7) - 2, 'stone3');
-  columnText(b, 8, y + Math.floor(pbH * 0.7) + 4, colW, pbH - Math.floor(pbH * 0.7) - 4, 3);
-  columnText(
-    b,
-    8 + colW + 4,
-    y + Math.floor(pbH * 0.7) + 4,
-    colW,
-    pbH - Math.floor(pbH * 0.7) - 4,
-    7,
-  );
-  vline(b, 8 + colW * 2 + 6, y, pbH, 'gray4');
-  columnText(b, 8 + colW * 2 + 9, y, colW - 1, pbH, 11);
-  if (stampKey) {
-    const st = rubberStamp(stampKey[0], stampKey[1], { tilt: -0.1 });
-    stamp(b, st, w - st.w - 10, h - st.h - 12);
+  const st = stampSize
+    ? { x: w - stampSize.w - 10, y: h - stampSize.h - 12, w: stampSize.w, h: stampSize.h }
+    : null;
+  // Bottom of a block spanning [x0, x1): above the stamp when the stamp is under it.
+  const floor = (x0: number, x1: number): number =>
+    st && x1 > st.x - 2 && x0 < st.x + st.w + 2 ? Math.min(y + pbH, st.y - 3) : y + pbH;
+  const photoW = colW * 2 + 4;
+  const photoH = Math.max(0, Math.min(Math.floor(pbH * 0.7), floor(8, 8 + photoW) - y));
+  const columns: PageBox[] = [];
+  const below = y + photoH + 4;
+  for (const [x, cw] of [
+    [8, colW],
+    [8 + colW + 4, colW],
+  ] as const) {
+    // A column the stamp only clips at its right edge is narrowed instead of cut short.
+    const narrow = st ? st.x - 4 - x : cw;
+    const w2 = narrow < cw && narrow >= cw / 2 ? narrow : cw;
+    const ch = floor(x, x + w2) - below;
+    if (ch >= 4) columns.push({ x, y: below, w: w2, h: ch });
   }
+  const rx = 8 + colW * 2 + 6;
+  const c3x = 8 + colW * 2 + 9;
+  const c3h = floor(c3x, c3x + colW - 1) - y;
+  if (c3h >= 4) columns.push({ x: c3x, y, w: colW - 1, h: c3h });
+  return {
+    masthead: { x: 6, y: 6, w: mh.w, h: mh.h },
+    headline: head,
+    deck: deckBox,
+    photo: { x: 8, y, w: photoW, h: photoH },
+    columns,
+    rule: { x: rx, y, h: floor(rx, rx + 1) - y },
+    stamp: st,
+  };
+}
+
+/**
+ * Front page: newsprint sheet, masthead, ×2 headline (wrapped), sub-deck, 3 columns of text,
+ * a picture box (left for the screen to fill) and an optional rubber stamp in the bottom-right
+ * corner (`stampKey`), or just room kept for one stamped later (`reserve`).
+ */
+export function frontPage(
+  city: City,
+  headline: string,
+  deck: string,
+  w = 300,
+  h = 220,
+  stampKey?: [string, string],
+  reserve?: { w: number; h: number },
+): PixelBuffer {
+  const b = panel('newsprint', w, h);
+  const st = stampKey ? rubberStamp(stampKey[0], stampKey[1], { tilt: -0.1 }) : null;
+  const lay = frontPageLayout(city, headline, deck, w, h, st ?? reserve);
+  stamp(b, masthead(city, w - 12, w - 12), lay.masthead.x, lay.masthead.y);
+  for (const l of lay.headline) {
+    const tm = textMask(FONTS.large, l.text, 2, 0);
+    slabSerifs(tm.m, FONTS.large.capHeight * 2);
+    for (let yy = 0; yy < tm.m.h; yy++)
+      for (let xx = 0; xx < tm.m.w; xx++)
+        if (tm.m.m[yy * tm.m.w + xx]) px(b, l.x + xx, l.y + yy, 'ink');
+  }
+  drawText(b, FONTS.small, deck, Math.floor(w / 2), lay.deck.y + FONTS.small.ascent, 'gray1', {
+    align: 'center',
+    maxWidth: w - 24,
+  });
+  hline(b, 8, lay.photo.y - 4, w - 16, 'gray3');
+  const p = lay.photo;
+  if (p.h > 2) {
+    rect(b, p.x, p.y, p.w, p.h, 'gray5');
+    rect(b, p.x + 1, p.y + 1, p.w - 2, p.h - 2, 'stone3');
+  }
+  lay.columns.forEach((c, k) => columnText(b, c.x, c.y, c.w, c.h, 3 + k * 4));
+  if (lay.rule.h > 0) vline(b, lay.rule.x, lay.rule.y, lay.rule.h, 'gray4');
+  if (st && lay.stamp) stamp(b, st, lay.stamp.x, lay.stamp.y);
   return b;
 }
 

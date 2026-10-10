@@ -263,3 +263,35 @@ blockade (barrier + traffic cone icon). Vehicle icons: M4c.
   brigade (the brigade overrides head/torso/rifle parts and recolours the rest).
 - The horse's legs are single hand-drawn leg poses phased into the walk / gallop cycles
   (`horse.ts`), far legs re-keyed darker.
+
+## Rammed over (playtest round)
+
+When a mob outnumbers a lone officer 5:1 it can ram him over (`src/sim/mob.ts`: a crush hit of
+25% HP through armour and `BALANCE.mob.ramStun` = 1.2 s knocked down, `Unit.rammedAt`). Every
+rammable unit has a `rammed` one-shot on one shared timeline, **12 frames @10 fps = 1.2 s**, so
+the view plays it straight from `rammedAt` (`src/art/units/rammed.ts`):
+
+| frames | riot / cop / gas / soldier | horse |
+|---|---|---|
+| 0 | shove: knocked back off his feet, `head.hurt`, kit flying (shield / pistol / launcher; the soldier keeps his rifle) | shies: head up, rider dazed, arm flung up |
+| 1–3 | `fall` (`fall.ne` for NE) → bounce (`lie+0,-1`) → `lie`, kit on the street | rears (the deploy rear-up), rider clinging on |
+| 4–5 | flat on his back (`lie.flat`), KO stars | lands, head down |
+| 6–8 | sits up in the street, head lolling (riot: `ko.body`/`ko.head`; others: shared `legs.sit` + torso), kit beside him | stamps / paws, rider dazed |
+| 9–11 | crouch for the kit → brace → standing (idle pose) | head up, settles, stands |
+
+Personality: the cop sweats (`!sweat`) while sitting, the gas man tilts his head at the sky,
+the stoic soldier never lets go of his rifle and blinks it off. The horse never goes down.
+
+- New parts: `src/art/units/down.grid.ts` — `legs.sit` (shared seated legs, boots up, same keys as
+  `body.grid.ts`), `pistol.ground` (cop keys), `launcher.ground` (gas keys).
+- KO stars: `rammedStars(unit, frame)` gives the orbit centre (SE px from the anchor; mirror x
+  for SW / NW) on frames 4–8 (horse: 5–8), null otherwise. `unitView` draws `fx.ko.stars` there
+  in the overlay layer, so they read even when the mob stands in front of him.
+- Impact FX: `fx.ram.shove` (`src/art/fx/ram.ts`, 34×24, 5 f @14, anchor (15,21) = his feet):
+  a hand-drawn "pow" burst at chest height, three speed streaks surging through him toward
+  screen-left and a kick of street dust behind; flip for SW / NW. `worldView` spawns it on the
+  `attacked` event with `dmgType: 'crush'`, plus `fx.dust.land` where he lands (0.12 s later).
+
+| anim | frames | fps | loop | facings | notes |
+|---|---|---|---|---|---|
+| `unit.{riot,cop,gas,soldier,horse}.rammed` | 12 | 10 | no | SE/NE (+SW/NW) | Rammed over by the mob (1.2 s = `ramStun`); ends standing. |

@@ -20,7 +20,7 @@ export const TIPS: readonly string[] = [
   'Mounted police go where you tap. The horse goes where it likes, but agrees in public.',
   'A charged gas grenade bounces over its thrower. Tap him. He has waited all his life.',
   'Chokepoints are where history is made. Also where blockades go.',
-  'Hate is earned from every death. Ours are worth ten. Theirs, one. We did not set the rate.',
+  'Hate is earned from every death. Ours are worth one. Theirs, a third. We did not set the rate.',
   'Legitimacy unlocks new tools. New tools attract new protesters. Nobody knows why.',
   'At 5000 Legitimacy order is restored. The Ministry has pre-printed the newspaper.',
   'The Capitol has five states of damage. The Ministry has five states of denial.',
@@ -48,4 +48,8 @@ export const TIPS: readonly string[] = [
   'Rubber and gas barely tickle cultists and Prophets. That is what real weapons are for.',
   'New protester types arrive as a trickle at first. Use the trickle. Fear the flood.',
   'The helicopter cannot die and earns no Legitimacy. A perfect civil servant.',
+  // Playtest round: the mob rams lone officers, climbers storm lone snipers.
+  'A lone officer is a skittle. Five protesters to one and he goes over. Keep them in groups.',
+  'Officers in a tight line shrug off blows. Officers on their own get trampled, then promoted.',
+  'A sniper far from the line is a buffet for climbers. Park an officer nearby. Call it catering.',
 ];

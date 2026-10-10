@@ -9,7 +9,7 @@ import { glyph } from '../../art/uikit/icons';
 import { panel } from '../../art/uikit/panels';
 import { FONTS, drawText, measureText } from '../../art/uikit/text';
 import { tileToWorld } from '../../core/iso';
-import { UNITS } from '../../data/units';
+import { UNITS, deploysOnRoofs, type UnitId } from '../../data/units';
 import type { GameController } from '../../game/controller';
 import type { DeployFail } from '../../sim';
 import { Button, facesFrom, roundFaces } from '../core/button';
@@ -29,7 +29,12 @@ const FAIL_TEXT: Record<string, string> = {
   locked: 'NOT APPROVED YET',
 };
 
-export function failText(reason: DeployFail | null): string {
+export function failText(reason: DeployFail | null, unit?: UnitId): string {
+  // Road-or-roof units (Soldiers): either kind of wrong spot gets the same honest answer.
+  const def = unit ? UNITS[unit] : null;
+  if (def && def.placement === 'road' && deploysOnRoofs(def)) {
+    if (reason === 'notRoad' || reason === 'notRooftop') return 'ROAD OR HIGHLIGHTED ROOF';
+  }
   return (reason && FAIL_TEXT[reason]) || 'CANNOT DEPLOY THERE';
 }
 
@@ -82,7 +87,7 @@ export class Placement {
     game.bus.on('deployFailed', (e) => {
       if (e.reason === 'locked') return;
       app.sfx('error');
-      app.toast.info(failText(e.reason));
+      app.toast.info(failText(e.reason, e.unit));
     });
   }
 
@@ -90,16 +95,21 @@ export class Placement {
     const unit = this.game.deployUnit;
     this.root.visible = !!unit && !this.game.attract;
     if (!unit) return;
-    const roof = UNITS[unit].placement === 'rooftop';
+    const def = UNITS[unit];
+    // Where it goes: roofs only (snipers), roads only, or either (Soldiers).
+    const spot =
+      def.placement === 'rooftop'
+        ? 'a glowing roof'
+        : deploysOnRoofs(def)
+          ? 'a road or roof'
+          : 'a road';
     const touch = this.app.touch;
-    const text = `PLACE ${UNITS[unit].name.toUpperCase()}`;
+    const text = `PLACE ${def.name.toUpperCase()}`;
     const sub = touch
-      ? roof
-        ? 'Tap a glowing roof, tap again to confirm'
-        : 'Tap a road, tap again (or ✓) to confirm'.replace('✓', 'OK')
-      : roof
-        ? 'Click a glowing roof · Shift keeps placing · Esc cancels'
-        : 'Click a road · Shift keeps placing · Esc cancels';
+      ? def.placement === 'rooftop'
+        ? `Tap ${spot}, tap again to confirm`
+        : `Tap ${spot}, tap again (or OK) to confirm`
+      : `Click ${spot} · Shift keeps placing · Esc cancels`;
     const key = `${text}|${sub}|${l.W < 300}`;
     if (key !== this.hintKey) {
       this.hintKey = key;
@@ -119,9 +129,14 @@ export class Placement {
     this.ok.visible = this.no.visible = touch && !!p;
     if (p && touch) {
       let q = tileToWorld(p.i + 0.5, p.j + 0.5);
-      if (roof) {
+      // A roof preview (rooftop units, or a Soldier tapped onto a roof): float over the roof.
+      let roof = false;
+      if (deploysOnRoofs(def)) {
         const b = this.game.world.map.buildings.find((x) => x.i === p.i && x.j === p.j);
-        if (b) q = tileToWorld(b.i + b.w / 2, b.j + b.d / 2);
+        if (b) {
+          q = tileToWorld(b.i + b.w / 2, b.j + b.d / 2);
+          roof = true;
+        }
       }
       const s = this.game.view.worldToUi(q.x, q.y - (roof ? 40 : 20));
       const y = Math.max(

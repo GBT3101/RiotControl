@@ -13,6 +13,7 @@ import { registerLogo } from './logo';
 import { registerNewspaper } from './newspaper';
 import { registerPanels } from './panels';
 import { registerPortraits } from './portraits';
+import { registerSpecialUi } from './specials';
 
 export function registerUiKit(reg: SpriteRegistry): void {
   registerFontSpecimens(reg);
@@ -24,4 +25,5 @@ export function registerUiKit(reg: SpriteRegistry): void {
   registerPortraits(reg);
   registerLogo(reg);
   registerNewspaper(reg);
+  registerSpecialUi(reg);
 }

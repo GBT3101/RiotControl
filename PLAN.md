@@ -78,12 +78,12 @@ Special (any level, **1% per spawn-group roll**, max 1 alive): **Breta** + papar
 | Blockade | 7 | 10 | Road (snaps across road width, up to 3 tiles) | 400 | — | Physically blocks flow. Protesters attack it; damage states (pristine → dented → wrecked). |
 | Tear Gas Shooter | 10 | 15 | Road | 80 | Gas spray cone, range 3, 10 dmg/s + 1 s stun | **Ability**: grenade charges 10 s; when charged, a pulsing icon appears — tap/click the unit to throw at the densest crowd in range (desktop: hotkey `G` throws all charged). Cloud r=2.5 tiles, 6 s, stun + DoT. |
 | Mounted Riot Police | 10 | 15* | Road | 200 | Bat 20 dmg / 1.0 s (2× Riot Control) | **Commandable**: select → tap a road tile → paths there (roads only). Fast. Knocks students aside. |
-| Armed Cops | 50 | 20 | Road | 120 | Pistol 60 dmg / 1.2 s, range 7, **pierces up to 4** in a line | First lethal unit — blood begins. |
-| Soldiers | 100 | 40 | Road | 180 | Auto-rifle bursts 3×25 / 1.4 s, range 8 | Spray spreads across targets. |
-| MG Humvee ("hammer") | 300 | 60 | Road | 800 | Roof MG 15 dmg × 10/s, range 8 | **Commandable**. Vehicle armor (melee −50%). Burning wreck when destroyed. |
-| Sniper Brigade | 500 | 80 | Rooftop | 150 | 80 dmg lethal shots, 1.0 s, range 14, **splash r=1** | Squad of 3 visible snipers on one roof. Climb-able; bazooka-able. |
-| Tank | 600 | 100 | Road | 3000 | Cannon 200 AOE r=2.5 / 4 s, range 10. **Crushes** protesters it drives over. | **Commandable**. Shells hurt *your own* units in the blast. Prophets deal 50% of its max HP each. |
-| Helicopter | 1000 | — | Air (anywhere) | ∞ | Door-gun spray 12 dmg × 12/s, range 7 | **Commandable** (any tile). Cannot be harmed. Rotor wash blows tear gas. |
+| Armed Cops | 20 | 20 | Road | 120 | Pistol 60 dmg / 1.2 s, range 7, **pierces up to 4** in a line | First lethal unit — blood begins. |
+| Soldiers | 50 | 40 | Road or rooftop | 180 | Auto-rifle bursts 3×25 / 1.4 s, range 8 | Spray spreads across targets. On a deployable roof (one unit per roof, like snipers): out of melee reach, climbable (thrown off), bazooka-able; same range. |
+| MG Humvee ("hammer") | 80 | 60 | Road | 800 | Roof MG 15 dmg × 10/s, range 8 | **Commandable**. Vehicle armor (melee −50%). Burning wreck when destroyed. |
+| Sniper Brigade | 100 | 80 | Rooftop | 150 | 80 dmg lethal shots, 1.0 s, range 14, **splash r=1** | Squad of 3 visible snipers on one roof. Climb-able; bazooka-able. |
+| Tank | 200 | 100 | Road | 3000 | Cannon 200 AOE r=2.5 / 4 s, range 10. **Crushes** protesters it drives over. | **Commandable**. Shells hurt *your own* units in the blast. Prophets deal 50% of its max HP each. |
+| Helicopter | 300 | — | Air (anywhere) | ∞ | Door-gun spray 12 dmg × 12/s, range 7 | **Commandable** (any tile). Cannot be harmed. Rotor wash blows tear gas. |
 
 \* Not specified by the brief — chosen value, flagged for the owner.
 

@@ -19,7 +19,7 @@ import { FixedStepLoop, TIME_SCALES } from '../core/loop';
 import { mapWorldBounds, tileToWorld } from '../core/iso';
 import type { QualityTier } from '../data/balance';
 import { LEVELS, WIN_LEGITIMACY } from '../data/levels';
-import { UNITS, UNIT_ORDER, type UnitId } from '../data/units';
+import { UNITS, UNIT_ORDER, deploysOnRoofs, type UnitId } from '../data/units';
 import { Camera } from '../render/camera';
 import { CameraController, type PointerInfo, type TapEvent } from '../render/cameraInput';
 import type { PixelStage } from '../render/stage';
@@ -408,12 +408,12 @@ export class GameController {
   }
 
   /**
-   * The tile a pointer targets in deploy mode: rooftop units pick the building drawn under
-   * the pointer (anywhere on its walls or roof) → its footprint origin; otherwise the ground
-   * tile.
+   * The tile a pointer targets in deploy mode: units that may go on roofs (snipers, and
+   * Soldiers, which take a road or a roof) pick the rooftop building drawn under the pointer
+   * (anywhere on its walls or roof) → its footprint origin; otherwise the ground tile.
    */
   private deployTile(h: PointerInfo): { i: number; j: number } {
-    if (this.deploying && UNITS[this.deploying].placement === 'rooftop') {
+    if (this.deploying && deploysOnRoofs(UNITS[this.deploying])) {
       const b = this.view.roofAt(h.worldX, h.worldY);
       const bd = b >= 0 ? this.world.map.buildings[b] : undefined;
       if (bd) return { i: bd.i, j: bd.j };

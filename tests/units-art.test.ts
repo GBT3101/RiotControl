@@ -145,8 +145,9 @@ describe('M4a units art', () => {
           const a = f.data[i + 3]!;
           if (a === 0) continue;
           const rgb = (f.data[i]! << 16) | (f.data[i + 1]! << 8) | f.data[i + 2]!;
-          if (a < 255) expect(rgb, d.name).toBe(shadowRgb);
-          else expect(PALETTE_RGB.has(rgb), `${d.name} #${rgb.toString(16)}`).toBe(true);
+          // expect() only on a miss: per-pixel expects make this test crawl (~10⁶ pixels).
+          if (a < 255 ? rgb !== shadowRgb : !PALETTE_RGB.has(rgb))
+            expect.fail(`${d.name}: #${rgb.toString(16)} (alpha ${a}) is not RIOT-64`);
         }
       }
     }

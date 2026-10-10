@@ -6,6 +6,7 @@
  */
 import { Container, Sprite, type Texture } from 'pixi.js';
 import { buf, hline, rect, stamp } from '../../art/fx/draw';
+import { FONTS, lineWidth, type BitmapFont } from '../../art/uikit/text';
 import { abilityRing } from '../../art/uikit/cards';
 import { ICONS } from '../../art/uikit/icons';
 import { panel } from '../../art/uikit/panels';
@@ -16,6 +17,7 @@ import type { Unit } from '../../sim/units';
 import { unitPortrait } from '../art';
 import { Button, stampFaces } from '../core/button';
 import { Label } from '../core/label';
+import { capBlockH, overlaps, textBelow, type Box, type TextBox } from '../core/boxes';
 import { makeInteractive } from '../core/node';
 import { swapOwned, uiTex, destroyOwned } from '../core/tex';
 import { UNIT_COPY, UI_TEXT } from '../strings';
@@ -42,6 +44,125 @@ function hpBar(frac: number, w: number): ReturnType<typeof buf> {
   return b;
 }
 
+export interface InfoPanelSpec {
+  w: number;
+  /** Minimum height (the layout's slot); the panel grows upward when the copy needs more. */
+  h: number;
+  name: string;
+  hpText: string;
+  /** Role line (hidden on the compact phone panel). */
+  role: string;
+  /** "KILLS n" / "HOLDING THE LINE" ('' = hidden). */
+  kills: string;
+  /** Commandable units: the move hint, on its own line under the kills ('' = none). */
+  hint: string;
+  /** Tear Gas Shooter: charge ring (bottom-right) and, when charged, the THROW GAS button. */
+  ring: boolean;
+  throwBtn: { w: number; h: number } | null;
+}
+
+export interface InfoPanelLayout {
+  h: number;
+  compact: boolean;
+  well: Box;
+  close: Box;
+  /** Text blocks; each `w` is also its wrap width. */
+  name: TextBox;
+  hp: Box;
+  hpText: TextBox;
+  role: TextBox;
+  kills: TextBox;
+  hint: TextBox;
+  ring: Box | null;
+  throwBtn: Box | null;
+}
+
+/**
+ * Selected-unit panel geometry (panel px): the name, HP line, role and kills / move hint flow
+ * top-down beside the portrait and wrap clear of the close button, the gas charge ring and the
+ * THROW GAS button; the panel grows (upward, see InfoPanel) when the copy needs more room. The
+ * HP text sits beside the bar when it fits, else under it. Pure (unit-tested for every unit).
+ */
+export function infoPanelLayout(sp: InfoPanelSpec): InfoPanelLayout {
+  const compact = sp.h < 52;
+  const ps = compact ? 28 : 36;
+  const x = 12 + ps + 5;
+  const right = sp.w - 7;
+  let h = sp.h;
+  let out: InfoPanelLayout | null = null;
+  for (let pass = 0; pass < 4; pass++) {
+    const close = { x: sp.w - 12, y: 3, w: 9, h: 9 };
+    const ring = sp.ring ? { x: sp.w - 21, y: h - 22, w: 18, h: 18 } : null;
+    const tb = sp.throwBtn
+      ? { x: sp.w - sp.throwBtn.w - 24, y: h - sp.throwBtn.h - 3, ...sp.throwBtn }
+      : null;
+    const obstacles = [close, ...(ring ? [ring] : []), ...(tb ? [tb] : [])];
+    // Text block (cap line `cap`, ink from `after` down) wrapped to the room left of every
+    // obstacle in its band.
+    const flow = (font: BitmapFont, str: string, cap: number, after: number): TextBox => {
+      let w = right - x;
+      let box = textBelow(font, str, x, cap, after, w);
+      // Never narrower than the longest word (a clash left is solved by the footer below).
+      const minW = Math.max(...str.split(/\s+/).map((wd) => lineWidth(font, wd)));
+      for (let k = 0; k < 4 && str; k++) {
+        const hit = obstacles.filter((o) => overlaps(box, o, 1));
+        if (!hit.length) break;
+        const nw = Math.min(w, Math.min(...hit.map((o) => o.x - 3)) - x);
+        if (nw < minW || nw === w) break;
+        w = nw;
+        box = textBelow(font, str, x, cap, after, w);
+      }
+      return box;
+    };
+    // Designed rows (name 5, HP 15, role 24, bottom line 33 / 45), pushed down by wraps.
+    const name = flow(FONTS.smallBold, sp.name, 5, 0);
+    const nameH = capBlockH(FONTS.smallBold, sp.name, name.w || undefined);
+    const hpY = Math.max(15, name.capY + nameH + 3, name.y + name.h + 1);
+    const hp = { x, y: hpY, w: 48, h: 6 };
+    const ht = textBelow(FONTS.small, sp.hpText, x + 52, hpY, 0);
+    const beside = ht.x + ht.w <= right && !obstacles.some((o) => overlaps(ht, o, 1));
+    const hpText = beside ? ht : flow(FONTS.small, sp.hpText, hpY + 9, hpY + 7);
+    let cap = hpText.capY + 9;
+    let after = Math.max(hp.y + hp.h, hpText.y + hpText.h) + 1;
+    const role = compact || !sp.role ? null : flow(FONTS.small, sp.role, cap, after);
+    if (role) {
+      cap = role.capY + capBlockH(FONTS.small, sp.role, role.w) + 4;
+      after = role.y + role.h + 1;
+    }
+    const footCap = Math.max(compact ? 33 : 45, cap);
+    const kills = flow(FONTS.smallBold, sp.kills, footCap, after);
+    if (sp.kills) {
+      cap = kills.capY + capBlockH(FONTS.smallBold, sp.kills, kills.w) + 4;
+      after = kills.y + kills.h + 1;
+    }
+    const hint = flow(FONTS.smallBold, sp.hint, Math.max(footCap, cap), after);
+    const last = sp.hint ? hint : sp.kills ? kills : null;
+    out = {
+      h,
+      compact,
+      well: { x: 12, y: Math.floor((h - ps) / 2) - 1, w: ps, h: ps },
+      close,
+      name,
+      hp,
+      hpText,
+      role: role ?? { x, y: after, w: 0, h: 0, capY: after },
+      kills,
+      hint,
+      ring,
+      throwBtn: tb,
+    };
+    const bottom = last ? Math.max(last.y + last.h, last.capY + 7) : 0;
+    // Still clashing with the gas ring / THROW GAS button: give them a footer row of their own.
+    const texts = [name, hpText, role, kills, hint].filter((b): b is TextBox => !!b && b.w > 0);
+    const clash = texts.some((t) => [ring, tb].some((o) => o && overlaps(t, o, 1)));
+    const footer = Math.max(ring ? 23 : 0, tb ? tb.h + 4 : 0);
+    const need = clash ? Math.max(h + 1, bottom + 1 + footer) : bottom + 3;
+    if (need <= h) break;
+    h = need;
+  }
+  return out!;
+}
+
 export class InfoPanel {
   readonly root = new Container({ label: 'infopanel' });
   private readonly bg = new Sprite();
@@ -66,7 +187,13 @@ export class InfoPanel {
   private t = 0;
   private readonly killCount = new Map<number, number>();
   private w = 140;
+  /** Slot height from the HUD layout (minimum) and the height actually shown. */
   private h = 58;
+  private panelH = 0;
+  private bgW = 0;
+  private slot: Box = { x: 0, y: 0, w: 140, h: 58 };
+  private throwAt: Box | null = null;
+  private portraitKey = '';
 
   constructor(
     private readonly app: UiApp,
@@ -121,45 +248,62 @@ export class InfoPanel {
 
   private show(id: number | null): void {
     this.unitId = id ?? -1;
-    this.key = '';
+    this.key = this.portraitKey = '';
   }
 
   layout(l: HudLayout): void {
     this.w = Math.max(120, Math.min(176, l.info.w));
     this.h = l.info.h;
-    this.root.position.set(l.info.x, l.info.y);
-    this.key = '';
+    this.slot = l.info;
+    this.key = this.portraitKey = '';
   }
 
-  private build(u: Unit): void {
-    const compact = this.h < 52;
-    swapOwned(this.bg, panel('paper', this.w, this.h), 'ui:info');
-    const ps = compact ? 28 : 36;
-    swapOwned(this.portraitWell, panel('recess', ps, ps), 'ui:info-well');
-    this.portraitWell.position.set(12, Math.floor((this.h - ps) / 2) - 1);
-    const p = unitPortrait(u.type);
+  /** UI rect of the panel as shown (it grows upward from its slot for long copy). */
+  rect(): Box {
+    return { x: this.root.x, y: this.root.y, w: this.w, h: this.panelH };
+  }
+
+  /** Lay the panel out for the unit's current copy (rebuilt when any of it changes). */
+  private build(u: Unit, spec: InfoPanelSpec): void {
+    const g = infoPanelLayout(spec);
+    if (g.h !== this.panelH || this.bgW !== this.w) {
+      this.panelH = g.h;
+      this.bgW = this.w;
+      swapOwned(this.bg, panel('paper', this.w, g.h), 'ui:info');
+    }
+    this.root.position.set(this.slot.x, this.slot.y + this.slot.h - g.h);
+    const ps = g.well.w;
+    const pk = `${u.id}:${ps}:${g.well.y}`;
+    const p = pk !== this.portraitKey ? unitPortrait(u.type) : null;
+    if (pk !== this.portraitKey) {
+      this.portraitKey = pk;
+      swapOwned(this.portraitWell, panel('recess', ps, ps), 'ui:info-well');
+      this.portraitWell.position.set(g.well.x, g.well.y);
+    }
     if (p) {
       swapOwned(this.portrait, p, 'ui:info-portrait');
       this.portrait.position.set(
         this.portraitWell.x + Math.floor((ps - 32) / 2),
-        this.portraitWell.y + ps - 1 - 32 + (compact ? 2 : 0),
+        this.portraitWell.y + ps - 1 - 32 + (g.compact ? 2 : 0),
       );
-      this.portrait.visible = !compact;
+      this.portrait.visible = !g.compact;
     }
-    const x = 12 + ps + 5;
-    this.name.set(UNITS[u.type].name.toUpperCase());
-    this.name.position.set(x, 5);
-    this.hp.position.set(x, 15);
-    this.hpText.position.set(x + 52, 15);
-    this.role.opts = { maxWidth: this.w - x - 6 };
-    this.role.set('');
-    this.role.set(compact ? '' : UNIT_COPY[u.type].role);
-    this.role.position.set(x, 24);
-    this.kills.position.set(x, compact ? 33 : 45);
-    this.hint.position.set(x, compact ? 33 : 45);
-    this.close.position.set(this.w - 12, 3);
-    this.ring.position.set(this.w - 21, this.h - 22);
-    this.hpKey = '';
+    const place = (lab: Label, b: TextBox, text: string): void => {
+      lab.opts = { ...lab.opts, maxWidth: Math.max(1, b.w) };
+      lab.set('');
+      lab.set(text);
+      // Label sprites are trimmed to their ink: the top row is the highest accent.
+      lab.position.set(b.x, b.y);
+    };
+    place(this.name, g.name, spec.name);
+    this.hp.position.set(g.hp.x, g.hp.y);
+    place(this.hpText, g.hpText, spec.hpText);
+    place(this.role, g.role, g.compact ? '' : spec.role);
+    place(this.kills, g.kills, spec.kills);
+    place(this.hint, g.hint, spec.hint);
+    this.close.position.set(g.close.x, g.close.y);
+    if (g.ring) this.ring.position.set(g.ring.x, g.ring.y);
+    this.throwAt = g.throwBtn;
   }
 
   update(dt: number, l: HudLayout): void {
@@ -172,51 +316,51 @@ export class InfoPanel {
       return;
     }
     this.root.visible = true;
-    const key = `${u.id}:${this.w}:${this.h}`;
-    if (key !== this.key) {
-      this.key = key;
-      this.build(u);
-    }
     const inv = !Number.isFinite(u.maxHp) || u.def.invulnerable;
     const frac = inv ? 1 : u.hp / Math.max(1, u.maxHp);
     const hk = `${Math.round(frac * 48)}:${u.members}`;
     if (hk !== this.hpKey) {
       this.hpKey = hk;
       swapOwned(this.hp, hpBar(frac, 48), 'ui:hp');
-      this.hpText.set(
-        inv
-          ? 'INVULNERABLE'
-          : u.def.squad > 1
-            ? `${u.members}/${u.def.squad} MEN`
-            : `${Math.ceil(u.hp)} HP`,
-      );
     }
-    const k = this.killCount.get(u.id) ?? 0;
-    this.kills.set(u.def.attack ? `KILLS ${k}` : `HOLDING THE LINE`);
     const compact = this.h < 52;
-    // Commandable hint / gas ability.
     const gas = !!u.def.ability;
+    const k = this.killCount.get(u.id) ?? 0;
+    const spec: InfoPanelSpec = {
+      w: this.w,
+      h: this.h,
+      name: UNITS[u.type].name.toUpperCase(),
+      hpText: inv
+        ? 'INVULNERABLE'
+        : u.def.squad > 1
+          ? `${u.members}/${u.def.squad} MEN`
+          : `${Math.ceil(u.hp)} HP`,
+      role: UNIT_COPY[u.type].role,
+      // Phones keep the commandable units' panel to the move hint.
+      kills: u.def.commandable && compact ? '' : u.def.attack ? `KILLS ${k}` : `HOLDING THE LINE`,
+      hint: u.def.commandable ? (this.app.touch ? UI_TEXT.moveHint : UI_TEXT.moveHintMouse) : '',
+      ring: gas,
+      throwBtn: gas && u.abilityReady ? { w: this.throwBtn.w, h: this.throwBtn.h } : null,
+    };
+    const key = `${u.id}:${this.w}:${this.h}:${spec.hpText}:${spec.kills}:${spec.hint}:${!!spec.throwBtn}`;
+    if (key !== this.key) {
+      this.key = key;
+      this.build(u, spec);
+    }
+    // Commandable hint / gas ability.
     this.ring.visible = gas;
     this.throwBtn.visible = gas && u.abilityReady;
     if (gas) {
       const step = u.abilityReady ? 10 : Math.floor((u.charge / u.def.ability!.charge) * 10);
       this.ring.texture = uiTex(`ring:${step}`, () => abilityRing(Math.max(0, Math.min(10, step))));
-      if (this.throwBtn.visible) {
+      const at = this.throwAt;
+      if (this.throwBtn.visible && at) {
         const bob = Math.floor(this.t * 3) % 2;
-        this.throwBtn.position.set(
-          this.w - this.throwBtn.w - 24,
-          this.h - this.throwBtn.h - 2 - bob,
-        );
+        this.throwBtn.position.set(at.x, at.y + 1 - bob);
       }
     }
-    if (u.def.commandable) {
-      this.hint.visible = Math.floor(this.t * 1.6) % 2 === 0 || compact;
-      this.hint.set(this.app.touch ? UI_TEXT.moveHint : UI_TEXT.moveHintMouse);
-      this.kills.visible = !compact;
-    } else {
-      this.hint.visible = false;
-      this.kills.visible = true;
-    }
+    this.hint.visible = !!spec.hint && (compact || Math.floor(this.t * 1.6) % 2 === 0);
+    this.kills.visible = !!spec.kills;
   }
 
   /** Bouncing grenades over charged gas shooters (tap one to throw). */

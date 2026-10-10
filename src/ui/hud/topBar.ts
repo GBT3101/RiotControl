@@ -8,6 +8,7 @@ import { Container, Sprite } from 'pixi.js';
 import { integrityMeter, legitMeter } from '../../art/uikit/cards';
 import { ICONS } from '../../art/uikit/icons';
 import { panel } from '../../art/uikit/panels';
+import { FONTS, measureText } from '../../art/uikit/text';
 import { LEVELS, WIN_LEGITIMACY } from '../../data/levels';
 import { UNITS } from '../../data/units';
 import type { GameController, HudSnapshot } from '../../game/controller';
@@ -21,6 +22,122 @@ import { TOP_ROW_H, type HudLayout } from '../layout';
 import type { UiApp } from '../app';
 
 const LABEL_OPTS = { shadow: 'ink' } as const;
+
+interface Slot {
+  x: number;
+  y: number;
+}
+
+/** Label slot: position and the widest text that fits before the next piece. */
+interface LabelSlot extends Slot {
+  maxW: number;
+}
+
+export interface TopBarLayout {
+  hateIcon: Slot;
+  hate: LabelSlot;
+  legit: Slot & { w: number };
+  integ: Slot & { w: number };
+  waveIcon: Slot;
+  wave: LabelSlot;
+  crowdIcon: Slot;
+  crowd: LabelSlot;
+  buttons: Slot[];
+}
+
+/** Widest wave status the slot must hold ("NEXT 24s", "WAVE 100"). */
+const WAVE_LABEL_W = 56;
+/** Narrowest crowd slot ("9999", "12.3k"). */
+const CROWD_MIN_W = 29;
+/** Room kept for the crowd count ("12,345"; longer counts turn compact: "12.3k"). */
+const CROWD_LABEL_W = 40;
+
+/**
+ * Top bar slots (UI px), left to right: Hate, Legitimacy seal + bar, integrity bar, wave status,
+ * crowd count, then the four round buttons at the right end of the last row. Each label slot
+ * says how wide its text may get before it would touch the next piece; the meters take what
+ * is left. Pure (unit-tested at phone and desktop widths).
+ */
+export function topBarLayout(l: HudLayout, bw: number, bh: number): TopBarLayout {
+  const top = l.safe.top;
+  const left = l.safe.left + 7;
+  const right = l.W - l.safe.right - 6;
+  const rowY = (r: number): number => top + 1 + r * TOP_ROW_H;
+  const cy = (r: number): number => rowY(r) + Math.floor(TOP_ROW_H / 2);
+  const br = l.topRows - 1;
+  const buttons = [0, 1, 2, 3].map((k) => ({
+    x: right - (4 - k) * (bw + 1),
+    y: cy(br) - Math.floor(bh / 2),
+  }));
+  const btnLeft = right - 4 * (bw + 1) - 4;
+  const hateIcon = { x: left, y: cy(0) - 6 };
+  const label = (x: number, r: number, end: number): LabelSlot => ({
+    x,
+    y: cy(r) - 3,
+    maxW: end - x - 2,
+  });
+  if (l.topRows === 1) {
+    const fixed = 54 + 6 + 8 + 16 + WAVE_LABEL_W + 17 + CROWD_LABEL_W;
+    const avail = btnLeft - left - fixed;
+    const legitW = Math.max(64, Math.min(110, Math.floor(avail * 0.55)));
+    const integW = Math.max(56, Math.min(96, avail - legitW));
+    const legit = { x: left + 54, y: cy(0) - 9, w: legitW };
+    const integ = { x: legit.x + legitW + 6, y: cy(0) - 8, w: integW };
+    const wx = integ.x + integW + 8;
+    const cx = wx + 16 + WAVE_LABEL_W;
+    return {
+      hateIcon,
+      hate: label(left + 16, 0, legit.x),
+      legit,
+      integ,
+      waveIcon: { x: wx, y: cy(0) - 5 },
+      wave: label(wx + 16, 0, cx),
+      crowdIcon: { x: cx, y: cy(0) - 7 },
+      crowd: label(cx + 17, 0, btnLeft),
+      buttons,
+    };
+  }
+  const avail = right - left - 52;
+  const legitW = Math.max(60, Math.floor(avail * 0.52));
+  const integW = Math.max(52, avail - legitW - 6);
+  // Row 2 shares its left part between the wave status and the crowd count; on the narrowest
+  // phones (360 CSS px) the wave status gets less room and switches to its short form.
+  const room = btnLeft - (left + 16) - 2 - 17 - CROWD_MIN_W - 2;
+  const cx = left + 16 + Math.max(0, Math.min(WAVE_LABEL_W, room)) + 2;
+  return {
+    hateIcon,
+    hate: label(left + 16, 0, left + 52),
+    legit: { x: left + 52, y: cy(0) - 9, w: legitW },
+    integ: { x: left + 52 + legitW + 6, y: cy(0) - 8, w: integW },
+    waveIcon: { x: left, y: cy(1) - 5 },
+    wave: label(left + 16, 1, cx),
+    crowdIcon: { x: cx, y: cy(1) - 7 },
+    crowd: label(cx + 17, 1, btnLeft),
+    buttons,
+  };
+}
+
+/**
+ * Round button size: large on touch screens, small on desktop and on the narrowest touch
+ * layouts (Large UI on a 390-px phone) so row 2 keeps room for the wave and crowd counters —
+ * the buttons' hit padding keeps them ≥ 44 CSS px either way.
+ */
+export function topBarButtonSize(l: Pick<HudLayout, 'W'>, touch: boolean): 'lg' | 'sm' {
+  return touch && l.W >= 205 ? 'lg' : 'sm';
+}
+
+/** Short wave status for the narrowest top bars: "PREP", "24s", "W40". */
+export function shortWaveStatus(phase: string, wave: number, breather: number): string {
+  if (phase === 'prep') return 'PREP';
+  if (phase === 'breather') return `${Math.ceil(breather)}s`;
+  return `W${wave}`;
+}
+
+/** A count for a label slot: "12,345" when it fits (wide bar), else "12.3k" / "9999". */
+export function fitCount(n: number, maxW: number, compact = false): string {
+  const full = formatNumber(n);
+  return !compact && measureText(FONTS.smallBold, full).w <= maxW ? full : compactNumber(n);
+}
 
 export class TopBar {
   readonly root = new Container({ label: 'topbar' });
@@ -50,13 +167,16 @@ export class TopBar {
   private flashT = 0;
   /** Tooltip text provider for the meters (desktop hover). */
   private layoutKey = '';
+  private slots: TopBarLayout | null = null;
+  private btnSize: 'lg' | 'sm' = 'sm';
 
   constructor(
     private readonly app: UiApp,
     private readonly game: GameController,
   ) {
     this.hate = new HateCounter(game.world.hate);
-    const big = app.touch ? 'lg' : 'sm';
+    const big = topBarButtonSize(app.layout, app.touch);
+    this.btnSize = big;
     this.pause = new Button(roundFaces('pause', big), {
       onTap: () => app.pauseButton(),
       pad: 3,
@@ -117,10 +237,10 @@ export class TopBar {
     game.bus.on('hatePickupArrived', (e) => this.hate.arrive(e.amount));
     game.bus.on('hateSpent', (e) => this.hate.spend(e.amount));
     game.bus.on('speedChanged', (e) =>
-      this.speed.setFaces(roundFaces(`speed${e.speed}` as 'speed1', big)),
+      this.speed.setFaces(roundFaces(`speed${e.speed}` as 'speed1', this.btnSize)),
     );
     game.bus.on('pauseChanged', (e) =>
-      this.pause.setFaces(roundFaces(e.paused ? 'play' : 'pause', big)),
+      this.pause.setFaces(roundFaces(e.paused ? 'play' : 'pause', this.btnSize)),
     );
     game.bus.on('capitolState', () => {
       if (this.app.settings.shake) this.shake = 0.5; // reduced motion: no HUD shake
@@ -131,7 +251,7 @@ export class TopBar {
   }
 
   refreshMute(): void {
-    this.mute.setFaces(roundFaces(this.app.muted ? 'mute' : 'sound', this.app.touch ? 'lg' : 'sm'));
+    this.mute.setFaces(roundFaces(this.app.muted ? 'mute' : 'sound', this.btnSize));
   }
 
   private legitTip(): string {
@@ -172,49 +292,30 @@ export class TopBar {
     if (key === this.layoutKey) return;
     this.layoutKey = key;
     swapOwned(this.bg, panel('leather', l.W, l.topBar.h), 'ui:topbar');
-    const top = l.safe.top;
-    const left = l.safe.left + 7;
-    const right = l.W - l.safe.right - 6;
-    const btns = [this.pause, this.speed, this.mute, this.settings];
-    const bw = btns[0]!.w;
-    const rowY = (r: number) => top + 1 + r * TOP_ROW_H;
-    const cy = (r: number) => rowY(r) + Math.floor(TOP_ROW_H / 2);
-    // Buttons: right end of the last row.
-    const br = l.topRows - 1;
-    btns.forEach((b, k) => {
-      b.position.set(right - (btns.length - k) * (bw + 1), cy(br) - Math.floor(b.h / 2));
-    });
-    const btnLeft = right - btns.length * (bw + 1) - 4;
-    // Hate.
-    this.hateX = left;
-    this.hateY = cy(0) - 6;
-    this.hateIcon.position.set(left, cy(0) - 6);
-    this.hateLabel.position.set(left + 16, cy(0) - 3);
-    if (l.topRows === 1) {
-      const avail = btnLeft - left - 54 - 62 - 52 - 16;
-      this.legitW = Math.max(64, Math.min(110, Math.floor(avail * 0.55)));
-      this.integW = Math.max(56, Math.min(96, avail - this.legitW));
-      let x = left + 54;
-      this.legit.position.set(x, cy(0) - 9);
-      x += this.legitW + 6;
-      this.integ.position.set(x, cy(0) - 8);
-      x += this.integW + 8;
-      this.waveIcon.position.set(x, cy(0) - 5);
-      this.waveLabel.position.set(x + 16, cy(0) - 3);
-      x += 72;
-      this.crowdIcon.position.set(x, cy(0) - 7);
-      this.crowdLabel.position.set(x + 17, cy(0) - 3);
-    } else {
-      const avail = right - left - 52;
-      this.legitW = Math.max(60, Math.floor(avail * 0.52));
-      this.integW = Math.max(52, avail - this.legitW - 6);
-      this.legit.position.set(left + 52, cy(0) - 9);
-      this.integ.position.set(left + 52 + this.legitW + 6, cy(0) - 8);
-      this.waveIcon.position.set(left, cy(1) - 5);
-      this.waveLabel.position.set(left + 16, cy(1) - 3);
-      this.crowdIcon.position.set(left + 74, cy(1) - 7);
-      this.crowdLabel.position.set(left + 91, cy(1) - 3);
+    const size = topBarButtonSize(l, this.app.touch);
+    if (size !== this.btnSize) {
+      this.btnSize = size;
+      this.pause.setFaces(roundFaces(this.game.paused ? 'play' : 'pause', size));
+      this.speed.setFaces(roundFaces(`speed${this.game.speed}` as 'speed1', size));
+      this.settings.setFaces(roundFaces('settings', size));
+      this.refreshMute();
     }
+    const btns = [this.pause, this.speed, this.mute, this.settings];
+    const s = topBarLayout(l, btns[0]!.w, btns[0]!.h);
+    btns.forEach((b, k) => b.position.set(s.buttons[k]!.x, s.buttons[k]!.y));
+    this.hateX = s.hateIcon.x;
+    this.hateY = s.hateIcon.y;
+    this.hateIcon.position.set(s.hateIcon.x, s.hateIcon.y);
+    this.hateLabel.position.set(s.hate.x, s.hate.y);
+    this.legitW = s.legit.w;
+    this.integW = s.integ.w;
+    this.legit.position.set(s.legit.x, s.legit.y);
+    this.integ.position.set(s.integ.x, s.integ.y);
+    this.waveIcon.position.set(s.waveIcon.x, s.waveIcon.y);
+    this.waveLabel.position.set(s.wave.x, s.wave.y);
+    this.crowdIcon.position.set(s.crowdIcon.x, s.crowdIcon.y);
+    this.crowdLabel.position.set(s.crowd.x, s.crowd.y);
+    this.slots = s;
     this.integX = this.integ.x;
     this.integY = this.integ.y;
     this.legitKey = this.integKey = '';
@@ -223,8 +324,9 @@ export class TopBar {
   update(dt: number, h: HudSnapshot): void {
     this.hate.update(dt, h.hate);
     const narrow = this.app.layout.topRows === 2;
+    const sl = this.slots;
     this.hateLabel.set(
-      narrow ? compactNumber(this.hate.display) : formatNumber(this.hate.display),
+      fitCount(this.hate.display, sl?.hate.maxW ?? 36, narrow),
       this.hate.bump > 0 ? 'hivis2' : 'stone5',
     );
     this.hateIcon.y = this.hateY - (this.hate.bump > 0.15 ? 1 : 0);
@@ -248,11 +350,11 @@ export class TopBar {
     this.integ.y = this.integY;
     this.flashT = Math.max(0, this.flashT - dt);
     this.integ.tint = this.flashT > 0 && Math.floor(this.flashT * 20) % 2 ? 0xffb0a0 : 0xffffff;
-    const status = waveStatus(h.phase, h.wave, h.breather);
+    let status = waveStatus(h.phase, h.wave, h.breather);
+    if (sl && measureText(FONTS.smallBold, status).w > sl.wave.maxW)
+      status = shortWaveStatus(h.phase, h.wave, h.breather);
     this.waveLabel.set(status, h.phase === 'breather' && h.breather <= 5 ? 'hivis2' : 'stone5');
-    this.crowdLabel.set(
-      narrow ? compactNumber(h.crowd + h.pending) : formatNumber(h.crowd + h.pending),
-    );
+    this.crowdLabel.set(fitCount(h.crowd + h.pending, sl?.crowd.maxW ?? 32, narrow));
   }
 
   destroy(): void {

@@ -6,6 +6,7 @@
  * with the simulation at compile time.
  */
 import type { CityId } from '../maps/contract';
+import { SPECIAL_SFX_IDS } from './sfx/specialIds';
 
 /** Every one-shot sound the engine can synthesise. */
 export const SFX_IDS = [
@@ -78,6 +79,8 @@ export const SFX_IDS = [
   'abilityReady',
   'victoryStinger',
   'defeatStinger',
+  // special skills (playtest round 2)
+  ...SPECIAL_SFX_IDS,
 ] as const;
 export type SfxId = (typeof SFX_IDS)[number];
 

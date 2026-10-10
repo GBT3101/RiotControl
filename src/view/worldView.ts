@@ -414,7 +414,8 @@ export class WorldView {
     // Knocked back away from his facing: SE / NE fall to screen-left, SW / NW to the right.
     const flip = u.facing === 1 || u.facing === 3;
     const back = flip ? 1 : -1;
-    this.fx.spawn('fx.ram.shove', x, y, now, { layer: 'entity', bias: 3, flip, priority: 2 });
+    // Overlay layer: the mob that rams him usually stands in front of him.
+    this.fx.spawn('fx.ram.shove', x, y, now, { layer: 'overlay', flip, priority: 2 });
     if (u.type !== 'mounted') {
       this.fx.spawn('fx.dust.land', x + back * 5, y, now, {
         layer: 'ground',

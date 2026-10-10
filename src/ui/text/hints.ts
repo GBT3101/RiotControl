@@ -26,7 +26,9 @@ export type HintTextId =
   | 'stalled'
   | 'realWeapons'
   | 'gasThrow'
-  | 'forecast';
+  | 'forecast'
+  | 'rammed'
+  | 'roofStormed';
 
 export const HINT_TEXT: Record<HintTextId, HintLine> = {
   sniperThrown: {
@@ -95,6 +97,14 @@ export const HINT_TEXT: Record<HintTextId, HintLine> = {
   forecast: {
     text: 'Protesters gather at the red flags. A new district joins in. Get ready.',
     touch: 'Protesters gather at the red flags. Tap one to look. Get ready.',
+    mood: 'sweat',
+  },
+  rammed: {
+    text: 'They bowled one of ours over! Alone, a cop is a skittle. Keep them together.',
+    mood: 'panic',
+  },
+  roofStormed: {
+    text: 'Climbers on a lonely roof! A sniper far from the line needs a cop nearby.',
     mood: 'sweat',
   },
 };

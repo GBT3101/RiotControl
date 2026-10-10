@@ -5,7 +5,7 @@
  */
 import { buf, col, hline, px, rect, stamp, vline } from '../art/fx/draw';
 import { crop, opaqueBounds, type PixelBuffer } from '../art/lib/pixels';
-import type { CardState } from '../art/uikit/cards';
+import { costStrip, lockLabel, type CardState } from '../art/uikit/cards';
 import { ICONS } from '../art/uikit/icons';
 import { FONTS, drawText, measureText } from '../art/uikit/text';
 import type { ProtesterId } from '../data/protesters';
@@ -203,24 +203,21 @@ export function compactCard(spec: {
   if (locked) {
     const pl = ICONS.padlock();
     stamp(b, pl, slot.x + Math.floor((slot.w - pl.w) / 2), slot.y + 5);
-    let t = `LVL ${spec.level ?? '?'}`;
-    if (measureText(FONTS.smallBold, t).w > W - 6) t = `L${spec.level ?? '?'}`;
+    const t = lockLabel(spec.level, W - 6);
     const m = measureText(FONTS.smallBold, t);
     const bx = x0 + Math.floor((W - m.w) / 2) - 2;
     rect(b, bx, cy, m.w + 4, 10, 'crim1');
     rect(b, bx + 1, cy + 1, m.w + 2, 8, face);
     drawText(b, FONTS.smallBold, t, bx + 2, cy + 2, 'crim1');
   } else {
-    const t = String(spec.cost);
-    const m = measureText(FONTS.smallBold, t);
-    // Wide costs (100+) drop the Hate face and centre the number.
-    const roomy = m.w <= W - 13;
-    if (roomy) stamp(b, ICONS.hateTiny(), x0 + 2, cy + 1);
+    // Wide costs (100+) drop the Hate face and centre the number (≥ 1 px between them).
+    const cs = costStrip(spec.cost, x0, W, 2, 3);
+    if (cs.faceX !== null) stamp(b, ICONS.hateTiny(), cs.faceX, cy + 1);
     drawText(
       b,
       FONTS.smallBold,
-      t,
-      roomy ? x0 + W - 3 - m.w : x0 + Math.floor((W - 1 - m.w) / 2),
+      cs.text,
+      cs.textX,
       cy + 2,
       st === 'unaffordable' ? 'crim2' : 'ink',
     );
