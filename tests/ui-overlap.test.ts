@@ -254,6 +254,7 @@ describe('city postcards', () => {
       for (const rec of [emptyRecord(), long, lost])
         for (const [w, h, horizontal] of [
           [222, 110, true],
+          [222, 124, true],
           [204, 104, true],
           [183, 96, true],
           [183, 70, true],

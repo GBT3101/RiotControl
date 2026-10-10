@@ -329,7 +329,8 @@ export class CitySelectScreen implements Screen {
     if (horizontal) {
       const w = Math.min(300, l.W - 12);
       const avail = bottom - top;
-      const h = Math.max(70, Math.min(110, Math.floor(avail / 3) - 14));
+      // Taller cards where there is room: the record lines wrap on narrow phones.
+      const h = Math.max(70, Math.min(124, Math.floor(avail / 3) - 14));
       this.cards.forEach((c, k) => {
         const y = top + k * (h + 14);
         const x = Math.floor((l.W - w) / 2);

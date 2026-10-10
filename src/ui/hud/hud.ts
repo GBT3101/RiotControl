@@ -50,7 +50,7 @@ export class Hud {
     this.info = new InfoPanel(app, game);
     this.placement = new Placement(app, game);
     this.forecast = new ForecastMarkers(app, game);
-    this.forecast.avoid = () => this.forecastAvoid();
+    this.forecast.avoid = () => this.pointerAvoid();
     this.forecast.waveRect = () => this.wave.rect();
     this.mapToggle = new Button(roundFaces('codex', 'lg'), {
       onTap: () => app.toggleMinimap(),
@@ -133,6 +133,21 @@ export class Hud {
     out.push(...this.app.moments.alertRects());
     const st = this.app.moments.stageRect();
     if (st) out.push(st);
+    return out;
+  }
+
+  /** forecastAvoid + the quick-pause stamp (the edge pointers keep clear of it too). */
+  private pointerAvoid(): Rect[] {
+    const out = this.forecastAvoid();
+    if (this.paused.visible) {
+      const t = this.paused.texture;
+      out.push({
+        x: this.paused.x - Math.floor(t.width / 2),
+        y: this.paused.y - Math.floor(t.height / 2),
+        w: t.width,
+        h: t.height,
+      });
+    }
     return out;
   }
 
