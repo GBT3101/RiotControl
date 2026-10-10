@@ -22,8 +22,11 @@ import {
 } from '../src/ui/strings';
 import { firstOverlap, inside, overlaps, type Box } from '../src/ui/core/boxes';
 import { frontPageLayout } from '../src/art/uikit/newspaper';
-import { paperHeight } from '../src/ui/screens/end';
-import { formatDuration, formatNumber } from '../src/ui/records';
+import { ledgerSections, paperHeight, rowLabelLines } from '../src/ui/screens/end';
+import { createStats } from '../src/sim/stats';
+import { PROTESTER_IDS } from '../src/data/protesters';
+import { emptyRecord, formatDuration, formatNumber, type CityRecord } from '../src/ui/records';
+import { postcard } from '../src/ui/screens/citySelect';
 import { pauseLayout } from '../src/ui/screens/pause';
 import { infoPanelLayout } from '../src/ui/hud/infoPanel';
 import { UNITS, UNIT_IDS } from '../src/data/units';
@@ -210,7 +213,7 @@ describe('selected-unit panel', () => {
               kills: d.commandable && h < 52 ? '' : d.attack ? 'KILLS 999' : 'HOLDING THE LINE',
               hint: d.commandable ? (touch ? UI_TEXT.moveHint : UI_TEXT.moveHintMouse) : '',
               ring: gas,
-              throwBtn: gas && ready ? { w: tb.w, h: tb.h } : null,
+              throwBtn: gas ? { w: tb.w, h: tb.h } : null,
             });
             const msg = `${w}x${h} ${id} ready=${ready} touch=${touch}`;
             const boxes: Record<string, Box> = {
@@ -220,16 +223,72 @@ describe('selected-unit panel', () => {
               hp: g.hp,
               hpText: g.hpText,
               role: g.role,
-              kills: g.kills,
-              hint: g.hint,
+              foot: g.kills,
             };
             if (g.ring) boxes.ring = g.ring;
             if (g.throwBtn) boxes.throwBtn = g.throwBtn;
             expect(firstOverlap(boxes), msg).toBe(null);
-            for (const [k, b] of Object.entries(boxes))
+            // The move hint takes turns with the kills in the same slot.
+            expect(firstOverlap({ ...boxes, foot: g.hint }), msg).toBe(null);
+            for (const [k, b] of Object.entries({ ...boxes, hint: g.hint }))
               if (b.w > 0)
                 expect(inside(b, { x: 0, y: 0, w, h: g.h }, 2), `${msg} ${k}`).toBe(true);
-            expect(g.h, msg).toBeLessThanOrEqual(h + 24);
+            expect(g.h, msg).toBeLessThanOrEqual(h + (gas ? 40 : 24));
           }
+  });
+});
+
+describe('city postcards', () => {
+  it('records and the CLASSIFIED stamp never run under the DEPLOY button or each other', () => {
+    const go = stampButton('DEPLOY', 0, 'normal');
+    const long: CityRecord = {
+      runs: 1234,
+      wins: 567,
+      bestLegit: 99999,
+      bestWave: 104,
+      fastestWin: 3 * 3600 + 59 * 60,
+      mostFallen: 99999,
+    };
+    const lost: CityRecord = { ...long, wins: 0 };
+    for (const city of ['madrid', 'london', 'paris'] as const)
+      for (const rec of [emptyRecord(), long, lost])
+        for (const [w, h, horizontal] of [
+          [222, 110, true],
+          [204, 104, true],
+          [183, 96, true],
+          [183, 70, true],
+          [150, 152, false],
+          [150, 196, false],
+          [120, 120, false],
+        ] as const) {
+          const btn = horizontal
+            ? { x: w - go.w - 8, y: h + 6 - go.h, w: go.w, h: go.h }
+            : { x: Math.floor((w - go.w) / 2), y: h + 4 - go.h, w: go.w, h: go.h };
+          const { boxes } = postcard(city, rec, w, h, null, horizontal, btn);
+          const msg = `${city} ${w}x${h} runs=${rec.runs}`;
+          expect(firstOverlap(boxes), msg).toBe(null);
+          for (const [k, b] of Object.entries(boxes))
+            expect(inside(b, { x: 0, y: 10, w, h }, 1), `${msg} ${k}`).toBe(true);
+          expect(boxes.name, msg).toBeDefined();
+        }
+  });
+});
+
+describe('stats ledger rows', () => {
+  it('long names wrap beside their value instead of running under it', () => {
+    const s = createStats();
+    for (const p of PROTESTER_IDS) s.protestersFallen[p] = 99999;
+    for (const u of UNIT_IDS) s.officersLost[u] = 9999;
+    s.hateEarned = 999999;
+    const icon = { w: 10, h: 10, data: new Uint8ClampedArray(400) };
+    const secs = ledgerSections(s, { protester: () => icon, unit: () => icon });
+    for (const w of [104, 120, 200, 250])
+      for (const sec of secs)
+        for (const r of sec.rows) {
+          const font = r.strong ? FONTS.smallBold : FONTS.small;
+          const room = w - (r.icon ? 12 : 0) - measureText(FONTS.smallBold, r.value).w - 4;
+          for (const ln of rowLabelLines(r, w))
+            expect(measureText(font, ln).w, `${w} ${r.label}`).toBeLessThanOrEqual(room);
+        }
   });
 });

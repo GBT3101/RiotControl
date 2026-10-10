@@ -524,7 +524,8 @@ export class ProtesterView {
         if (!ref) continue;
       }
       const clip = ref.clip;
-      if (anim === PA.walk || anim === PA.run) {
+      // (Prophets standing still keep their arms-up sprint at the art rate.)
+      if ((anim === PA.walk || anim === PA.run) && an !== PANIM.IDLE) {
         // Gait clock at the ground speed actually covered last tick (blocked → slow shuffle).
         const dx = c.x[s]! - c.px[s]!;
         const dy = c.y[s]! - c.py[s]!;

@@ -328,7 +328,7 @@ export class WorldView {
       switch (e.type) {
         case 'attacked':
           if (e.targetKind === 'protester') this.protesters.onHit(e.targetId, now);
-          else if (e.dmgType === 'crush') this.onRammed(e.targetId, now);
+          else if (e.dmgType === 'crush') this.onRammed(e.targetId, Math.max(now, e.tick * this.world.dt));
           break;
         case 'spawned':
           if (e.building >= 0) this.protesters.onSpawn(e.handle, now);
@@ -403,9 +403,11 @@ export class WorldView {
 
   /**
    * An officer rammed over by the mob: a crowd-surge shove through him, and a puff of street
-   * dust where he lands (his `rammed` clip hits the ground on frame 1).
+   * dust where he lands (his `rammed` clip hits the ground on frame 1). `t` = the ram's sim
+   * time, so the FX stay in step with his clip (played from `rammedAt`) even when several
+   * ticks ran since the last frame.
    */
-  private onRammed(id: number, now: number): void {
+  private onRammed(id: number, t: number): void {
     const u = this.world.units.get(id);
     if (!u) return;
     const p = tileToWorld(u.x, u.y);
@@ -415,9 +417,9 @@ export class WorldView {
     const flip = u.facing === 1 || u.facing === 3;
     const back = flip ? 1 : -1;
     // Overlay layer: the mob that rams him usually stands in front of him.
-    this.fx.spawn('fx.ram.shove', x, y, now, { layer: 'overlay', flip, priority: 2 });
+    this.fx.spawn('fx.ram.shove', x, y, t, { layer: 'overlay', flip, priority: 2 });
     if (u.type !== 'mounted') {
-      this.fx.spawn('fx.dust.land', x + back * 5, y, now, {
+      this.fx.spawn('fx.dust.land', x + back * 5, y, t, {
         layer: 'ground',
         offset: -0.12,
         flip,

@@ -23,7 +23,7 @@ import { UNITS, type UnitId } from '../../data/units';
 import { HOTKEYS } from '../../game/controller';
 import { protesterFigure, scaleUp, unitPortrait } from '../art';
 import { ease, prog, stampDrop } from '../core/anim';
-import { capBlockH, textBelow, textBox, type Box, type TextBox } from '../core/boxes';
+import { capBlockH, clearSpot, textBelow, textBox, type Box, type TextBox } from '../core/boxes';
 import { makeInteractive } from '../core/node';
 import { ownTex, uiTex, destroyOwned } from '../core/tex';
 import { CAPITOL_COPY, PROTESTER_COPY, UI_TEXT, UNIT_COPY, waveLine } from '../strings';
@@ -287,7 +287,7 @@ export class Moments {
   private readonly queue: Array<() => Stage> = [];
   private current: Stage | null = null;
   private now = 0;
-  private info: { sprite: Sprite; tex: Texture; t0: number } | null = null;
+  private info: { sprite: Sprite; tex: Texture; t0: number; at?: Box } | null = null;
 
   constructor(private readonly app: UiApp) {
     this.root.addChild(this.stageLayer, this.alertLayer, this.infoLayer);
@@ -327,7 +327,7 @@ export class Moments {
     const root = new Container({ label: 'levelup' });
     const l = this.app.layout;
     const narrow = l.W < 310;
-    const rib = ribbon(UI_TEXT.levelUp, narrow ? FONTS.smallBold : FONTS.large);
+    const rib = ribbon(UI_TEXT.levelUp, narrow ? FONTS.smallBold : FONTS.large, l.W - 4);
     // Stamps beside the paper when the screen is wide enough, else under it.
     const wideW = unlockDossierLayout(unit, level, true).w;
     const d = unlockDossier(unit, level, l.W - l.safe.left - l.safe.right >= wideW + 8);
@@ -534,10 +534,15 @@ export class Moments {
       this.info.sprite.destroy();
       this.info.tex.destroy(true);
     }
-    const m = measureText(FONTS.smallBold, text);
+    // Wrapped (centred) to the screen: long unit names would run off a phone.
+    const maxW = Math.min(240, this.app.layout.W - 24);
+    const m = measureText(FONTS.smallBold, text, maxW);
     const b = buf(m.w + 14, m.h + 10);
     stamp(b, panel('tooltip', b.w, b.h), 0, 0);
-    drawText(b, FONTS.smallBold, text, 7, 5, 'crim1');
+    drawText(b, FONTS.smallBold, text, 7 + Math.floor(m.w / 2), 5, 'crim1', {
+      maxWidth: maxW,
+      align: 'center',
+    });
     const tex = ownTex(b, 'info-toast');
     const sprite = new Sprite(tex);
     this.infoLayer.addChild(sprite);
@@ -602,10 +607,17 @@ export class Moments {
         this.info = null;
       } else {
         const s = this.info.sprite;
-        s.position.set(
-          Math.floor((l.W - s.texture.width) / 2),
-          Math.round(l.deploy.y - 52 - Math.min(4, t * 30)),
-        );
+        // Spot chosen when it appears (it then only rises 4 px): clear of the wave button and
+        // its countdown, the advisor, the alerts and the unit panel.
+        if (!this.info.at) {
+          const tw = s.texture.width;
+          const th = s.texture.height;
+          const avoid = this.toastAvoid();
+          const area = { x: 0, y: l.topBar.h + 2, w: l.W, h: l.deploy.y - l.topBar.h - 4 };
+          const cy = l.deploy.y - 52 + Math.floor(th / 2);
+          this.info.at = clearSpot(tw, th + 4, Math.floor(l.W / 2), cy, avoid, area);
+        }
+        s.position.set(this.info.at.x, Math.round(this.info.at.y + 4 - Math.min(4, t * 30)));
         s.alpha = t > 1.5 ? 1 - (t - 1.5) / 0.3 : 1;
       }
     }
@@ -626,6 +638,20 @@ export class Moments {
     let floor = l.H;
     for (const r of under) if (r.x < x1 && r.x + r.w > x0) floor = Math.min(floor, r.y - 3);
     return floor;
+  }
+
+  /** What an info toast keeps clear of. */
+  private toastAvoid(): Box[] {
+    const out: Box[] = [...this.alertRects()];
+    const adv = this.app.advisor.extent();
+    if (adv) out.push(adv);
+    const hud = this.app.hud;
+    if (hud?.info.root.visible) out.push(hud.info.rect());
+    const wb = hud?.wave.rect();
+    if (wb) out.push({ x: wb.x - 30, y: wb.y - 12, w: wb.w + 60, h: wb.h + 12 });
+    const st = this.stageRect();
+    if (st) out.push(st);
+    return out;
   }
 
   /** Resting rects (UI px) of the alerts on screen, for HUD pieces that keep clear of them. */

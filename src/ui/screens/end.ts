@@ -13,7 +13,7 @@
  *
  * Any tap fast-forwards the current beat.
  */
-import { Container, Matrix, RenderTexture, Sprite } from 'pixi.js';
+import { Container, Graphics, Matrix, RenderTexture, Sprite } from 'pixi.js';
 import { buf, col, hline, px, rect, stamp } from '../../art/fx/draw';
 import { crop, opaqueBounds, type PixelBuffer } from '../../art/lib/pixels';
 import { rubberStamp } from '../../art/uikit/banners';
@@ -59,7 +59,7 @@ export function frontPageBox(
 
 /**
  * Front-page height for a page `w` wide: the usual 4:3-ish sheet, taller when the headline and
- * deck wrap (narrow phones) so the picture keeps ≥ 40 px above the stamp's corner; ≤ `maxH`.
+ * deck wrap (narrow phones) so the picture keeps ≥ 56 px above the stamp's corner; ≤ `maxH`.
  */
 export function paperHeight(
   city: 'madrid' | 'london' | 'paris',
@@ -70,7 +70,7 @@ export function paperHeight(
   st: { w: number; h: number },
 ): number {
   const top = frontPageLayout(city, headline, deck, w, 400, st).photo.y;
-  const need = top + 40 + 3 + st.h + 12;
+  const need = top + 56 + 3 + st.h + 12;
   return Math.min(maxH, Math.max(Math.round(w * 0.76), need));
 }
 
@@ -259,9 +259,20 @@ export function ledgerSections(
 }
 
 const ROW_H = 11;
+/** Extra height per wrapped label line. */
+const WRAP_H = 9;
 
-function sectionHeight(sec: LedgerSection): number {
-  return 12 + sec.rows.length * ROW_H;
+/** A ledger row's label lines in a column `w` wide (long names wrap instead of truncating). */
+export function rowLabelLines(r: LedgerRow, w: number): string[] {
+  const font = r.strong ? FONTS.smallBold : FONTS.small;
+  const vm = measureText(FONTS.smallBold, r.value);
+  const maxLabel = w - (r.icon ? 12 : 0) - vm.w - 4;
+  return measureText(font, r.label, Math.max(20, maxLabel)).lines;
+}
+
+/** Height of a section in a column `w` wide. */
+export function sectionHeight(sec: LedgerSection, w: number): number {
+  return sec.rows.reduce((h, r) => h + ROW_H + (rowLabelLines(r, w).length - 1) * WRAP_H, 12);
 }
 
 /** Draw one section at (x, y) of width w, rows up to `upto` (typing reveal). */
@@ -280,6 +291,8 @@ function drawSection(
   let ry = y + 12;
   for (let k = 0; k < sec.rows.length && k < upto; k++) {
     const r = sec.rows[k]!;
+    const lines = rowLabelLines(r, w);
+    const extra = (lines.length - 1) * WRAP_H;
     let tx = x;
     if (r.icon) {
       stamp(b, r.icon, x + Math.floor((10 - r.icon.w) / 2), ry + 9 - r.icon.h);
@@ -287,16 +300,15 @@ function drawSection(
     }
     const font = r.strong ? FONTS.smallBold : FONTS.small;
     const vm = measureText(FONTS.smallBold, r.value);
-    const maxLabel = w - (tx - x) - vm.w - 4;
-    let label = r.label;
-    while (label.length > 3 && measureText(font, label).w > maxLabel)
-      label = `${label.slice(0, -2)}…`.replace('……', '…');
-    if (measureText(font, label).w > maxLabel) label = label.slice(0, 3);
-    drawText(b, font, label.replace('…', '.'), tx, ry + 2, r.strong ? 'ink' : 'gray1');
-    drawText(b, FONTS.smallBold, r.value, x + w - vm.w, ry + 2, 'ink');
-    const lw = measureText(font, label).w;
-    for (let dx = tx + lw + 2; dx < x + w - vm.w - 2; dx += 2) px(b, dx, ry + 8, 'stone2');
-    ry += ROW_H;
+    lines.forEach((ln, i) =>
+      drawText(b, font, ln, tx, ry + 2 + i * WRAP_H, r.strong ? 'ink' : 'gray1'),
+    );
+    // Value and dotted leader on the label's last line.
+    const vy = ry + 2 + extra;
+    drawText(b, FONTS.smallBold, r.value, x + w - vm.w, vy, 'ink');
+    const lw = measureText(font, lines[lines.length - 1] ?? '').w;
+    for (let dx = tx + lw + 2; dx < x + w - vm.w - 2; dx += 2) px(b, dx, vy + 6, 'stone2');
+    ry += ROW_H + extra;
   }
 }
 
@@ -344,6 +356,8 @@ export class EndScreen implements Screen {
   private stampAt = { x: 0, y: 0 };
   private scrollY = 0;
   private ledgerH = 0;
+  private readonly ledgerMask = new Graphics();
+  private maskY = -1;
 
   constructor(
     private readonly app: UiApp,
@@ -379,7 +393,15 @@ export class EndScreen implements Screen {
       drag: (_dx, dy) => this.scroll(dy),
       wheel: (dy) => this.scroll(-dy / 4),
     });
-    this.root.addChild(this.dim, this.paper, this.ledger, this.line, ...this.buttons);
+    this.root.addChild(
+      this.dim,
+      this.paper,
+      this.ledger,
+      this.ledgerMask,
+      this.line,
+      ...this.buttons,
+    );
+    this.ledger.mask = this.ledgerMask;
     for (const b of this.buttons) b.visible = false;
     this.ledger.visible = false;
     app.sfx('stamp');
@@ -470,13 +492,14 @@ export class EndScreen implements Screen {
     const colW = this.colW(l, cols);
     const gap = 10;
     let h: number;
-    if (cols === 3) h = Math.max(...this.sections.map(sectionHeight));
+    const sh = (sec: LedgerSection, w = colW): number => sectionHeight(sec, w);
+    if (cols === 3) h = Math.max(...this.sections.map((x) => sh(x)));
     else if (cols === 2)
       h =
-        Math.max(sectionHeight(this.sections[0]!), sectionHeight(this.sections[1]!)) +
+        Math.max(sh(this.sections[0]!), sh(this.sections[1]!)) +
         8 +
-        sectionHeight(this.sections[2]!);
-    else h = this.sections.reduce((n, s) => n + sectionHeight(s) + 8, -8);
+        sh(this.sections[2]!, colW * 2 + gap);
+    else h = this.sections.reduce((n, x) => n + sh(x) + 8, -8);
     const w = cols * colW + (cols - 1) * gap + 24;
     this.ledgerW = w;
     const cityName = CITY_COPY[this.game.world.map.city].name.toUpperCase();
@@ -485,7 +508,9 @@ export class EndScreen implements Screen {
     const tm = measureText(FONTS.smallBold, title);
     const rm = measureText(FONTS.smallBold, res);
     // Result right of the title, or on its own line when both don't fit side by side.
-    const oneLine = tm.w + 8 + rm.w <= w - 24;
+    // The folder's paper clip (dossier: x w-22..w-14, y 6..17) keeps a column to itself.
+    const right = w - 26;
+    const oneLine = tm.w + 8 + rm.w <= right - 12;
     const head = oneLine ? 18 : 29;
     // NEW RECORD stamp: its own strip under the last row (never over a ledger line).
     const rec = this.newBest
@@ -498,7 +523,7 @@ export class EndScreen implements Screen {
       b,
       FONTS.smallBold,
       res,
-      oneLine ? w - 12 - rm.w : 12,
+      oneLine ? right - rm.w : 12,
       oneLine ? 10 + 8 : 10 + 19,
       this.victory ? 'green2' : 'crim1',
     );
@@ -519,13 +544,13 @@ export class EndScreen implements Screen {
       const s2 = this.sections[2]!;
       drawSection(b, s0, 12, y0, colW, take(s0.rows.length));
       drawSection(b, s1, 12 + colW + gap, y0, colW, take(s1.rows.length));
-      const y1 = y0 + Math.max(sectionHeight(s0), sectionHeight(s1)) + 8;
+      const y1 = y0 + Math.max(sh(s0), sh(s1)) + 8;
       drawSection(b, s2, 12, y1, colW * 2 + gap, take(s2.rows.length));
     } else {
       let y = y0;
       for (const s of this.sections) {
         drawSection(b, s, 12, y, colW, take(s.rows.length));
-        y += sectionHeight(s) + 8;
+        y += sh(s) + 8;
       }
     }
     if (rec && this.rowsShown >= this.totalRows) stamp(b, rec, w - rec.w - 14, y0 + h + 2);
@@ -697,6 +722,13 @@ export class EndScreen implements Screen {
     }
     if (this.phase === 'done') this.placeButtons(l, Math.min(1, this.phaseT * 2));
     else this.placeButtons(l, 0);
+    // Once the buttons are up, a tall ledger (phones) scrolls under a clean edge above them
+    // instead of running behind their labels.
+    const by = this.buttons[0]!.visible ? this.buttons[0]!.y - 3 : l.H;
+    if (by !== this.maskY) {
+      this.maskY = by;
+      this.ledgerMask.clear().rect(0, 0, l.W, by).fill(0xffffff);
+    }
   }
 
   private lineScale(l: HudLayout): number {

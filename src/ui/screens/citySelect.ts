@@ -5,14 +5,21 @@
  * localStorage (or a CLASSIFIED stamp) and a DEPLOY stamp button.
  */
 import { Container, Sprite } from 'pixi.js';
-import { buf, hline, px, rect, stamp, vline } from '../../art/fx/draw';
+import { buf, hline, px, rect, stamp } from '../../art/fx/draw';
 import { crop, opaqueBounds, type PixelBuffer } from '../../art/lib/pixels';
 import { rubberStamp } from '../../art/uikit/banners';
-import { FONTS, drawText, measureText } from '../../art/uikit/text';
+import {
+  FONTS,
+  drawText,
+  measureText,
+  type BitmapFont,
+  type TextOptions,
+} from '../../art/uikit/text';
 import { assemblePieces, capitolPictures } from '../../game/boot';
 import { art } from '../../art/lib/atlas';
 import { CITIES, type CityId } from '../../maps/contract';
 import { Button, stampFaces } from '../core/button';
+import { overlaps, textBox, type Box } from '../core/boxes';
 import { makeInteractive } from '../core/node';
 import { atlasBuffer, ownTex, destroyOwned } from '../core/tex';
 import { formatDuration, formatNumber, type CityRecord } from '../records';
@@ -119,77 +126,139 @@ function recordLines(r: CityRecord): string[] {
   return out;
 }
 
-/** The whole postcard (dossier) for one city. */
-function postcard(
+/**
+ * The whole postcard (dossier) for one city, and the boxes of everything typed or stamped on
+ * it (buffer px). `button` is the DEPLOY button's box in the same coordinates: no text or stamp
+ * runs under it (lines re-wrap left of it, or are left out when there is no room).
+ */
+export function postcard(
   city: CityId,
   rec: CityRecord,
   w: number,
   h: number,
   art: PixelBuffer | null,
   horizontal: boolean,
-): PixelBuffer {
+  button: Box,
+): { buf: PixelBuffer; boxes: Record<string, Box> } {
   const copy = CITY_COPY[city];
   const b = dossier(w, h, `FILE: ${copy.name.toUpperCase()}`, !horizontal);
+  const boxes: Record<string, Box> = { button };
   const oy = 10;
+  // A text block that may not run under the button: narrowed left of it, else dropped.
+  const typeLine = (
+    font: BitmapFont,
+    str: string,
+    x: number,
+    y: number,
+    maxW: number,
+    colour: string,
+    key: string,
+    centre?: number,
+    opts: TextOptions = {},
+  ): boolean => {
+    const at = (mw: number): Box => {
+      const t = textBox(font, str, x, y, mw);
+      return centre === undefined ? t : { ...t, x: centre - Math.floor(t.w / 2) };
+    };
+    let mw = maxW;
+    let box = at(mw);
+    if (overlaps(box, button, 2)) {
+      mw = button.x - 3 - x;
+      box = at(mw);
+      if (mw < 30 || centre !== undefined || overlaps(box, button, 2)) return false;
+    }
+    if (box.y + box.h > oy + h - 3) return false;
+    drawText(b, font, str, centre ?? x, y, colour, {
+      ...opts,
+      maxWidth: mw,
+      ...(centre !== undefined ? { align: 'center' as const } : {}),
+    });
+    boxes[key] = box;
+    return true;
+  };
+  const classified = rubberStamp('CLASSIFIED', 'crim1', {
+    font: FONTS.smallBold,
+    tilt: -0.06,
+    seed: 5,
+  });
   if (horizontal) {
     const pw = Math.min(110, Math.floor(w * 0.46));
     const ph = h - 22;
     stamp(b, photo(city, art, pw, ph), 6, oy + 6);
+    boxes.photo = { x: 6, y: oy + 6, w: pw + 6, h: ph + 6 };
     const x = pw + 16;
     const tw = w - x - 8;
-    drawText(b, FONTS.large, copy.name.toUpperCase(), x, oy + 7, 'ink', { shadow: 'stone3' });
-    drawText(b, FONTS.small, copy.tagline, x, oy + 24, 'rust1', { maxWidth: tw });
-    const lines = recordLines(rec);
+    typeLine(FONTS.large, copy.name.toUpperCase(), x, oy + 7, tw, 'ink', 'name', undefined, {
+      shadow: 'stone3',
+    });
+    typeLine(FONTS.small, copy.tagline, x, oy + 24, tw, 'rust1', 'tagline');
     let y = oy + 24 + measureText(FONTS.small, copy.tagline, tw).h + 6;
-    for (const l of lines) {
-      drawText(b, FONTS.small, l, x, y, 'gray1', { maxWidth: tw });
-      y += 10;
+    const lines = recordLines(rec);
+    lines.forEach((l, k) => {
+      if (typeLine(FONTS.small, l, x, y, tw, 'gray1', `record${k}`))
+        y = boxes[`record${k}`]!.y + boxes[`record${k}`]!.h + 3 + FONTS.small.ascent;
+    });
+    if (!lines.length) {
+      const sb = { x, y, w: classified.w, h: classified.h };
+      if (!overlaps(sb, button, 2) && sb.y + sb.h <= oy + h - 2 && sb.x + sb.w <= w - 4) {
+        stamp(b, classified, x, y);
+        boxes.stamp = sb;
+      } else typeLine(FONTS.small, 'NO RECORD ON FILE', x, y, tw, 'stone1', 'stamp');
     }
-    if (!lines.length)
-      stamp(
-        b,
-        rubberStamp('CLASSIFIED', 'crim1', { font: FONTS.smallBold, tilt: -0.06, seed: 5 }),
-        x,
-        y,
-      );
-    return b;
+    return { buf: b, boxes };
   }
   const pw = w - 16;
   const ph = Math.max(40, Math.min(76, Math.floor(h * 0.42)));
   stamp(b, photo(city, art, pw - 6, ph), 8, oy + 7);
+  boxes.photo = { x: 8, y: oy + 7, w: pw, h: ph + 6 };
   let y = oy + 7 + ph + 10;
   const nm = measureText(FONTS.large, copy.name.toUpperCase());
-  drawText(b, FONTS.large, copy.name.toUpperCase(), Math.floor((w - nm.w) / 2), y, 'ink', {
-    shadow: 'stone3',
-  });
+  typeLine(
+    FONTS.large,
+    copy.name.toUpperCase(),
+    Math.floor((w - nm.w) / 2),
+    y,
+    w,
+    'ink',
+    'name',
+    undefined,
+    {
+      shadow: 'stone3',
+    },
+  );
   y += 17;
-  drawText(b, FONTS.small, copy.tagline, Math.floor(w / 2), y, 'rust1', {
-    align: 'center',
-    maxWidth: w - 16,
-  });
+  typeLine(FONTS.small, copy.tagline, 8, y, w - 16, 'rust1', 'tagline', Math.floor(w / 2));
   y += measureText(FONTS.small, copy.tagline, w - 16).h + 5;
   for (let x = 8; x < w - 8; x += 2) px(b, x, y, 'stone2');
   y += 4;
-  // Leave the bottom 28 px for the DEPLOY button.
-  const room = oy + h - 28 - y;
-  const lines = recordLines(rec).slice(0, Math.max(0, Math.floor(room / 10)));
-  for (const l of lines) {
-    drawText(b, FONTS.small, l, Math.floor(w / 2), y, 'gray1', {
-      align: 'center',
-      maxWidth: w - 12,
-    });
-    y += 10;
-  }
+  // Records and the stamp stay above the DEPLOY button.
+  const lines = recordLines(rec);
+  lines.forEach((l, k) => {
+    if (y + FONTS.small.capHeight > button.y - 3) return;
+    if (measureText(FONTS.small, l, w - 12).h + y > button.y - 3) return;
+    const key = `record${k}`;
+    // A long record wraps: the next line goes under all of it.
+    if (typeLine(FONTS.small, l, 6, y, w - 12, 'gray1', key, Math.floor(w / 2)))
+      y = Math.max(y + 10, boxes[key]!.y + boxes[key]!.h + 1 + FONTS.small.ascent);
+  });
   if (!rec.runs) {
-    const st = rubberStamp('CLASSIFIED', 'crim1', { font: FONTS.smallBold, tilt: -0.06, seed: 5 });
-    if (st.h <= room) stamp(b, st, Math.floor((w - st.w) / 2), y);
-    else
-      drawText(b, FONTS.small, 'NO RECORD ON FILE', Math.floor(w / 2), y, 'stone1', {
-        align: 'center',
-      });
+    const sb = { x: Math.floor((w - classified.w) / 2), y, w: classified.w, h: classified.h };
+    if (!overlaps(sb, button, 2) && sb.y + sb.h <= oy + h - 2) {
+      stamp(b, classified, sb.x, sb.y);
+      boxes.stamp = sb;
+    } else
+      typeLine(
+        FONTS.small,
+        'NO RECORD ON FILE',
+        6,
+        y,
+        w - 12,
+        'stone1',
+        'stamp',
+        Math.floor(w / 2),
+      );
   }
-  vline(b, 0, 0, 0, 'ink');
-  return b;
+  return { buf: b, boxes };
 }
 
 export class CitySelectScreen implements Screen {
@@ -264,13 +333,18 @@ export class CitySelectScreen implements Screen {
       this.cards.forEach((c, k) => {
         const y = top + k * (h + 14);
         const x = Math.floor((l.W - w) / 2);
-        this.setCard(
-          c,
-          postcard(c.city, this.app.records[c.city], w, h, pictures.get(c.city) ?? null, true),
-          x,
-          y,
+        const btn = { x: w - c.go.w - 8, y: h + 6 - c.go.h, w: c.go.w, h: c.go.h };
+        const card = postcard(
+          c.city,
+          this.app.records[c.city],
+          w,
+          h,
+          pictures.get(c.city) ?? null,
+          true,
+          btn,
         );
-        c.go.position.set(x + w - c.go.w - 8, y + h + 10 - c.go.h - 4);
+        this.setCard(c, card.buf, x, y);
+        c.go.position.set(x + btn.x, y + btn.y);
       });
     } else {
       const gap = 10;
@@ -279,13 +353,18 @@ export class CitySelectScreen implements Screen {
       const x0 = Math.floor((l.W - (w * 3 + gap * 2)) / 2);
       this.cards.forEach((c, k) => {
         const x = x0 + k * (w + gap);
-        this.setCard(
-          c,
-          postcard(c.city, this.app.records[c.city], w, h, pictures.get(c.city) ?? null, false),
-          x,
-          top,
+        const btn = { x: Math.floor((w - c.go.w) / 2), y: h + 4 - c.go.h, w: c.go.w, h: c.go.h };
+        const card = postcard(
+          c.city,
+          this.app.records[c.city],
+          w,
+          h,
+          pictures.get(c.city) ?? null,
+          false,
+          btn,
         );
-        c.go.position.set(x + Math.floor((w - c.go.w) / 2), top + h + 10 - c.go.h - 6);
+        this.setCard(c, card.buf, x, top);
+        c.go.position.set(x + btn.x, top + btn.y);
       });
     }
     this.back.position.set(l.safe.left + 6, l.H - l.safe.bottom - this.back.h - 4);

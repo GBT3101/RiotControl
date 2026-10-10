@@ -99,11 +99,12 @@ export const STAMPS: Record<string, [string, string]> = {
 
 /* Ribbon (level-up) ------------------------------------------------------------- */
 
-/** Ministry-red ribbon with brass piping and swallow-tail ends behind it. */
-export function ribbon(text: string, font: BitmapFont = FONTS.large): PixelBuffer {
+/** Ministry-red ribbon with brass piping and swallow-tail ends behind it (≤ `maxW` if it can). */
+export function ribbon(text: string, font: BitmapFont = FONTS.large, maxW = Infinity): PixelBuffer {
   const m = measureText(font, text);
   const bandH = font.capHeight + 12;
-  const tail = 18;
+  // Shorter swallow tails when the screen is narrow (the band and its text never shrink).
+  const tail = Math.max(8, Math.min(18, Math.floor((maxW - m.w - 24) / 2)));
   const drop = 5;
   const bandW = m.w + 24;
   const W = bandW + tail * 2;

@@ -54,7 +54,7 @@ export interface InfoPanelSpec {
   role: string;
   /** "KILLS n" / "HOLDING THE LINE" ('' = hidden). */
   kills: string;
-  /** Commandable units: the move hint, on its own line under the kills ('' = none). */
+  /** Commandable units: the move hint, blinking in turns with the kills ('' = none). */
   hint: string;
   /** Tear Gas Shooter: charge ring (bottom-right) and, when charged, the THROW GAS button. */
   ring: boolean;
@@ -94,7 +94,7 @@ export function infoPanelLayout(sp: InfoPanelSpec): InfoPanelLayout {
     const close = { x: sp.w - 12, y: 3, w: 9, h: 9 };
     const ring = sp.ring ? { x: sp.w - 21, y: h - 22, w: 18, h: 18 } : null;
     const tb = sp.throwBtn
-      ? { x: sp.w - sp.throwBtn.w - 24, y: h - sp.throwBtn.h - 3, ...sp.throwBtn }
+      ? { x: Math.max(6, sp.w - sp.throwBtn.w - 24), y: h - sp.throwBtn.h - 3, ...sp.throwBtn }
       : null;
     const obstacles = [close, ...(ring ? [ring] : []), ...(tb ? [tb] : [])];
     // Text block (cap line `cap`, ink from `after` down) wrapped to the room left of every
@@ -129,18 +129,16 @@ export function infoPanelLayout(sp: InfoPanelSpec): InfoPanelLayout {
       cap = role.capY + capBlockH(FONTS.small, sp.role, role.w) + 4;
       after = role.y + role.h + 1;
     }
+    // Bottom line: the kills and the blinking move hint take turns in the same slot.
     const footCap = Math.max(compact ? 33 : 45, cap);
     const kills = flow(FONTS.smallBold, sp.kills, footCap, after);
-    if (sp.kills) {
-      cap = kills.capY + capBlockH(FONTS.smallBold, sp.kills, kills.w) + 4;
-      after = kills.y + kills.h + 1;
-    }
-    const hint = flow(FONTS.smallBold, sp.hint, Math.max(footCap, cap), after);
-    const last = sp.hint ? hint : sp.kills ? kills : null;
+    const hint = flow(FONTS.smallBold, sp.hint, footCap, after);
+    const last = [kills, hint].filter((b) => b.w > 0).sort((a, b) => b.y + b.h - (a.y + a.h))[0];
     out = {
       h,
       compact,
-      well: { x: 12, y: Math.floor((h - ps) / 2) - 1, w: ps, h: ps },
+      // The portrait stays centred on the slot's rows (a footer row may grow under it).
+      well: { x: 12, y: Math.floor((sp.h - ps) / 2) - 1, w: ps, h: ps },
       close,
       name,
       hp,
@@ -258,6 +256,18 @@ export class InfoPanel {
     this.key = this.portraitKey = '';
   }
 
+  /**
+   * Bottom-left in its slot, grown upward — and lifted above the wave button (and its countdown
+   * line) when they would share columns, so the panel never covers LET THEM COME / CALL EARLY.
+   */
+  private place(): void {
+    let bottom = this.slot.y + this.slot.h;
+    const wb = this.app.hud?.wave.rect();
+    if (wb && wb.x < this.slot.x + this.w + 2 && wb.x + wb.w > this.slot.x - 2)
+      bottom = Math.min(bottom, wb.y - 13);
+    this.root.position.set(this.slot.x, bottom - this.panelH);
+  }
+
   /** UI rect of the panel as shown (it grows upward from its slot for long copy). */
   rect(): Box {
     return { x: this.root.x, y: this.root.y, w: this.w, h: this.panelH };
@@ -271,7 +281,6 @@ export class InfoPanel {
       this.bgW = this.w;
       swapOwned(this.bg, panel('paper', this.w, g.h), 'ui:info');
     }
-    this.root.position.set(this.slot.x, this.slot.y + this.slot.h - g.h);
     const ps = g.well.w;
     const pk = `${u.id}:${ps}:${g.well.y}`;
     const p = pk !== this.portraitKey ? unitPortrait(u.type) : null;
@@ -340,13 +349,15 @@ export class InfoPanel {
       kills: u.def.commandable && compact ? '' : u.def.attack ? `KILLS ${k}` : `HOLDING THE LINE`,
       hint: u.def.commandable ? (this.app.touch ? UI_TEXT.moveHint : UI_TEXT.moveHintMouse) : '',
       ring: gas,
-      throwBtn: gas && u.abilityReady ? { w: this.throwBtn.w, h: this.throwBtn.h } : null,
+      // Room for THROW GAS is kept while it charges too (the panel doesn't jump when ready).
+      throwBtn: gas ? { w: this.throwBtn.w, h: this.throwBtn.h } : null,
     };
-    const key = `${u.id}:${this.w}:${this.h}:${spec.hpText}:${spec.kills}:${spec.hint}:${!!spec.throwBtn}`;
+    const key = `${u.id}:${this.w}:${this.h}:${spec.hpText}:${spec.kills}:${spec.hint}`;
     if (key !== this.key) {
       this.key = key;
       this.build(u, spec);
     }
+    this.place();
     // Commandable hint / gas ability.
     this.ring.visible = gas;
     this.throwBtn.visible = gas && u.abilityReady;
@@ -360,7 +371,7 @@ export class InfoPanel {
       }
     }
     this.hint.visible = !!spec.hint && (compact || Math.floor(this.t * 1.6) % 2 === 0);
-    this.kills.visible = !!spec.kills;
+    this.kills.visible = !!spec.kills && !this.hint.visible;
   }
 
   /** Bouncing grenades over charged gas shooters (tap one to throw). */
