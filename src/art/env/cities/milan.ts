@@ -61,8 +61,8 @@ function marsigliesi(_look: unknown, rise: number): SlopeTex {
     const course = Math.floor(bi / 2);
     const col = (((ai + (course % 2) * 2) % 5) + 5) % 5;
     let c =
-      hash(Math.floor((ai + (course % 2) * 2) / 5), course, 0x3a) % 7 === 0
-        ? C('earth4')
+      hash(Math.floor((ai + (course % 2) * 2) / 5), course, 0x3a) % 9 === 0
+        ? C('earth3')
         : C('rust1');
     if (col === 0) c = C('earth2');
     else if (col === 1) c = lighter(c);

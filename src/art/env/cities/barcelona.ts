@@ -141,11 +141,11 @@ function bcnRoofs(o: OrnamentCtx): void {
         s0: 0,
         s1: len,
         z0: H,
-        h: 6,
-        profile: (t) => 0.35 + 0.65 * (0.5 - 0.5 * Math.cos(t * Math.PI * 2 * waves)),
+        h: 8,
+        profile: (t) => 0.2 + 0.8 * (0.5 - 0.5 * Math.cos(t * Math.PI * 2 * waves)),
         tex: (x, y, edge) => {
           if (edge === 0) return lighter(T);
-          if (edge === 1) {
+          if (edge === 1 || edge === 2) {
             const c = tile(x, y, SEED_MOD);
             return shade ? darker(c) : c;
           }
@@ -554,7 +554,7 @@ export const barcelona: EnvCity = {
     ],
     park: ['tree.palm', 'tree.plane'],
     street: 'tree.plane',
-    seed: 1009,
+    seed: 1020,
     icons: [
       ['kiosk', 13, 12],
       ['metro', 13, 5, 0.3, 0.7],

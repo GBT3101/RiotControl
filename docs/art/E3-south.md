@@ -5,17 +5,25 @@ South cities borrowed. Each one has its own ground materials, facades by buildin
 shopfronts, street furniture, parked cars, protest item, graffiti tag and map/minimap/postcard
 colours, and a prop for every decor kind its blueprint places.
 
-![Rome](../progress/e3-south-rome.png)
-![Barcelona](../progress/e3-south-barcelona.png)
-![Milan](../progress/e3-south-milan.png)
+In game, phone portrait, zoom 2 — Madrid, Rome, Barcelona, Milan:
 
-| File                                                   | What                                                         |
-| ------------------------------------------------------ | ------------------------------------------------------------ |
-| `src/art/env/cities/rome.ts` + `rome.grid.ts`           | Rome style + shared South helpers (sett/fan/framed fills, peeling plaster, potted plants, basin fountain, tricolore) |
-| `src/art/env/cities/barcelona.ts` + `barcelona.grid.ts` | Barcelona style (Panot, Rambla waves, boardwalk, palms, Canaletes, Modernista crests) |
-| `src/art/env/cities/milan.ts` + `milan.grid.ts`         | Milan style (granite, porphyry fans, tram rails, ringhiera, fashion wraps) |
-| `src/art/vehicles/cities/{rome,barcelona,milan}.ts`     | City vehicles (Fiat 500, Smart, taxis, buses, the Ventotto tram) |
-| one line each in `src/art/env/cities/index.ts` and `src/art/vehicles/cities/index.ts` | registration |
+![Madrid, Rome, Barcelona, Milan](../progress/e3-south-compare.png)
+
+Night, zoom 4 — Madrid / Rome (top), Barcelona / Milan (bottom):
+
+![Night](../progress/e3-south-night.png)
+
+Gallery street corners (`env.preview.<city>`) — Rome, Barcelona, Milan:
+
+![Kit](../progress/e3-south-kit.png)
+
+| File                                                                                  | What                                                                                                                 |
+| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `src/art/env/cities/rome.ts` + `rome.grid.ts`                                         | Rome style + shared South helpers (sett/fan/framed fills, peeling plaster, potted plants, basin fountain, tricolore) |
+| `src/art/env/cities/barcelona.ts` + `barcelona.grid.ts`                               | Barcelona style (Panot, Rambla waves, boardwalk, palms, Canaletes, Modernista crests)                                |
+| `src/art/env/cities/milan.ts` + `milan.grid.ts`                                       | Milan style (granite, porphyry fans, tram rails, ringhiera, fashion wraps)                                           |
+| `src/art/vehicles/cities/{rome,barcelona,milan}.ts`                                   | City vehicles (Fiat 500, Smart, taxis, buses, the Ventotto tram)                                                     |
+| one line each in `src/art/env/cities/index.ts` and `src/art/vehicles/cities/index.ts` | registration                                                                                                         |
 
 ## Rome — centro storico
 
@@ -115,11 +123,11 @@ colours, and a prop for every decor kind its blueprint places.
 
 All additive; cities that do not set them are unchanged.
 
-| Hook | Where | What |
-| ---- | ----- | ---- |
-| `CityMats.fills?: Partial<Record<PatternGround, GroundFill>>` | src/art/env/ground.ts (`paintGround`) | a city's own paving pattern replaces the default fill of sidewalk / cobble / plaza / quay / bridge / parkPath; details, markings, kerbs, edges still drawn over it |
-| `CityMats.tram?: { at, rail, railHi, groove }` | ground.ts (`drawMarking` → `drawTram`) | road centre lines get rails instead of the dash |
-| `FacadeStyle.finish?(c: FacadeFinishCtx)` | style.ts, bld/facade.ts (`paintFace`, after the cornice) | city finishing pass with fresh dice: cornices, string courses, peeling plaster, mosaics, ads |
+| Hook                                                          | Where                                                    | What                                                                                                                                                               |
+| ------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `CityMats.fills?: Partial<Record<PatternGround, GroundFill>>` | src/art/env/ground.ts (`paintGround`)                    | a city's own paving pattern replaces the default fill of sidewalk / cobble / plaza / quay / bridge / parkPath; details, markings, kerbs, edges still drawn over it |
+| `CityMats.tram?: { at, rail, railHi, groove }`                | ground.ts (`drawMarking` → `drawTram`)                   | road centre lines get rails instead of the dash                                                                                                                    |
+| `FacadeStyle.finish?(c: FacadeFinishCtx)`                     | style.ts, bld/facade.ts (`paintFace`, after the cornice) | city finishing pass with fresh dice: cornices, string courses, peeling plaster, mosaics, ads                                                                       |
 
 Reused from the other E3 agents rather than duplicated: `RoofStyle.ornament` (roof gardens,
 Modernista crests, Gaudí chimneys), `bld/ornaments.ts` (`gable`, `billboard`), the
