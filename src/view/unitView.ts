@@ -5,12 +5,13 @@
  * shot), helicopter (altitude + bob, rotor layer, ground shadow, downwash, night searchlight).
  *
  * Attack animations are re-started from the sim's `lastAttack` so the impact frame lands on
- * the damage tick; hits flash white; idles break into fidgets. Units behind buildings get a
+ * the damage tick; hits flash white; idles break into fidgets. Officers rammed over by a mob
+ * play `rammed` from `Unit.rammedAt` (bowled over, KO stars, back up). Units behind buildings get a
  * blue x-ray silhouette.
  */
 import { Sprite, type Container } from 'pixi.js';
 import { art, type AnimClip } from '../art/lib/atlas';
-import { BRIGADE_SQUAD_OFFSETS, unitAnimCatalog } from '../art/units';
+import { BRIGADE_SQUAD_OFFSETS, rammedStars, unitAnimCatalog } from '../art/units';
 import { facing16, type Dir16, type Dir8 } from '../art/vehicles/dirs';
 import {
   HELI_ALT,
@@ -299,6 +300,12 @@ export class UnitView {
     // Deploy-in.
     const dep = get('deploy');
     if (dep && now - e.deployT < dep.duration) return [dep, frameOnce(dep, now - e.deployT)];
+    // Rammed over by the mob (`rammedAt` is sim time, like `now`): plays over everything else.
+    if (u.rammedAt >= 0) {
+      const ram = get('rammed');
+      const age = now - u.rammedAt;
+      if (ram && age >= 0 && age < ram.duration) return [ram, frameOnce(ram, age)];
+    }
     // Grenade throw.
     const thr = get('throw');
     if (thr && now - e.throwT < thr.duration) return [thr, frameOnce(thr, now - e.throwT)];
@@ -379,6 +386,7 @@ export class UnitView {
       s.zIndex = key + k;
       s.tint = this.grade;
     }
+    this.drawStars(u, e, clip, fi, x, y - e.lift, key, mirror, now);
     // Gas spray drift puffs.
     if (u.type === 'gas' && u.state === US.ATTACKING && now - e.gasPuffT > 0.22) {
       e.gasPuffT = now;
@@ -386,6 +394,34 @@ export class UnitView {
     }
     const engaged = u.state === US.ATTACKING || now - e.atkStart < 2.5 || now - e.hurtT < 2.5;
     this.updateGhost(e, e.sprites[0]!, e.lift === 0, u.id === this.selected, engaged);
+  }
+
+  /** KO stars over a rammed officer while he is down (sprite slot 3, follows the frames). */
+  private drawStars(
+    u: Unit,
+    e: UnitEnt,
+    clip: AnimClip,
+    fi: number,
+    x: number,
+    y: number,
+    key: number,
+    mirror: number,
+    now: number,
+  ): void {
+    const off =
+      clip === clipOf(`unit.${UNIT_ART[u.type]}.rammed.${FACING4[u.facing]!}`)
+        ? rammedStars(UNIT_ART[u.type], fi)
+        : null;
+    const stars = off ? clipOf('fx.ko.stars') : null;
+    if (!off || !stars) {
+      if (e.sprites[3]) e.sprites[3].visible = false;
+      return;
+    }
+    const s = this.sprite(e, 3, this.layers.entities);
+    setTex(s, stars.frames[stars.frameAt(now - u.rammedAt)]!);
+    s.position.set(x + off.x * mirror, y + off.y);
+    s.zIndex = key + 4;
+    s.tint = this.grade;
   }
 
   private updateGhost(

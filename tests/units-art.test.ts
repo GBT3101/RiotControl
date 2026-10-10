@@ -5,7 +5,9 @@
 import { describe, expect, it } from 'vitest';
 import { SpriteRegistry } from '../src/art/lib/registry';
 import { PALETTE_RGB, SHADOW, SWATCHES } from '../src/art/palette';
-import { registerUnits, unitAnimCatalog, BLOCKADE_PIECES } from '../src/art/units';
+import { BALANCE } from '../src/data/balance';
+import { UNITS } from '../src/data/units';
+import { registerUnits, unitAnimCatalog, rammedStars, BLOCKADE_PIECES } from '../src/art/units';
 
 const reg = new SpriteRegistry();
 registerUnits(reg);
@@ -13,11 +15,11 @@ const catalog = unitAnimCatalog();
 const FACINGS = ['se', 'sw', 'ne', 'nw'] as const;
 
 const REQUIRED: Record<string, readonly string[]> = {
-  riot: ['idle', 'fidget', 'fidget2', 'walk', 'run', 'attack', 'hit', 'death', 'body', 'ko', 'deploy'],
-  cop: ['idle', 'fidget', 'walk', 'run', 'attack', 'reload', 'hit', 'death', 'body', 'deploy'],
-  soldier: ['idle', 'fidget', 'crouch', 'walk', 'run', 'attack', 'reload', 'hit', 'death', 'body', 'deploy'],
-  gas: ['idle', 'fidget', 'charged', 'walk', 'run', 'attack', 'throw', 'hit', 'death', 'body', 'deploy'],
-  horse: ['idle', 'fidget', 'walk', 'run', 'attack', 'hit', 'death', 'body', 'deploy', 'flee'],
+  riot: ['idle', 'fidget', 'fidget2', 'walk', 'run', 'attack', 'hit', 'death', 'body', 'ko', 'deploy', 'rammed'],
+  cop: ['idle', 'fidget', 'walk', 'run', 'attack', 'reload', 'hit', 'death', 'body', 'deploy', 'rammed'],
+  soldier: ['idle', 'fidget', 'crouch', 'walk', 'run', 'attack', 'reload', 'hit', 'death', 'body', 'deploy', 'rammed'],
+  gas: ['idle', 'fidget', 'charged', 'walk', 'run', 'attack', 'throw', 'hit', 'death', 'body', 'deploy', 'rammed'],
+  horse: ['idle', 'fidget', 'walk', 'run', 'attack', 'hit', 'death', 'body', 'deploy', 'flee', 'rammed'],
   sniper: ['idle', 'fidget', 'aim', 'attack', 'reload', 'hit', 'death', 'body', 'deploy'],
   brigade: ['idle', 'fidget', 'aim', 'attack', 'reload', 'hit', 'death', 'body', 'deploy'],
 };
@@ -72,6 +74,32 @@ describe('M4a units art', () => {
       const walk = reg.get(`unit.${unit}.walk.se`).frames.length;
       expect(walk).toBeGreaterThanOrEqual(6);
       expect(walk).toBeLessThanOrEqual(8);
+    }
+  });
+
+  it('every rammable unit has a rammed-over clip lasting exactly the knockdown', () => {
+    const ART: Record<string, string> = { riot: 'riot', gas: 'gas', mounted: 'horse', armed: 'cop', soldier: 'soldier' };
+    for (const def of Object.values(UNITS)) {
+      if (!def.rammable) continue;
+      const art = ART[def.id];
+      expect(art, def.id).toBeDefined();
+      for (const f of FACINGS) {
+        const d = reg.get(`unit.${art}.rammed.${f}`);
+        expect(d.loop).toBe(false);
+        expect(d.frames.length / d.fps).toBeCloseTo(BALANCE.mob.ramStun, 5);
+        // Ends standing: the last frame matches the unit's height, not a lying pose.
+        const idle = reg.get(`unit.${art}.idle.${f}`).frames[0]!;
+        const last = d.frames[d.frames.length - 1]!;
+        const top = (b: typeof idle): number => {
+          for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) if (b.data[(y * b.w + x) * 4 + 3] === 255) return y;
+          return b.h;
+        };
+        expect(Math.abs(top(last) - top(idle)), `${art}.${f}`).toBeLessThanOrEqual(1);
+      }
+      // KO stars orbit while he is down, never on the shove or once he is back up.
+      expect(rammedStars(art!, 0)).toBeNull();
+      expect(rammedStars(art!, 6)).not.toBeNull();
+      expect(rammedStars(art!, 11)).toBeNull();
     }
   });
 

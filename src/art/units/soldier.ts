@@ -4,8 +4,10 @@
  */
 import type { KeyMap } from '../lib/grid';
 import { LEG_PARTS } from './body.grid';
+import { DOWN_LEG_PARTS } from './down.grid';
 import { mergeBooks, parseParts, type UnitDef } from './kit';
 import { cycle } from './poses';
+import { rammedAnim } from './rammed';
 import { SOLDIER_PARTS } from './soldier.grid';
 
 export const SOLDIER_KEYS: KeyMap = {
@@ -37,7 +39,11 @@ export const SOLDIER_KEYS: KeyMap = {
   W: 'white',
 };
 
-const book = mergeBooks(parseParts(LEG_PARTS, 'legs'), parseParts(SOLDIER_PARTS, 'soldier'));
+const book = mergeBooks(
+  parseParts(LEG_PARTS, 'legs'),
+  parseParts(SOLDIER_PARTS, 'soldier'),
+  parseParts(DOWN_LEG_PARTS, 'down'),
+);
 
 const se = (legs: string, body: string, head: string, arms: string, extra = ''): string =>
   `_shadow ${legs} >${body} torso ${head} ${arms} ${extra}`.trim();
@@ -46,6 +52,9 @@ const ne = (legs: string, body: string, arms: string, extra = ''): string =>
 
 const WALK_BOB = [0, 1, 0, 0, 0, 1, 0, 0];
 const RUN_BOB = [0, 1, -1, 0, 1, -1];
+/** Rammed over: sitting in the street, still clutching the rifle (stoic). */
+const SOLDIER_SIT = (head: string): string => `_shadow legs.sit >0,1 torso ${head} arms.port+0,1`;
+
 const FALL = [
   '_shadow.long fall',
   '_shadow.long lie+0,-1',
@@ -216,6 +225,37 @@ export const SOLDIER: UnitDef = {
         ...FALL_NE,
       ],
     },
+    rammedAnim(
+      [
+        se('legs.brace', '-2,0', 'head.hurt', 'arms.port+-2,-1'),
+        '_shadow.long fall',
+        '_shadow.long lie+0,-1',
+        '_shadow.long lie',
+        '_shadow.long lie.flat',
+        '_shadow.long lie.flat',
+        SOLDIER_SIT('head.hurt+-1,0'),
+        SOLDIER_SIT('head.hurt+0,1'),
+        SOLDIER_SIT('head.blink+0,0'),
+        se('legs.crouch', '-1,3', 'head', 'arms.port+-1,2'),
+        se('legs.brace', '0,1', 'head', 'arms.port'),
+        se('legs.stand', '0,0', 'head', 'arms.port'),
+      ],
+      [
+        ne('legs.brace', '-2,0', 'arms.ne.port+-2,-1'),
+        '_shadow.long fall.ne',
+        '_shadow.long lie+0,-1',
+        '_shadow.long lie',
+        '_shadow.long lie.flat',
+        '_shadow.long lie.flat',
+        SOLDIER_SIT('head.hurt+-1,0'),
+        SOLDIER_SIT('head.hurt+0,1'),
+        SOLDIER_SIT('head.blink+0,0'),
+        ne('legs.crouch', '-1,3', 'arms.ne.port+-1,2'),
+        ne('legs.brace', '0,1', 'arms.ne.port'),
+        ne('legs.stand', '0,0', 'arms.ne.port'),
+      ],
+      'Rammed over by the mob (1.2 s): shoved flat, sits up still clutching the rifle (stoic), straight back up.',
+    ),
     {
       anim: 'body',
       fps: 0,

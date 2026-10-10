@@ -10,6 +10,10 @@
  * crisp red x-ray silhouette (capped). At far zoom with huge crowds, animation frames update
  * at half rate (LOD).
  *
+ * Walk / run cycles play at the protester's actual ground speed (playtest round: crowds walk
+ * 1.5× faster): each frame advances a per-protester gait clock by speed ÷ stride, so planted
+ * feet stay put on the street at any speed, for every gait.
+ *
  * No allocation in the per-frame loop.
  */
 import { Sprite, Texture, type Container } from 'pixi.js';
@@ -57,6 +61,27 @@ export interface ClipRef {
   key: number;
 }
 
+/**
+ * How far a planted foot slides back per clip frame (screen px), measured on the protester leg
+ * grids (art/protesters/body.grid.ts; tests/view-gait.test.ts keeps them in sync): the walk
+ * steps 7 px every 4 frames, the paparazzo's wide shuffle 7 px every 2, the run 7.5 px every 3.
+ */
+export const STRIDE_PX = { walk: 1.75, shuffle: 3.5, run: 2.5 } as const;
+/** Screen px per tile of travel along a street (iso tile axes move 16 px across). */
+const PX_PER_TILE = HALF_TW;
+/** Gait playback is clamped to this range of the clip's art fps (shoving in place, sprints). */
+export const GAIT_RATE_MIN = 0.35;
+export const GAIT_RATE_MAX = 2.5;
+
+/**
+ * Playback rate (× the clip's fps) that keeps feet planted at `speed` tiles/s, for a cycle
+ * whose planted foot travels `stride` px per frame at `fps`.
+ */
+export function gaitRate(speed: number, stride: number, fps: number): number {
+  const r = (speed * PX_PER_TILE) / (stride * fps);
+  return r < GAIT_RATE_MIN ? GAIT_RATE_MIN : r > GAIT_RATE_MAX ? GAIT_RATE_MAX : r;
+}
+
 /** Share of protesters (of types that have both) drawn with a raised sign / placard. */
 export const SIGN_SHARE = 0.12;
 
@@ -75,6 +100,8 @@ export class VariantTable {
   private readonly clips: Array<Array<ClipRef | null> | null> = [];
   private readonly byType = new Map<string, number[]>();
   private readonly signed = new Set<number>();
+  /** Walk-cycle stride (px per frame) per variant: the paparazzo shuffles. */
+  readonly walkStride: number[] = [];
   private readonly split = new Map<number[], { sign: number[]; plain: number[] }>();
   private manifest: ProtesterManifest;
 
@@ -92,6 +119,7 @@ export class VariantTable {
         const vi = this.prefixes.length;
         this.prefixes.push(v.prefix);
         this.clips.push(null);
+        this.walkStride.push(v.gait === 'shuffle' ? STRIDE_PX.shuffle : STRIDE_PX.walk);
         if (holdsSign(v)) this.signed.add(vi);
         const all = this.byType.get(type) ?? [];
         all.push(vi);
@@ -226,6 +254,9 @@ export class ProtesterView {
   private readonly vFlashT: Float64Array;
   private readonly vHeaveT: Float64Array;
   private readonly vPhase: Float32Array;
+  /** Gait clock (s of clip time) for the walk / run cycles, advanced at the actual speed. */
+  private readonly vGaitT: Float64Array;
+  private lastNow = -1;
   grade = 0xffffff;
   /** Anim LOD (half-rate frame updates). */
   lod = false;
@@ -247,6 +278,7 @@ export class ProtesterView {
     this.vFlashT = new Float64Array(cap).fill(-99);
     this.vHeaveT = new Float64Array(cap).fill(-99);
     this.vPhase = new Float32Array(cap);
+    this.vGaitT = new Float64Array(cap);
   }
 
   /** Bind a slot to its current protester (resets view state when the slot was reused). */
@@ -258,6 +290,7 @@ export class ProtesterView {
     this.vVariant[s] = this.variants.pick(c.type[s]!, c.variant[s]!, c.loadout[s]!);
     this.vHitT[s] = this.vDoorT[s] = this.vFlashT[s] = this.vHeaveT[s] = -99;
     this.vPhase[s] = ((c.variant[s]! >>> 11) & 1023) / 512;
+    this.vGaitT[s] = this.vPhase[s]!;
   }
 
   /**
@@ -384,6 +417,10 @@ export class ProtesterView {
     const y0 = view.y0 - 8;
     const y1 = view.y1 + 40;
     const grade = this.grade;
+    // Frame step in sim seconds (paused → 0; capped so a hitch never spins the legs).
+    const dt = this.lastNow < 0 ? 0 : Math.min(0.1, Math.max(0, now - this.lastNow));
+    this.lastNow = now;
+    const invTick = 1 / this.world.dt;
     for (let s = 0; s < hi; s++) {
       if (!c.alive[s]) continue;
       const st = c.state[s]!;
@@ -487,6 +524,15 @@ export class ProtesterView {
         if (!ref) continue;
       }
       const clip = ref.clip;
+      if (anim === PA.walk || anim === PA.run) {
+        // Gait clock at the ground speed actually covered last tick (blocked → slow shuffle).
+        const dx = c.x[s]! - c.px[s]!;
+        const dy = c.y[s]! - c.py[s]!;
+        const speed = Math.sqrt(dx * dx + dy * dy) * invTick;
+        const stride = anim === PA.run ? STRIDE_PX.run : vt.walkStride[vi]!;
+        t = this.vGaitT[s]! + dt * gaitRate(speed, stride, clip.fps);
+        this.vGaitT[s] = t;
+      }
       const e = this.acquire();
       const sp = e.sprite;
       if (lodOdd < 0 || (s & 1) === lodOdd || e.slot !== s) {

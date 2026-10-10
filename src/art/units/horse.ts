@@ -8,6 +8,7 @@
 import type { KeyMap } from '../lib/grid';
 import { mergeBooks, parseParts, type UnitDef } from './kit';
 import { cycle } from './poses';
+import { rammedAnim } from './rammed';
 import { HORSE_LEGS, HORSE_PARTS } from './horse.grid';
 
 export const HORSE_KEYS: KeyMap = {
@@ -138,6 +139,9 @@ const HEAD_NOD = [0, 1, 1, 0, 0, 1, 1, 0];
 
 const REAR = (front: string, extra = '', rider = 'rider.leg+1,2 rider.torso+1,2 rider.head+1,2 rider.arm.up+1,2'): string =>
   `_shadow horse.rear ${front} ${rider} ${extra}`.trim();
+
+/** Rammed: the rider clinging on, dazed, while the horse rears. */
+const RIDER_HURT = 'rider.leg+1,2 rider.torso+1,2 rider.head.hurt+1,2 rider.arm.up+1,2';
 
 export const HORSE: UnitDef = {
   id: 'horse',
@@ -271,6 +275,37 @@ export const HORSE: UnitDef = {
         mountNE({ legs: STAND }),
       ],
     },
+    rammedAnim(
+      [
+        mountSE({ legs: STAND, body: -1, head: 'horse.head.up', tail: 'tail.fly', riderHead: 'rider.head.hurt', arm: 'up' }),
+        REAR('rear.legs.front@25,11', '', RIDER_HURT),
+        REAR('rear.legs.front2@25,10', '', RIDER_HURT),
+        REAR('rear.legs.front@25,11', '', RIDER_HURT),
+        REAR('rear.legs.front2@25,10', '', RIDER_HURT),
+        mountSE({ legs: STAND, body: 1, rider: 2, head: 'horse.head.down', riderHead: 'rider.head.hurt' }),
+        mountSE({ legs: PAW, head: 'horse.head.down', tail: 'tail.swish', riderHead: 'rider.head.hurt' }),
+        mountSE({ legs: STAND, rider: 1, head: 'horse.head.down', riderHead: 'rider.head.hurt' }),
+        mountSE({ legs: PAW, head: 'horse.head', tail: 'tail.swish', riderHead: 'rider.head.hurt' }),
+        mountSE({ legs: STAND, head: 'horse.head.up', tail: 'tail.swish' }),
+        mountSE({ legs: STAND, head: 'horse.head.up' }),
+        mountSE({ legs: STAND }),
+      ],
+      [
+        mountNE({ legs: STAND, body: -1, head: 'horse.head.ne+0,-2', arm: 'up' }),
+        REAR('rear.legs.front@25,11', '', RIDER_HURT),
+        REAR('rear.legs.front2@25,10', '', RIDER_HURT),
+        REAR('rear.legs.front@25,11', '', RIDER_HURT),
+        REAR('rear.legs.front2@25,10', '', RIDER_HURT),
+        mountNE({ legs: STAND, body: 1, rider: 2 }),
+        mountNE({ legs: PAW }),
+        mountNE({ legs: STAND, rider: 1 }),
+        mountNE({ legs: PAW }),
+        mountNE({ legs: STAND, head: 'horse.head.ne+0,-2' }),
+        mountNE({ legs: STAND, head: 'horse.head.ne+0,-2' }),
+        mountNE({ legs: STAND }),
+      ],
+      'Rammed by the mob (1.2 s): the horse shies and rears, the rider clings on dazed, it stamps and settles. Nobody falls.',
+    ),
     {
       anim: 'death',
       fps: 10,

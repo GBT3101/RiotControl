@@ -328,6 +328,7 @@ export class WorldView {
       switch (e.type) {
         case 'attacked':
           if (e.targetKind === 'protester') this.protesters.onHit(e.targetId, now);
+          else if (e.dmgType === 'crush') this.onRammed(e.targetId, now);
           break;
         case 'spawned':
           if (e.building >= 0) this.protesters.onSpawn(e.handle, now);
@@ -397,6 +398,29 @@ export class WorldView {
         default:
       }
       this.combat.onEvent(e, now, realMs, v);
+    }
+  }
+
+  /**
+   * An officer rammed over by the mob: a crowd-surge shove through him, and a puff of street
+   * dust where he lands (his `rammed` clip hits the ground on frame 1).
+   */
+  private onRammed(id: number, now: number): void {
+    const u = this.world.units.get(id);
+    if (!u) return;
+    const p = tileToWorld(u.x, u.y);
+    const x = Math.round(p.x);
+    const y = Math.round(p.y);
+    // Knocked back away from his facing: SE / NE fall to screen-left, SW / NW to the right.
+    const flip = u.facing === 1 || u.facing === 3;
+    const back = flip ? 1 : -1;
+    this.fx.spawn('fx.ram.shove', x, y, now, { layer: 'entity', bias: 3, flip, priority: 2 });
+    if (u.type !== 'mounted') {
+      this.fx.spawn('fx.dust.land', x + back * 5, y, now, {
+        layer: 'ground',
+        offset: -0.12,
+        flip,
+      });
     }
   }
 

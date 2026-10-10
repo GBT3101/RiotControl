@@ -5,9 +5,11 @@
  */
 import type { KeyMap } from '../lib/grid';
 import { LEG_PARTS } from './body.grid';
+import { DOWN_LEG_PARTS, GAS_DOWN_PARTS } from './down.grid';
 import { GAS_PARTS } from './gas.grid';
 import { mergeBooks, parseParts, type UnitDef } from './kit';
 import { cycle } from './poses';
+import { rammedAnim } from './rammed';
 
 export const GAS_KEYS: KeyMap = {
   o: 'ink',
@@ -40,7 +42,12 @@ export const GAS_KEYS: KeyMap = {
   Z: 'stone5',
 };
 
-const book = mergeBooks(parseParts(LEG_PARTS, 'legs'), parseParts(GAS_PARTS, 'gas'));
+const book = mergeBooks(
+  parseParts(LEG_PARTS, 'legs'),
+  parseParts(GAS_PARTS, 'gas'),
+  parseParts(DOWN_LEG_PARTS, 'down'),
+  parseParts(GAS_DOWN_PARTS, 'gas.down'),
+);
 
 const se = (legs: string, body: string, head: string, arms: string, extra = ''): string =>
   `_shadow ${legs} >${body} torso ${head} ${arms} ${extra}`.trim();
@@ -49,6 +56,10 @@ const ne = (legs: string, body: string, arms: string, extra = '', head = 'head.n
 
 const WALK_BOB = [0, 1, 0, 0, 0, 1, 0, 0];
 const RUN_BOB = [0, 1, -1, 0, 1, -1];
+/** Rammed over: sitting in the street, launcher beside him, head tilted like a curious dog. */
+const GAS_SIT = (head: string): string =>
+  `_shadow launcher.ground@21,19 legs.sit >0,1 torso ${head} arm.rest`;
+
 const FALL = [
   '_shadow.long fall',
   '_shadow.long lie+0,-1',
@@ -224,6 +235,37 @@ export const GAS: UnitDef = {
         ...FALL_NE,
       ],
     },
+    rammedAnim(
+      [
+        se('legs.brace', '-2,0', 'head.hurt', 'arm.rest+-1,-1', 'launcher.ground@18,9'),
+        '_shadow.long fall launcher.ground@17,19',
+        '_shadow.long lie+0,-1 launcher.ground@17,20',
+        '_shadow.long lie launcher.ground@17,20',
+        '_shadow.long lie.flat launcher.ground@17,20',
+        '_shadow.long lie.flat launcher.ground@17,20',
+        GAS_SIT('head.hurt+-1,0'),
+        GAS_SIT('head.tilt+0,1'),
+        GAS_SIT('head.tilt+1,0'),
+        '_shadow legs.crouch launcher.ground@17,20 >-1,3 torso head.hurt arm.rest+2,0',
+        se('legs.brace', '0,1', 'head.tilt', 'arms.hold'),
+        se('legs.stand', '0,0', 'head', 'arms.hold'),
+      ],
+      [
+        ne('legs.brace', '-2,0', 'arms.ne.hold+-1,-1'),
+        '_shadow.long fall.ne launcher.ground@17,19',
+        '_shadow.long lie+0,-1 launcher.ground@17,20',
+        '_shadow.long lie launcher.ground@17,20',
+        '_shadow.long lie.flat launcher.ground@17,20',
+        '_shadow.long lie.flat launcher.ground@17,20',
+        GAS_SIT('head.hurt+-1,0'),
+        GAS_SIT('head.tilt+0,1'),
+        GAS_SIT('head.tilt+1,0'),
+        '_shadow legs.crouch launcher.ground@17,20 >-1,3 torso.ne head.ne arms.ne.hold+0,1',
+        ne('legs.brace', '0,1', 'arms.ne.hold'),
+        ne('legs.stand', '0,0', 'arms.ne.hold'),
+      ],
+      'Rammed over by the mob (1.2 s): shoved, launcher dropped, flat out, sits up tilting his head at the sky, picks it up, back up.',
+    ),
     {
       anim: 'body',
       fps: 0,

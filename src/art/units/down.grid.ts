@@ -7,11 +7,12 @@
 /** Sitting on the street, legs out toward the camera, boots up (matches riot `ko.body`). */
 export const DOWN_LEG_PARTS = `
 == legs.sit 6,17
-..33332222....
-.333333.2222..
-.3333K...222K.
-..333nBb..2nBb
-....bbbb..bbbb
+..33332222...nB.
+.333333222222nBb
+.3333331122222Bb
+..33333333K3nBb.
+...........nBBb.
+...........bbb..
 `;
 
 /** Armed cop: the pistol skitters out of his hands. */

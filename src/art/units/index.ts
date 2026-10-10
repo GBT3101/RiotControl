@@ -16,6 +16,7 @@ import { SOLDIER } from './soldier';
 export { unitAnimCatalog, unitAnimMeta, BRIGADE_SQUAD_OFFSETS, type UnitAnimMeta } from './catalog';
 export { BLOCKADE_PIECES, BLOCKADE_STATES } from './blockade';
 export { COP_SKINS } from './riot';
+export { rammedStars } from './rammed';
 
 export function registerUnits(reg: SpriteRegistry): void {
   registerUnitDef(reg, RIOT);

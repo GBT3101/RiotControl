@@ -4,9 +4,11 @@
  */
 import type { KeyMap } from '../lib/grid';
 import { LEG_PARTS } from './body.grid';
+import { DOWN_LEG_PARTS, COP_DOWN_PARTS } from './down.grid';
 import { COP_PARTS } from './cop.grid';
 import { mergeBooks, parseParts, type UnitDef } from './kit';
 import { cycle } from './poses';
+import { rammedAnim } from './rammed';
 
 export const COP_KEYS: KeyMap = {
   o: 'ink',
@@ -39,7 +41,12 @@ export const COP_KEYS: KeyMap = {
   f: 'ochre3',
 };
 
-const book = mergeBooks(parseParts(LEG_PARTS, 'legs'), parseParts(COP_PARTS, 'cop'));
+const book = mergeBooks(
+  parseParts(LEG_PARTS, 'legs'),
+  parseParts(COP_PARTS, 'cop'),
+  parseParts(DOWN_LEG_PARTS, 'down'),
+  parseParts(COP_DOWN_PARTS, 'cop.down'),
+);
 
 const se = (legs: string, body: string, head: string, arms: string, extra = ''): string =>
   `_shadow ${legs} >${body} torso ${head} ${arms} ${extra}`.trim();
@@ -48,6 +55,10 @@ const ne = (legs: string, body: string, arms: string, extra = ''): string =>
 
 const WALK_BOB = [0, 1, 0, 0, 0, 1, 0, 0];
 const RUN_BOB = [0, 1, -1, 0, 1, -1];
+
+/** Rammed over: sitting in the street, pistol gone, sweating. */
+const COP_SIT = (head: string, extra = ''): string =>
+  `_shadow pistol.ground@22,20 legs.sit >0,1 torso ${head} arm.rest ${extra}`.trim();
 
 const FALL = [
   '_shadow.long fall',
@@ -199,6 +210,37 @@ export const COP: UnitDef = {
         ...FALL_NE,
       ],
     },
+    rammedAnim(
+      [
+        se('legs.brace', '-2,0', 'head.hurt', 'arm.back', 'pistol.ground@20,8'),
+        '_shadow.long fall pistol.ground@20,19',
+        '_shadow.long lie+0,-1 pistol.ground@20,20',
+        '_shadow.long lie pistol.ground@20,20',
+        '_shadow.long lie.flat pistol.ground@20,20',
+        '_shadow.long lie.flat pistol.ground@20,20',
+        COP_SIT('head.hurt+-1,0'),
+        COP_SIT('head.hurt+0,1', '!sweat+0,2'),
+        COP_SIT('head.hurt+1,0', '!sweat+1,5'),
+        '_shadow legs.crouch pistol.ground@19,20 >-1,3 torso head.hurt arm.fwd',
+        se('legs.brace', '0,1', 'head.blink', 'arms.low'),
+        se('legs.stand', '0,0', 'head', 'arms.low'),
+      ],
+      [
+        ne('legs.brace', '-2,0', 'arm.ne.rest+1,-2', 'pistol.ground@20,6'),
+        '_shadow.long fall.ne pistol.ground@20,19',
+        '_shadow.long lie+0,-1 pistol.ground@20,20',
+        '_shadow.long lie pistol.ground@20,20',
+        '_shadow.long lie.flat pistol.ground@20,20',
+        '_shadow.long lie.flat pistol.ground@20,20',
+        COP_SIT('head.hurt+-1,0'),
+        COP_SIT('head.hurt+0,1', '!sweat+0,2'),
+        COP_SIT('head.hurt+1,0', '!sweat+1,5'),
+        '_shadow legs.crouch pistol.ground@19,20 >-1,3 torso.ne head.ne arm.ne.rest',
+        ne('legs.brace', '0,1', 'arms.ne.low'),
+        ne('legs.stand', '0,0', 'arms.ne.low'),
+      ],
+      'Rammed over by the mob (1.2 s): shoved, pistol skitters away, flat out, sits up sweating, grabs the pistol, back up.',
+    ),
     {
       anim: 'body',
       fps: 0,
