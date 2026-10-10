@@ -21,7 +21,7 @@ import { setTex } from './sprites';
 /** Seconds of a wave during which its districts stay marked. */
 export const FORECAST_WAVE_SECONDS = 10;
 /** Trail: first chevron, spacing and length along the route (tiles). */
-const TRAIL = { start: 1.4, step: 1.7, length: 22 };
+const TRAIL = { start: 1.4, step: 1.5, length: 22 };
 /** Pulse: speed (tiles/s) and period (tiles) of the bright band running down a trail. */
 const PULSE = { speed: 7, period: 9, bright: 1.8, lit: 4.2 };
 const REFRESH = 0.3;
@@ -125,7 +125,9 @@ export class ForecastView {
         for (let k = 1; k < r.length; k++) {
           const a = r[k - 1]!;
           const b = r[k]!;
-          cum.push(cum[k - 1]! + Math.hypot((b % W) - (a % W), Math.floor(b / W) - Math.floor(a / W)));
+          cum.push(
+            cum[k - 1]! + Math.hypot((b % W) - (a % W), Math.floor(b / W) - Math.floor(a / W)),
+          );
         }
         const total = cum[cum.length - 1]!;
         const end = Math.min(TRAIL.length, total - 1);
@@ -134,7 +136,10 @@ export class ForecastView {
           while (k < cum.length - 1 && cum[k]! < s) k++;
           const a = r[k - 1]!;
           const b = r[k]!;
-          const t = Math.max(0, Math.min(1, (s - cum[k - 1]!) / Math.max(1e-6, cum[k]! - cum[k - 1]!)));
+          const t = Math.max(
+            0,
+            Math.min(1, (s - cum[k - 1]!) / Math.max(1e-6, cum[k]! - cum[k - 1]!)),
+          );
           return {
             u: (a % W) + ((b % W) - (a % W)) * t + 0.5,
             v: Math.floor(a / W) + (Math.floor(b / W) - Math.floor(a / W)) * t + 0.5,

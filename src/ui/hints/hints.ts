@@ -11,6 +11,7 @@ import { LEVELS, WIN_LEGITIMACY } from '../../data/levels';
 import { protesterDef, type ProtesterId } from '../../data/protesters';
 import { UNITS } from '../../data/units';
 import type { GameController } from '../../game/controller';
+import { waveForecast } from '../../sim/forecast';
 import { protesterFigure } from '../art';
 import { CITY_COPY } from '../text/cities';
 import { HINT_TEXT, IDLE_QUIPS, MEMO_TITLE, type HintTextId } from '../text/hints';
@@ -119,6 +120,8 @@ export class Hints {
       }),
       b.on('waveEnd', (e) => {
         this.breathers++;
+        // First breather before a district joins in: point at the incoming-wave flags.
+        if (waveForecast(game.world).districts.some((d) => d.isNew)) this.offerFixed('forecast');
         if (e.breather < 10 || e.wave < 2) return;
         const quip = this.breathers % 2 === 0;
         this.sched.offer({

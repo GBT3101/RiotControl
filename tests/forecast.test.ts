@@ -1,3 +1,4 @@
+import { Container } from 'pixi.js';
 import { describe, expect, it } from 'vitest';
 import { waveSize } from '../src/data/balance';
 import { PT } from '../src/data/protesters';
@@ -14,6 +15,9 @@ import {
   waveForecast,
 } from '../src/sim/forecast';
 import { World } from '../src/sim/world';
+import { FORECAST_WAVE_SECONDS, ForecastView } from '../src/view/forecastView';
+import { createViewLayers } from '../src/view/layers';
+import { boxAt, edgePoint, formatCount, onScreen, overlaps } from '../src/ui/hud/forecastEdge';
 import { mapFromAscii } from './sim-fixtures';
 
 /** Two districts: A (wave 1) and B (wave 3); the Capitol steps at the bottom. */
@@ -55,7 +59,11 @@ describe('wave forecast', () => {
     expect(f.eta).toBe(-1);
     expect(f.size).toBe(waveSize(1, 0, 0));
     expect(f.districts.map((d) => d.district)).toEqual([0]);
-    expect(f.districts[0]).toMatchObject({ isNew: false, expected: f.size, threat: threatTier(f.size) });
+    expect(f.districts[0]).toMatchObject({
+      isNew: false,
+      expected: f.size,
+      threat: threatTier(f.size),
+    });
     expect(f.newTypes).toEqual([]);
     expect(f.lead).toBeNull();
     expect(f.types).toEqual(['student', 'woke']);
@@ -201,5 +209,79 @@ describe('wave forecast', () => {
       const f = fc.forecast(w);
       expect(f.districts.length).toBeGreaterThanOrEqual(1);
     }
+  });
+});
+
+describe('forecast HUD placement (pure)', () => {
+  const area = { x: 0, y: 30, w: 400, h: 240 };
+  const ext = { left: 18, right: 18, top: 26, bottom: 26 };
+
+  it('on-screen test uses the free area and a margin', () => {
+    expect(onScreen(200, 150, area)).toBe(true);
+    expect(onScreen(200, 20, area)).toBe(false);
+    expect(onScreen(398, 150, area, 4)).toBe(false);
+  });
+
+  it('edge pointers sit where the ray toward the target leaves the area', () => {
+    const c = { x: 200, y: 150 };
+    const right = edgePoint(5000, c.y, area, ext);
+    expect(right).toEqual({ x: 400 - 18, y: 150 });
+    const up = edgePoint(c.x, -5000, area, ext);
+    expect(up).toEqual({ x: 200, y: 30 + 26 });
+    const corner = edgePoint(-5000, 5000, area, ext);
+    // 45° down-left: the wide area's bottom edge comes first.
+    expect(corner.y).toBe(270 - 26);
+    expect(corner.x).toBeLessThan(200);
+    expect(corner.x).toBeGreaterThanOrEqual(18);
+  });
+
+  it('slides along its edge to keep clear of HUD rects', () => {
+    const button = { x: 150, y: 220, w: 100, h: 50 };
+    const p = edgePoint(200, 5000, area, ext, [button]);
+    expect(overlaps(boxAt(p.x, p.y, ext), button)).toBe(false);
+    expect(p.y).toBe(270 - 26); // still on the bottom edge
+    // Two pointers toward the same spot don't stack.
+    const a = edgePoint(5000, 150, area, ext);
+    const b = edgePoint(5000, 150, area, ext, [boxAt(a.x, a.y, ext)]);
+    expect(overlaps(boxAt(a.x, a.y, ext), boxAt(b.x, b.y, ext))).toBe(false);
+    expect(b.x).toBe(a.x);
+  });
+
+  it('formats head counts compactly', () => {
+    expect(formatCount(3)).toBe('5');
+    expect(formatCount(15)).toBe('15');
+    expect(formatCount(47)).toBe('45');
+    expect(formatCount(143)).toBe('140');
+    expect(formatCount(1530)).toBe('1.5k');
+    expect(formatCount(2000)).toBe('2k');
+  });
+});
+
+describe('forecast view window', () => {
+  it('marks prep, breathers and the first seconds of a wave, then fades out', () => {
+    const w = twoDistricts();
+    const v = new ForecastView(w, createViewLayers(new Container()));
+    const tick = (n: number): void => {
+      for (let k = 0; k < n; k++) v.update(w.time, 1 / 30);
+    };
+    tick(1);
+    expect(v.alpha).toBe(0); // HUD hasn't enabled it (title backdrop)
+    v.enabled = true;
+    tick(10);
+    expect(v.wanted).toBe(true);
+    expect(v.alpha).toBe(1);
+    expect(v.current?.wave).toBe(1);
+    w.startWaves();
+    tick(1);
+    expect(v.wanted).toBe(true);
+    w.time += FORECAST_WAVE_SECONDS + 0.1;
+    expect(v.wanted).toBe(false);
+    tick(30);
+    expect(v.alpha).toBe(0);
+    expect(v.current).toBeNull();
+    breatherAfter(w, 1);
+    tick(10);
+    expect(v.alpha).toBe(1);
+    expect(v.current?.wave).toBe(2);
   });
 });

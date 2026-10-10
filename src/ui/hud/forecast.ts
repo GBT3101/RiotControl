@@ -20,6 +20,7 @@ import {
   FLAG_ANCHOR,
   edgePointerFrames,
   forecastBadge,
+  forecastCountTag,
   forecastPlate,
   newTagFrames,
   rallyFlagFrames,
@@ -40,10 +41,10 @@ import { UI_TEXT } from '../strings';
 import type { UiApp } from '../app';
 import { boxAt, edgePoint, formatCount, onScreen, type Extent } from './forecastEdge';
 
-/** Edge pointer box around its centre: disc (±15), NEW tag above, plate below. */
-const EDGE_EXT: Extent = { left: 16, right: 16, top: 27, bottom: 30 };
-/** Leading types worth a badge even when not new (very violent and up). */
-const BADGE_FROM_LEVEL = 4;
+/** Edge pointer box around its centre: disc + arrow (±17), NEW tag / count tag above or below. */
+const EDGE_EXT: Extent = { left: 18, right: 18, top: 26, bottom: 26 };
+/** Leading types worth a badge even when not new (cultists, prophets). */
+const BADGE_FROM_LEVEL = 8;
 const PAN_SECONDS = 0.45;
 
 interface Marker {
@@ -56,12 +57,12 @@ interface Marker {
   badge: Sprite;
   /** Current mode and data (for taps / tooltips). */
   mode: 'world' | 'edge';
+  /** Edge pointer: points down (tags go above) / up (tags go below) / left (badge right). */
+  down: boolean;
+  up: boolean;
+  left: boolean;
   info: DistrictForecast | null;
   plateText: string;
-}
-
-function tex(key: string, make: () => ReturnType<typeof forecastPlate>): Texture {
-  return uiTex(key, make);
 }
 
 export class ForecastMarkers {
@@ -70,8 +71,10 @@ export class ForecastMarkers {
   private t = 0;
   private pan: { x0: number; y0: number; x1: number; y1: number; t: number } | null = null;
   private lead: ProtesterId | null = null;
-  /** Rects the edge pointers keep clear of (minimap, wave button …), set by the HUD. */
+  /** Rects the edge pointers keep clear of (minimap, toggles …), set by the HUD. */
   avoid: () => Rect[] = () => [];
+  /** The wave button's rect (pointers stay above it), set by the HUD. */
+  waveRect: () => Rect | null = () => null;
 
   constructor(
     private readonly app: UiApp,
@@ -102,6 +105,9 @@ export class ForecastMarkers {
       h: l.deploy.y - l.topBar.h - 4,
     };
     const avoid = this.avoid();
+    // The wave button row (CALL EARLY + its wider countdown line above it).
+    const wb = this.waveRect();
+    if (wb) avoid.push({ x: wb.x - 24, y: wb.y - 16, w: wb.w + 48, h: wb.h + 16 });
     const p = { x: 0, y: 0 };
     let n = 0;
     for (const d of f.districts) {
@@ -110,8 +116,9 @@ export class ForecastMarkers {
       m.info = d;
       tileToWorld(d.rally.i + 0.5, d.rally.j + 0.5, p);
       const s = this.game.view.worldToUi(p.x, p.y);
-      // The banner stands ~28 px tall above its foot: keep the whole thing inside the area.
-      const inView = onScreen(s.x, s.y, { ...area, y: area.y + 30, h: area.h - 46 }, 4);
+      // The banner stands ~28 px above its foot (+ the NEW tag): keep it all inside the area.
+      const top = d.isNew ? 44 : 32;
+      const inView = onScreen(s.x, s.y, { ...area, y: area.y + top, h: area.h - top - 16 }, 4);
       if (inView) {
         m.mode = 'world';
         m.node.position.set(Math.round(s.x), Math.round(s.y));
@@ -121,9 +128,13 @@ export class ForecastMarkers {
         m.node.position.set(e.x, e.y);
         avoid.push(boxAt(e.x, e.y, EDGE_EXT));
         const dir = screenDirName(s.x - e.x, s.y - e.y);
+        m.down = dir === 's' || dir === 'se' || dir === 'sw';
+        m.up = dir === 'n' || dir === 'ne' || dir === 'nw';
+        m.left = dir === 'w' || dir === 'nw' || dir === 'sw';
         const fr = this.reduced ? 0 : Math.floor(this.t * 3) % 2;
-        m.edge.texture = tex(`fc-edge:${dir}:${d.threat}:${fr}`, () =>
-          edgePointerFrames(dir, d.threat)[fr]!,
+        m.edge.texture = uiTex(
+          `fc-edge:${dir}:${d.threat}:${fr}`,
+          () => edgePointerFrames(dir, d.threat)[fr]!,
         );
       }
       this.dress(m, d, f);
@@ -151,6 +162,9 @@ export class ForecastMarkers {
       tag: new Sprite(),
       badge: new Sprite(),
       mode: 'world',
+      down: false,
+      up: false,
+      left: false,
       info: null,
       plateText: '',
     };
@@ -180,46 +194,62 @@ export class ForecastMarkers {
     m.edge.visible = !world;
     if (world) {
       const rf = reduced ? 1 : Math.floor(this.t * 6) % 4;
-      m.ring.texture = tex(`fc-ring:${rf}`, () => rallyRingFrames()[rf]!);
+      m.ring.texture = uiTex(`fc-ring:${rf}`, () => rallyRingFrames()[rf]!);
       m.ring.position.set(0, 0);
       const ff = reduced ? 0 : Math.floor(this.t * 6) % 4;
-      m.flag.texture = tex(`fc-flag:${d.threat}:${ff}`, () => rallyFlagFrames(d.threat)[ff]!);
+      m.flag.texture = uiTex(`fc-flag:${d.threat}:${ff}`, () => rallyFlagFrames(d.threat)[ff]!);
       m.flag.position.set(-FLAG_ANCHOR.x, -FLAG_ANCHOR.y);
     } else {
       m.edge.position.set(-EDGE_ANCHOR.x, -EDGE_ANCHOR.y);
     }
     // Count plate.
     const text = formatCount(d.expected);
-    if (text !== m.plateText) {
-      m.plateText = text;
-      m.plate.texture = tex(`fc-plate:${text}`, () => forecastPlate(text));
+    const key = `${world ? 'p' : 'c'}${text}`;
+    if (key !== m.plateText) {
+      m.plateText = key;
+      m.plate.texture = world
+        ? uiTex(`fc-plate:${text}`, () => forecastPlate(text))
+        : uiTex(`fc-count:${text}`, () => forecastCountTag(text));
     }
     const pw = m.plate.texture.width;
-    m.plate.position.set(world ? -Math.floor(pw / 2) + 2 : -Math.floor(pw / 2), world ? 5 : 16);
+    const ph = m.plate.texture.height;
+    // World: under the foot, clear of the pulse ring. Edge: opposite the arrow.
+    const plateY = world ? 9 : m.down ? -11 - ph : 11;
+    m.plate.position.set(-Math.floor(pw / 2) + (world ? 2 : 0), plateY);
     // NEW tag.
     m.tag.visible = d.isNew;
     if (d.isNew) {
       const tf = reduced ? 0 : Math.floor(this.t * 3) % 2;
-      m.tag.texture = tex(`fc-new:${tf}`, () => newTagFrames()[tf]!);
+      m.tag.texture = uiTex(`fc-new:${tf}`, () => newTagFrames()[tf]!);
       const tw = m.tag.texture.width;
+      const th = m.tag.texture.height;
       m.tag.position.set(
         world ? 10 - Math.floor(tw / 2) : -Math.floor(tw / 2),
-        world ? -FLAG_ANCHOR.y - m.tag.texture.height - 1 : -16 - m.tag.texture.height,
+        world
+          ? -FLAG_ANCHOR.y - th - 1
+          : m.down
+            ? plateY - th - 1
+            : m.up
+              ? plateY + ph + 1
+              : -11 - th,
       );
     }
-    // Badge: Breta from this district, else the wave's leading / joining type.
-    const type: ProtesterId | null = d.breta ? 'breta' : this.lead;
+    // Badge: Breta from this district, else the wave's leading / joining type (edge pointers:
+    // only Breta and types joining the mix — the rest is in the tooltip).
+    const lead = world || (this.lead && f.newTypes.includes(this.lead)) ? this.lead : null;
+    const type: ProtesterId | null = d.breta ? 'breta' : lead;
     m.badge.visible = type !== null;
     if (type) {
       const fresh = d.breta || f.newTypes.includes(type);
       m.badge.texture = this.badgeTex(type, fresh);
-      m.badge.position.set(world ? 15 : 6, world ? -18 : -17);
+      if (world) m.badge.position.set(15, -20);
+      else m.badge.position.set(m.left ? 7 : -26, m.down ? 1 : -17);
     }
   }
 
   private badgeTex(type: ProtesterId, fresh: boolean): Texture {
     const key = `fc-badge:${type}:${fresh ? 1 : 0}`;
-    const head = miniHead(protesterFigure(type), 9);
+    const head = miniHead(protesterFigure(type), 13);
     // Only cache once the head art is loaded (protester looks can arrive deferred).
     return head
       ? uiTex(key, () => forecastBadge(head, fresh ? 'hivis2' : 'crim2'))
@@ -230,8 +260,13 @@ export class ForecastMarkers {
     // Deploying: let taps through to the placement under the marker.
     if (this.game.deployUnit) return { x: 0, y: 0, w: 0, h: 0 };
     return m.mode === 'world'
-      ? { x: -10, y: -FLAG_ANCHOR.y - 4, w: 34, h: FLAG_ANCHOR.y + 20 }
-      : { x: -EDGE_EXT.left, y: -18, w: EDGE_EXT.left + EDGE_EXT.right, h: 46 };
+      ? { x: -10, y: -FLAG_ANCHOR.y - 4, w: 34, h: FLAG_ANCHOR.y + 24 }
+      : {
+          x: -EDGE_EXT.left,
+          y: -EDGE_EXT.top,
+          w: EDGE_EXT.left + EDGE_EXT.right,
+          h: EDGE_EXT.top + EDGE_EXT.bottom,
+        };
   }
 
   private tip(m: Marker): string {

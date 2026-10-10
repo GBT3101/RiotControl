@@ -50,6 +50,7 @@ export class Hud {
     this.placement = new Placement(app, game);
     this.forecast = new ForecastMarkers(app, game);
     this.forecast.avoid = () => this.forecastAvoid();
+    this.forecast.waveRect = () => this.wave.rect();
     this.mapToggle = new Button(roundFaces('codex', 'lg'), {
       onTap: () => app.toggleMinimap(),
       pad: 3,
@@ -114,10 +115,13 @@ export class Hud {
     const out: Rect[] = [];
     const l = this.app.layout;
     if (this.minimap.root.visible && l.minimap) out.push(l.minimap);
-    const w = this.wave.rect();
-    if (w) out.push({ x: w.x - 2, y: w.y - 12, w: w.w + 4, h: w.h + 14 });
     if (this.mapToggle.visible)
-      out.push({ x: this.mapToggle.x, y: this.mapToggle.y, w: this.mapToggle.w, h: this.mapToggle.h });
+      out.push({
+        x: this.mapToggle.x,
+        y: this.mapToggle.y,
+        w: this.mapToggle.w,
+        h: this.mapToggle.h,
+      });
     if (this.info.root.visible) out.push(l.info);
     return out;
   }

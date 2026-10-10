@@ -230,8 +230,8 @@ export class Minimap {
     const fc = fv.alpha > 0 ? fv.current : null;
     const reduced = !this.app.settings.shake;
     if (fc) {
-      const faint = col('rust1');
-      const runner = col('rust4');
+      const faint = col('pink3');
+      const runner = col('white');
       for (const ds of fc.districts) {
         const r = fv.route(ds.district);
         const run = reduced ? -1 : Math.floor(this.blink * 24) % Math.max(1, r.length);
@@ -239,7 +239,9 @@ export class Minimap {
           const t = r[k]!;
           const i = t % m.w;
           const q = tileToMinimap(i + 0.5, (t - i) / m.w + 0.5, m.w, m.h, iw);
-          put(Math.floor(q.x), Math.floor(q.y), Math.abs(k - run) <= 1 ? runner : faint);
+          const hot = Math.abs(k - run) <= 1;
+          // Dotted (faint): every third tile; the runner solid.
+          if (hot || k % 3 === 0) put(Math.floor(q.x), Math.floor(q.y), hot ? runner : faint);
         }
       }
     }
@@ -270,16 +272,17 @@ export class Minimap {
     // Forecast flags (blinking; NEW districts ringed with a hi-vis diamond).
     if (fc) {
       const on = reduced || Math.floor(this.blink * 3) % 2 === 0;
-      const pole = col('stone5');
-      const cloth = col(on ? 'crim2' : 'rust4');
+      const pole = col('white');
+      const ink = col('ink');
+      const cloth = col(on ? 'crim2' : 'pink3');
       const ring = col('hivis2');
       for (const ds of fc.districts) {
         const q = tileToMinimap(ds.rally.i + 0.5, ds.rally.j + 0.5, m.w, m.h, iw);
         const fx = Math.floor(q.x);
         const fy = Math.floor(q.y);
         if (ds.isNew && on) {
-          for (let k = -3; k <= 3; k++) {
-            const a = 3 - Math.abs(k);
+          for (let k = -5; k <= 5; k++) {
+            const a = 5 - Math.abs(k);
             put(fx + k, fy - a, ring);
             put(fx + k, fy + a, ring);
           }
@@ -287,8 +290,8 @@ export class Minimap {
         MINIMAP_FLAG.forEach((row, y) => {
           for (let x = 0; x < row.length; x++) {
             const ch = row[x];
-            if (ch === 'o') put(fx + x, fy - 5 + y, pole);
-            else if (ch === 'R') put(fx + x, fy - 5 + y, cloth);
+            const c = ch === 'o' ? pole : ch === 'R' ? cloth : ch === 'k' ? ink : 0;
+            if (c) put(fx - 1 + x, fy - 7 + y, c);
           }
         });
       }

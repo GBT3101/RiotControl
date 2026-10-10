@@ -63,21 +63,27 @@ export function edgePoint(
   let y = clampY(cy + dy * t);
   const blocked = (px: number, py: number): Rect | undefined =>
     avoid.find((r) => overlaps(boxAt(px, py, ext), r));
-  for (let iter = 0; iter < 6; iter++) {
+  // Slide along the edge the pointer sits on first (it must stay at the edge), then inward.
+  const horizontalEdge = Math.abs(y - y0) < 0.5 || Math.abs(y - y1) < 0.5;
+  const dist = (c: { x: number; y: number }): number => Math.hypot(c.x - x, c.y - y);
+  for (let iter = 0; iter < 8; iter++) {
     const r = blocked(x, y);
     if (!r) break;
-    const cands = [
+    const vertical = [
       { x, y: clampY(r.y + r.h + ext.top) },
       { x, y: clampY(r.y - ext.bottom) },
+    ];
+    const horizontal = [
       { x: clampX(r.x + r.w + ext.left), y },
       { x: clampX(r.x - ext.right), y },
-    ].sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y));
-    const free = cands.find((c) => !blocked(c.x, c.y));
-    const next = free ?? cands.find((c) => c.x !== x || c.y !== y);
+    ];
+    const along = (horizontalEdge ? horizontal : vertical).sort((a, b) => dist(a) - dist(b));
+    const inward = (horizontalEdge ? vertical : horizontal).sort((a, b) => dist(a) - dist(b));
+    const cands = [...along, ...inward].filter((c) => c.x !== x || c.y !== y);
+    const next = cands.find((c) => !blocked(c.x, c.y)) ?? cands[0];
     if (!next) break;
     x = next.x;
     y = next.y;
-    if (free) break;
   }
   return { x: Math.round(x), y: Math.round(y) };
 }

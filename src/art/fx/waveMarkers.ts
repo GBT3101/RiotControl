@@ -13,8 +13,9 @@
  * - `ui.forecast.edge.<dir>` — edge-of-screen pointer for off-screen districts: crimson
  *   rally disc with the "!" marks and a cream arrowhead pointing at the district (8 screen
  *   directions × 2 frames, the arrow nudges outward).
- * - `forecastPlate(count)` / `forecastBadge(head)` — runtime pieces: the crowd-size plate
- *   (crowd icon + expected count) and the round badge with the leading protester type's head.
+ * - `forecastPlate(count)` / `forecastCountTag(count)` / `forecastBadge(head)` — runtime pieces:
+ *   the crowd-size plate (crowd icon + expected count), its compact form under edge pointers
+ *   and the round badge with the leading protester type's head and shoulders.
  * - `MINIMAP_FLAG` — the 4×6 flag glyph the minimap stamps on each district.
  *
  * Light from the upper left, coloured outlines (rust0 on crimson, ink on UI pieces), RIOT-64.
@@ -68,7 +69,7 @@ const CHEVRON_SHADES = [
 ] as const;
 
 /** Chevron size in tiles: half-span of the arms, stroke thickness, tip offset from centre. */
-const CH = { span: 0.46, stroke: 0.25, tip: 0.3 };
+const CH = { span: 0.56, stroke: 0.3, tip: 0.36 };
 
 /**
  * A ground chevron pointing along tile direction `dir`, as painted road marking: each pixel
@@ -80,10 +81,10 @@ export function routeChevron(dir: ForecastDir, shade: 0 | 1 | 2): PixelBuffer {
   const len = Math.hypot(du, dv);
   const ax = du / len;
   const ay = dv / len;
-  const W = 31;
-  const H = 17;
-  const cx = 15.5;
-  const cy = 8.5;
+  const W = 39;
+  const H = 21;
+  const cx = 19.5;
+  const cy = 10.5;
   const inside = (x: number, y: number): boolean => {
     const X = x + 0.5 - cx;
     const Y = y + 0.5 - cy;
@@ -269,12 +270,12 @@ export function newTagFrames(): PixelBuffer[] {
 /* Edge pointer -------------------------------------------------------------------------- */
 
 const EDGE_R = 8.5;
-const EDGE_SIZE = 31;
+const EDGE_SIZE = 37;
 
 /**
- * Edge-of-screen pointer: crimson rally disc (upper-left lit, lower-right shade, ink outline)
- * with the tier's "!" marks and a cream arrowhead pointing in screen direction `dir`. Frame 1
- * nudges the arrow 1 px outward. Anchor = disc centre.
+ * Edge-of-screen pointer: a crimson map pin — rally disc drawn out into a point aimed at the
+ * district (screen direction `dir`), lit upper-left, shaded lower-right, ink outline — with
+ * the tier's "!" marks. Frame 1 stretches the point 1 px (a nudge). Anchor = disc centre.
  */
 export function edgePointerFrames(dir: ForecastDir, tier: 1 | 2 | 3): PixelBuffer[] {
   const k = SCREEN_DIRS.indexOf(dir);
@@ -282,33 +283,43 @@ export function edgePointerFrames(dir: ForecastDir, tier: 1 | 2 | 3): PixelBuffe
   const dx = Math.cos(a);
   const dy = Math.sin(a);
   const c = EDGE_SIZE / 2;
+  const R = EDGE_R;
   return [0, 1].map((f) => {
     const b = buf(EDGE_SIZE, EDGE_SIZE);
-    // Arrowhead (drawn first so the disc's outline overlaps its base).
-    const arrow = buf(EDGE_SIZE, EDGE_SIZE);
-    const base = EDGE_R - 1 + f;
-    const len = 6.5;
+    const tip = R + 5 + f;
+    const inside = (x: number, y: number): boolean => {
+      const X = x + 0.5 - c;
+      const Y = y + 0.5 - c;
+      if (X * X + Y * Y <= R * R) return true;
+      const along = X * dx + Y * dy;
+      const across = Math.abs(-X * dy + Y * dx);
+      // Point: flanks from the disc to a 2-px blunt tip.
+      return along > 2 && along <= tip && across <= ((tip - along) / tip) * R * 0.95 + 0.6;
+    };
+    // Drop lone spikes (pixels with fewer than two 4-neighbours): no single-pixel noise.
+    const solid = (x: number, y: number): boolean => {
+      if (!inside(x, y)) return false;
+      let n = 0;
+      if (inside(x - 1, y)) n++;
+      if (inside(x + 1, y)) n++;
+      if (inside(x, y - 1)) n++;
+      if (inside(x, y + 1)) n++;
+      return n >= 2;
+    };
     for (let y = 0; y < EDGE_SIZE; y++) {
       for (let x = 0; x < EDGE_SIZE; x++) {
+        if (!solid(x, y)) continue;
         const X = x + 0.5 - c;
         const Y = y + 0.5 - c;
-        const along = X * dx + Y * dy - base;
-        const across = Math.abs(-X * dy + Y * dx);
-        if (along < 0 || along > len) continue;
-        if (across > (len - along) * 0.95 + 0.2) continue;
-        const lit = -X * dy + Y * dx < 0 === dx + dy > 0;
-        px(arrow, x, y, lit ? 'stone5' : 'stone3');
+        const rim = !solid(x - 1, y) || !solid(x, y - 1);
+        const low = !solid(x + 1, y) || !solid(x, y + 1);
+        let col = X + Y > R * 0.9 ? 'crim1' : 'crim2';
+        if (rim && X + Y < 0) col = 'rust4';
+        else if (low && X + Y > 0) col = 'rust1';
+        px(b, x, y, col);
       }
     }
-    outlineBuf(arrow, 'ink');
-    stamp(b, arrow, 0, 0);
-    // Disc: ink rim, crimson body, lit crescent upper-left, shade lower-right.
-    disc(b, c, c, EDGE_R + 1, 'ink');
-    disc(b, c, c, EDGE_R, 'crim1');
-    disc(b, c - 0.6, c - 0.6, EDGE_R - 0.8, 'crim2');
-    ellipseRing(b, c - 0.6, c - 0.6, EDGE_R - 0.8, EDGE_R - 0.8, (x, y) =>
-      x + y < c * 2 - 4 ? 'rust4' : null,
-    );
+    outlineBuf(b, 'ink');
     // "!" marks.
     const mw = tier * 2 + (tier - 1) * 2;
     const x0 = Math.round(c - mw / 2);
@@ -361,29 +372,52 @@ export function forecastPlate(text: string): PixelBuffer {
   return b;
 }
 
+/** Compact count tag (no icon) under an edge pointer. */
+export function forecastCountTag(text: string): PixelBuffer {
+  const font = FONTS.smallBold;
+  const tw = measureText(font, text).w;
+  const W = tw + 7;
+  const H = font.capHeight + 6;
+  const b = buf(W, H);
+  rect(b, 1, 1, W - 2, H - 2, 'gray1');
+  hline(b, 2, 1, W - 4, 'gray3');
+  hline(b, 2, H - 2, W - 4, 'ink');
+  outlineBuf(b, 'ink');
+  for (const [x, y] of [
+    [0, 0],
+    [W - 1, 0],
+    [0, H - 1],
+    [W - 1, H - 1],
+  ] as const) {
+    b.data.fill(0, (y * W + x) * 4, (y * W + x) * 4 + 4);
+  }
+  drawText(b, font, text, 3, 3, 'stone5', { shadow: 'ink' });
+  return b;
+}
+
 /**
- * Round badge (15×15) with a protester head inside (cream face plate, crimson ring, ink
- * outline) — "this type leads the wave". Without a head: a crimson "!".
+ * Round badge (19×19) with a protester's head and shoulders inside (cream face plate, coloured
+ * ring, ink outline) — "this type leads the wave". Without a head: a crimson "!".
  */
 export function forecastBadge(head: PixelBuffer | null, ring = 'crim2'): PixelBuffer {
-  const S = 15;
+  const S = 19;
   const c = S / 2;
   const b = buf(S, S);
-  disc(b, c, c, 7.5, 'ink');
-  disc(b, c, c, 6.5, ring);
-  disc(b, c, c, 5.2, 'stone4');
-  ellipseRing(b, c, c, 5.2, 5.2, (x, y) => (x + y < S - 2 ? 'stone5' : null));
+  disc(b, c, c, 9.4, 'ink');
+  disc(b, c, c, 8.4, ring);
+  disc(b, c, c, 6.8, 'stone4');
+  ellipseRing(b, c, c, 6.8, 6.8, (x, y) => (x + y < S - 3 ? 'stone5' : null));
   if (head) {
     const hx = Math.round(c - head.w / 2);
-    const hy = Math.round(c - head.h / 2);
-    // Clip the head to the face plate.
+    const hy = Math.round(c - head.h / 2) + 1;
+    // Clip the bust to the face plate.
     for (let y = 0; y < head.h; y++) {
       for (let x = 0; x < head.w; x++) {
         const o = (y * head.w + x) * 4;
         if (head.data[o + 3] !== 255) continue;
         const X = hx + x + 0.5 - c;
         const Y = hy + y + 0.5 - c;
-        if (X * X + Y * Y > 5.6 * 5.6) continue;
+        if (X * X + Y * Y > 7.4 * 7.4) continue;
         const p = ((hy + y) * S + hx + x) * 4;
         b.data[p] = head.data[o]!;
         b.data[p + 1] = head.data[o + 1]!;
@@ -394,8 +428,8 @@ export function forecastBadge(head: PixelBuffer | null, ring = 'crim2'): PixelBu
   } else {
     for (let r = 0; r < 8; r++) {
       if (!BANG[r]) continue;
-      px(b, 7, 3 + r, 'crim2');
-      px(b, 8, 3 + r, 'crim1');
+      px(b, 9, 5 + r, 'crim2');
+      px(b, 10, 5 + r, 'crim1');
     }
   }
   return b;
@@ -403,8 +437,20 @@ export function forecastBadge(head: PixelBuffer | null, ring = 'crim2'): PixelBu
 
 /* Minimap glyph -------------------------------------------------------------------------- */
 
-/** 4×6 minimap flag (pole on the left, foot = bottom-left pixel). Keys: o pole, R cloth. */
-export const MINIMAP_FLAG = ['oRRR', 'oRRR', 'oRR.', 'o...', 'o...', 'o...'] as const;
+/**
+ * 6×8 minimap flag with its ink keyline (foot = column 1 of the bottom row). Keys: k ink,
+ * o pole, R cloth.
+ */
+export const MINIMAP_FLAG = [
+  'kkkkk.',
+  'koRRRk',
+  'koRRRk',
+  'koRRk.',
+  'kokk..',
+  'kok...',
+  'kok...',
+  '.k....',
+] as const;
 
 /* Registration ------------------------------------------------------------------------- */
 
@@ -414,7 +460,7 @@ export function registerWaveMarkers(reg: SpriteRegistry): void {
       group: 'ui',
       frames: [routeChevron(dir, 0), routeChevron(dir, 1), routeChevron(dir, 2)],
       fps: 3,
-      anchor: { x: 15, y: 8 },
+      anchor: { x: 19, y: 10 },
     });
   }
   for (const tier of [1, 2, 3] as const) {
@@ -449,5 +495,6 @@ export function registerWaveMarkers(reg: SpriteRegistry): void {
   });
   reg.add('ui.forecast.new', { group: 'ui', frames: newTagFrames(), fps: 3 });
   reg.add('ui.forecast.plate', { group: 'ui', frames: forecastPlate('40') });
+  reg.add('ui.forecast.count', { group: 'ui', frames: forecastCountTag('120') });
   reg.add('ui.forecast.badge', { group: 'ui', frames: forecastBadge(null) });
 }
