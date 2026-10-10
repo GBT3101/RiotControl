@@ -1,31 +1,33 @@
 /* HUD icons, button glyphs and cursors — hand-authored grids. Keys per icon in icons.ts.
  * Do not reformat. */
 
-/** Hate: cracked crimson heart (13×12). */
+/** Hate: furious red face — V brows, glaring eyes, clenched teeth in a frown (13×13). */
 export const HATE = `
-..ooo...ooo..
-.oCCCo.oCCCo.
-oCWWCCoCCCCco
-oCWCCCCkCCcco
-oCCCCCkCCCcco
-oCCCCCCkCccco
-.oCCCCkCCCco.
-..oCCCCkCco..
-...oCCkCcco..
-....oCCkco...
-.....oCco....
-......oo.....
+....ooooo....
+..oohHHRRoo..
+.ohHRRRRRRro.
+.oHkkRRRkkro.
+ohRRkkRkkRRro
+oRRwwkRkwwrro
+oRRRwkRkwrrro
+oRRRRRRRRRrro
+oRRRkkkkkRrro
+.oRkwwwwwkro.
+.orkRRRRRkro.
+..oorrrrroo..
+....ooooo....
 `;
 
-/** Hate, tiny (7×7) for cost tags. */
+/** Hate, tiny (8×8) for cost tags: V brows, white eyes, frown. */
 export const HATE_TINY = `
-.oo.oo.
-oCWoCco
-oCCCCco
-.oCkco.
-..oCo..
-...o...
-.......
+..oooo..
+.ohHRRo.
+okkRRkko
+oRwkkwro
+oRRRRRro
+oRkkkkro
+.okRRko.
+..oooo..
 `;
 
 /** Capitol pediment (13×12). */

@@ -1,5 +1,5 @@
 /**
- * Misc FX: helicopter rotor wash, water splash, level-up confetti, the "+1" Hate pickup fist,
+ * Misc FX: helicopter rotor wash, water splash, level-up confetti, the "+1" Hate pickup (angry face),
  * the Legitimacy wax-seal stamp pop.
  */
 import { grid } from '../lib/grid';
@@ -178,33 +178,55 @@ function confettiBurst(): PixelBuffer[] {
   });
 }
 
-/* Hate pickup: a tiny clenched crimson fist ------------------------------- */
+/* Hate pickup: a tiny furious face huffing steam ------------------------ */
 
-const FIST = `
-  .ooooo.
-  oCWCWCo
-  oCCCCCo
-  ocCCCco
-  .oCCcCo
-  .occco.
-  ..ooo..
+const ANGRY = `
+  ..ooooo..
+  .ohHRRRo.
+  okkRRRkko
+  oRkkRkkro
+  oRwkRkwro
+  oRRRRRrro
+  oRkkkkkro
+  .okRRrko.
+  ..ooooo..
 `;
-const FIST_KEYS = { o: 'rust0', C: 'crim2', c: 'crim1', W: 'rust4' };
+const ANGRY_KEYS = {
+  o: 'rust0',
+  R: 'crim2',
+  r: 'crim1',
+  H: 'rust4',
+  h: 'rust3',
+  k: 'ink',
+  w: 'white',
+};
 
 function hatePickup(): PixelBuffer[] {
-  const fist = grid(FIST, FIST_KEYS);
-  return [0, 1, 2, 3].map((f) => {
+  const face = grid(ANGRY, ANGRY_KEYS);
+  // Steam puffs vent from the left temple and drift up and out ([x, y, colour] per frame);
+  // the right side mirrors it.
+  const left: Array<Array<[number, number, string]>> = [
+    [[1, 2, 'gray7']],
+    [
+      [1, 2, 'gray7'],
+      [0, 1, 'white'],
+      [1, 1, 'white'],
+    ],
+    [
+      [0, 1, 'gray7'],
+      [0, 0, 'white'],
+      [1, 0, 'gray7'],
+    ],
+    [[0, 0, 'gray7']],
+  ];
+  const steam = left.map((f) => [
+    ...f,
+    ...f.map(([x, y, c]): [number, number, string] => [10 - x, y, c]),
+  ]);
+  return steam.map((puffs) => {
     const b = buf(11, 11);
-    stamp(b, fist, 2, 2);
-    // Twinkle orbiting the fist.
-    const pos = [
-      [1, 1],
-      [9, 1],
-      [9, 9],
-      [1, 8],
-    ][f]!;
-    px(b, pos[0]!, pos[1]!, 'white');
-    if (f % 2 === 0) px(b, 5, 3, 'white');
+    stamp(b, face, 1, 1);
+    for (const [x, y, c] of puffs) px(b, x, y, c);
     return b;
   });
 }

@@ -175,8 +175,7 @@ export function deployCard(spec: CardSpec): PixelBuffer {
     rect(b, bx + 1, cy + 2, m.w + 4, 9, face);
     drawText(b, FONTS.smallBold, t, bx + 3, cy + 3, 'crim1');
   } else {
-    const heart = ICONS.hateTiny();
-    stamp(b, heart, x0 + 3, cy + 3);
+    stamp(b, ICONS.hateTiny(), x0 + 3, cy + 2);
     const t = String(spec.cost);
     const m = measureText(FONTS.smallBold, t);
     drawText(
@@ -187,8 +186,8 @@ export function deployCard(spec: CardSpec): PixelBuffer {
       cy + 3,
       st === 'unaffordable' ? 'crim2' : 'ink',
     );
-    // Dotted leader between heart and cost (typewriter form field).
-    for (let x = x0 + 11; x < x0 + W - 6 - m.w; x += 2) px(b, x, cy + 9, lo);
+    // Dotted leader between the angry face and cost (typewriter form field).
+    for (let x = x0 + 12; x < x0 + W - 6 - m.w; x += 2) px(b, x, cy + 9, lo);
   }
   // Hotkey tab (brass) over the top-left corner.
   if (spec.hotkey) {

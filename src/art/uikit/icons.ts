@@ -51,11 +51,20 @@ function crowdIcon(): PixelBuffer {
   return b;
 }
 
-const HEART_KEYS: KeyMap = { o: 'rust0', C: 'crim2', c: 'crim1', k: 'rust0', W: 'rust4' };
+/** Angry-face keys: crimson face lit from the upper left (rust4/rust3 rim), crim1 shade. */
+export const ANGRY_KEYS: KeyMap = {
+  o: 'rust0',
+  R: 'crim2',
+  r: 'crim1',
+  H: 'rust4',
+  h: 'rust3',
+  k: 'ink',
+  w: 'white',
+};
 
 export const ICONS = {
-  hate: (): PixelBuffer => grid(HATE, HEART_KEYS, {}, 'hate'),
-  hateTiny: (): PixelBuffer => grid(HATE_TINY, HEART_KEYS, {}, 'hateTiny'),
+  hate: (): PixelBuffer => grid(HATE, ANGRY_KEYS, {}, 'hate'),
+  hateTiny: (): PixelBuffer => grid(HATE_TINY, ANGRY_KEYS, {}, 'hateTiny'),
   legit: (): PixelBuffer => waxSeal(5),
   capitol: (): PixelBuffer =>
     grid(CAPITOL, { o: 'ink', W: 'white', S: 'stone4', s: 'stone3' }, {}, 'capitol'),

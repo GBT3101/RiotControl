@@ -147,7 +147,7 @@ export const COMPACT_H = 38;
 
 /**
  * Compact deploy card for phones (30×38, card body 26×34 at (2,2)): portrait window showing the
- * head and shoulders, cost strip with the tiny Hate heart; same four states as the kit card.
+ * head and shoulders, cost strip with the tiny Hate face; same four states as the kit card.
  */
 export function compactCard(spec: {
   portrait: PixelBuffer | null;
@@ -213,9 +213,9 @@ export function compactCard(spec: {
   } else {
     const t = String(spec.cost);
     const m = measureText(FONTS.smallBold, t);
-    // Wide costs (100+) drop the heart and centre the number.
-    const roomy = m.w <= W - 12;
-    if (roomy) stamp(b, ICONS.hateTiny(), x0 + 2, cy + 2);
+    // Wide costs (100+) drop the Hate face and centre the number.
+    const roomy = m.w <= W - 13;
+    if (roomy) stamp(b, ICONS.hateTiny(), x0 + 2, cy + 1);
     drawText(
       b,
       FONTS.smallBold,
