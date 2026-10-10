@@ -11,6 +11,7 @@ import { registerLights } from './lights';
 import { registerMarkers } from './markers';
 import { registerMisc } from './misc';
 import { registerParticles } from './particles';
+import { registerWaveMarkers } from './waveMarkers';
 
 export { ghostTint, rangeRing, rangeRadiusPx } from './markers';
 export { lightPool } from './lights';
@@ -27,4 +28,5 @@ export function registerFx(reg: SpriteRegistry): void {
   registerMisc(reg);
   registerLights(reg);
   registerMarkers(reg);
+  registerWaveMarkers(reg);
 }

@@ -2,6 +2,7 @@
  * Generic unit behaviours: melee fighter (Riot Control), ranged shooter (Armed Cops,
  * Soldiers), rooftop shooter (Rubber Sniper, Sniper Brigade), blockade.
  */
+import { BALANCE } from '../../../data/balance';
 import { DMG } from '../../../data/damage';
 import { aimAt, hurtProtester, validateHolders } from '../../combat';
 import { PS } from '../../crowd';
@@ -33,7 +34,8 @@ export const rangedShooter: UnitBehaviour = {
 /**
  * Rooftop shooter: same targeting from the roof centre (u.z = storeys, so tracers start high).
  * When climbers make it onto the roof the unit turns on them point-blank (M7): it hits the
- * nearest one on its roof with its own weapon (rubber = KO, brigade = lethal) every cooldown.
+ * nearest one on its roof with its own weapon (rubber = KO, brigade = lethal) every cooldown, at
+ * `BALANCE.climb.defendFactor` of its damage (clumsy at point-blank).
  * Climbers that win throw the sniper off the roof (climber behaviour).
  */
 export const rooftopShooter: UnitBehaviour = {
@@ -76,6 +78,8 @@ function defendRoof(w: World, u: Unit, dt: number): boolean {
   aimAt(u, c.x[t]!, c.y[t]!);
   u.state = US.ATTACKING;
   if (u.cd > 0) return true;
+  // Point-blank with a long gun is clumsy (playtest round: climbers must be able to win).
+  const dmg = a.damage * BALANCE.climb.defendFactor;
   w.events.push('attacked', {
     attackerKind: 'unit',
     attackerId: u.id,
@@ -83,10 +87,10 @@ function defendRoof(w: World, u: Unit, dt: number): boolean {
     targetId: c.handle(t),
     x: c.x[t]!,
     y: c.y[t]!,
-    damage: a.damage,
+    damage: dmg,
     dmgType: a.dmgType,
   });
-  hurtProtester(w, t, a.damage, DMG[a.dmgType], a.lethal, u.id);
+  hurtProtester(w, t, dmg, DMG[a.dmgType], a.lethal, u.id);
   u.cd = a.cooldown;
   u.lastAttack = w.time;
   return true;

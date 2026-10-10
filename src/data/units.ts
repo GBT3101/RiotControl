@@ -1,5 +1,6 @@
 /**
- * Player ("Ministry") unit table — PLAN.md §1.3. Baseline numbers; tuned in M12.
+ * Player ("Ministry") unit table — PLAN.md §1.3. Baseline numbers; tuned in M12 and again in the
+ * playtest round (far less HP: a lone officer is rammed over, a tight group holds — BALANCE.mob).
  *
  * Units of measure: distances & ranges in **tiles**, times in **seconds**, speeds in
  * **tiles/second**, damage in HP. "Legit" = Legitimacy granted when the unit dies (every
@@ -148,6 +149,15 @@ export interface UnitDef {
   wreck?: { radius: number; duration: number; dps: number };
   /** Rotor wash pushes gas clouds within this radius (tiles). */
   rotorWash?: number;
+  /**
+   * Outnumbering (BALANCE.mob): attackers per supporter at which protester melee lands at full
+   * strength — harder beyond, softer below (roof units: climbers per defender).
+   */
+  mobHold: number;
+  /** Support it lends to friendly ground units within `BALANCE.mob.supportRadius`. */
+  mobWeight: number;
+  /** Can be rammed over (knocked down) by a mob that outnumbers it. */
+  rammable: boolean;
   behaviour: UnitBehaviourId;
   /** Flagged when a value is not in the brief (chosen, owner to confirm). */
   chosen?: string[];
@@ -163,7 +173,7 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     cost: 5,
     legit: 5,
     placement: 'road',
-    hp: 100,
+    hp: 60,
     radius: 0.32,
     speed: 0,
     commandable: false,
@@ -184,6 +194,9 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     crushes: false,
     invulnerable: false,
     maxTiles: 1,
+    mobHold: 3,
+    mobWeight: 1,
+    rammable: true,
     behaviour: 'melee',
   },
   sniper: {
@@ -193,7 +206,7 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     cost: 7,
     legit: 10,
     placement: 'rooftop',
-    hp: 70,
+    hp: 40,
     radius: 0.3,
     speed: 0,
     commandable: false,
@@ -202,7 +215,8 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     attack: {
       weapon: 'rubber',
       delivery: 'hitscan',
-      damage: 20,
+      // Base protesters (Student 35, Violent Woke 40 HP) take exactly two balls.
+      damage: 22,
       dmgType: 'rubber',
       lethal: false,
       cooldown: 1.8,
@@ -214,6 +228,9 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     crushes: false,
     invulnerable: false,
     maxTiles: 1,
+    mobHold: 1,
+    mobWeight: 0,
+    rammable: false,
     behaviour: 'rooftop',
   },
   blockade: {
@@ -223,7 +240,7 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     cost: 7,
     legit: 10,
     placement: 'road',
-    hp: 1000,
+    hp: 600,
     radius: 0.5,
     speed: 0,
     commandable: false,
@@ -236,6 +253,9 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     crushes: false,
     invulnerable: false,
     maxTiles: 3,
+    mobHold: 10,
+    mobWeight: 1,
+    rammable: false,
     behaviour: 'blockade',
     chosen: ['meleeSlots 4 per tile'],
   },
@@ -246,7 +266,7 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     cost: 10,
     legit: 15,
     placement: 'road',
-    hp: 120,
+    hp: 70,
     radius: 0.32,
     speed: 0,
     commandable: false,
@@ -280,6 +300,9 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     crushes: false,
     invulnerable: false,
     maxTiles: 1,
+    mobHold: 2,
+    mobWeight: 1,
+    rammable: true,
     behaviour: 'gasser',
     chosen: ['coneAngle 70°', 'grenade range 7'],
   },
@@ -290,7 +313,7 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     cost: 10,
     legit: 15,
     placement: 'road',
-    hp: 200,
+    hp: 120,
     radius: 0.42,
     speed: 3.2,
     commandable: true,
@@ -312,6 +335,9 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     invulnerable: false,
     maxTiles: 1,
     knockback: { impulse: 3, stun: 0.6 },
+    mobHold: 2.5,
+    mobWeight: 1,
+    rammable: true,
     behaviour: 'mountedMelee',
     chosen: ['legit 15', 'speed 3.2', 'meleeSlots 2', 'armour melee 20%'],
   },
@@ -322,7 +348,7 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     cost: 50,
     legit: 20,
     placement: 'road',
-    hp: 160,
+    hp: 95,
     radius: 0.32,
     speed: 0,
     commandable: false,
@@ -345,6 +371,9 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     crushes: false,
     invulnerable: false,
     maxTiles: 1,
+    mobHold: 2,
+    mobWeight: 1,
+    rammable: true,
     behaviour: 'ranged',
   },
   soldier: {
@@ -354,7 +383,7 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     cost: 100,
     legit: 40,
     placement: 'road',
-    hp: 240,
+    hp: 140,
     radius: 0.32,
     speed: 0,
     commandable: false,
@@ -378,6 +407,9 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     crushes: false,
     invulnerable: false,
     maxTiles: 1,
+    mobHold: 2.5,
+    mobWeight: 1,
+    rammable: true,
     behaviour: 'ranged',
   },
   humvee: {
@@ -387,7 +419,7 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     cost: 300,
     legit: 60,
     placement: 'road',
-    hp: 800,
+    hp: 480,
     radius: 0.6,
     speed: 3.5,
     commandable: true,
@@ -411,6 +443,9 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     invulnerable: false,
     maxTiles: 1,
     wreck: { radius: 1.2, duration: 10, dps: 6 },
+    mobHold: 6,
+    mobWeight: 2,
+    rammable: false,
     behaviour: 'vehicleGun',
     chosen: ['speed 3.5', 'armour bullet/fire 30%', 'wreck fire'],
   },
@@ -421,7 +456,7 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     cost: 500,
     legit: 80,
     placement: 'rooftop',
-    hp: 150,
+    hp: 90,
     radius: 0.3,
     speed: 0,
     commandable: false,
@@ -443,6 +478,9 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     crushes: false,
     invulnerable: false,
     maxTiles: 1,
+    mobHold: 1,
+    mobWeight: 0,
+    rammable: false,
     behaviour: 'rooftop',
     chosen: ['hp 150 per member', 'splash full damage', 'one shot per second for the squad'],
   },
@@ -453,7 +491,7 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     cost: 600,
     legit: 100,
     placement: 'road',
-    hp: 3000,
+    hp: 1800,
     radius: 0.9,
     speed: 1.6,
     commandable: true,
@@ -478,6 +516,9 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     invulnerable: false,
     maxTiles: 1,
     wreck: { radius: 1.5, duration: 12, dps: 6 },
+    mobHold: 12,
+    mobWeight: 3,
+    rammable: false,
     behaviour: 'tank',
     chosen: ['speed 1.6', 'armour', 'meleeSlots 6'],
   },
@@ -512,6 +553,9 @@ export const UNITS: Readonly<Record<UnitId, UnitDef>> = {
     invulnerable: true,
     maxTiles: 1,
     rotorWash: 2.5,
+    mobHold: 99,
+    mobWeight: 0,
+    rammable: false,
     behaviour: 'heli',
     chosen: ['legit 0 (cannot die)', 'speed 5'],
   },

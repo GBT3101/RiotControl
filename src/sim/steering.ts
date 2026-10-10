@@ -34,6 +34,8 @@ const SEP_MAX = BALANCE.separationMaxNeighbours;
 const BAND = BALANCE.wallBand;
 const WALL_K = 4;
 const THINK = BALANCE.thinkTicks;
+/** Squared speed above which the view plays the run cycle (scales with the base walk speed). */
+const RUN2 = (BALANCE.runAnimAbove * BALANCE.walkSpeed) ** 2;
 
 /** Per-type constants pulled out of the defs for the hot loop. */
 const P_RADIUS = Float32Array.from(PROTESTERS.map((p) => p.radius));
@@ -345,7 +347,7 @@ export function updateCrowd(w: World, dt: number): void {
     else if (st === PS.ENGAGED && P_HAS_MELEE[type] && w.time - lastAtkA[s]! < 0.5)
       anim = PANIM.ATTACK;
     else if (sp2 > 0.04) {
-      anim = gasTA[s]! > 0 ? PANIM.COUGH : sp2 > 2.6 ? PANIM.RUN : PANIM.WALK;
+      anim = gasTA[s]! > 0 ? PANIM.COUGH : sp2 > RUN2 ? PANIM.RUN : PANIM.WALK;
     } else anim = PANIM.IDLE;
     animA[s] = anim;
   }

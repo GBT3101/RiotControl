@@ -44,6 +44,11 @@ export const BOT_TUNING = {
   deployRate: 1,
   /** … with bursts of up to this many. */
   deployBurst: 3,
+  /**
+   * × every ground placement's spacing (playtest round): 1 = the strategies' own tight lines;
+   * `--set bot.spread=3` spreads officers out of each other's support (outnumbering A/B test).
+   */
+  spread: 1,
 };
 
 const N8X = [1, -1, 0, 0, 1, 1, -1, -1];
@@ -313,9 +318,10 @@ export class Bot {
       this.nearGrid = new Int32Array(n);
     }
     const gen = ++this.gridGen;
+    const spacing = o.spacing * BOT_TUNING.spread;
     for (const u of w.units.active) {
       if (!u.alive || u.building >= 0 || UNITS[u.type].placement !== 'road') continue;
-      const sp = u.type === 'blockade' ? Math.max(o.spacing, 2) : o.spacing;
+      const sp = u.type === 'blockade' ? Math.max(spacing, 2) : spacing;
       this.stamp(this.blockGrid, gen, u.x, u.y, sp, false);
       if (o.near && o.near.types.includes(u.type))
         this.stamp(this.nearGrid, gen, u.x, u.y, o.near.r, true);
@@ -623,17 +629,16 @@ export class Bot {
         return;
       }
       if (!this.canBuy(best)) {
-        // Saving for something big: keep cheap gaps filled while it costs little.
-        const cheapNeed = (['riot', 'sniper', 'gas'] as UnitId[]).find(
-          (id) => this.count(id) < (plan[id] ?? 0) * 0.6 && this.canBuy(id),
+        // Saving for something big: keep the cheap plan filled meanwhile (playtest round: with
+        // Hate scarce, hoarding while the line thins out loses the Capitol).
+        const cheapNeed = UNIT_ORDER.find(
+          (id) =>
+            UNITS[id].cost <= 10 && this.count(id) < (plan[id] ?? 0) && this.canBuy(id),
         );
-        if (cheapNeed) this.buyGeneric(cheapNeed, 0);
+        if (cheapNeed) this.buyPlanned(cheapNeed);
         return;
       }
-      const u =
-        UNITS[best].placement === 'rooftop'
-          ? this.placeRoof(best, best === 'sniper')
-          : this.buyGeneric(best, 0);
+      const u = this.buyPlanned(best);
       if (!u) {
         if (best === 'sniper') {
           // No guarded roof free: guard the best free one first.
@@ -643,6 +648,13 @@ export class Bot {
         return;
       }
     }
+  }
+
+  /** Place a planned unit (snipers only on guarded roofs). */
+  private buyPlanned(type: UnitId): Unit | null {
+    return UNITS[type].placement === 'rooftop'
+      ? this.placeRoof(type, type === 'sniper')
+      : this.buyGeneric(type, 0);
   }
 
   private escalate(): void {

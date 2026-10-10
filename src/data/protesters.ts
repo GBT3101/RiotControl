@@ -76,8 +76,13 @@ export interface ProtesterDef {
   speed: number;
   /** Collision radius (tiles). */
   radius: number;
-  /** Hate paid when the protester falls. */
+  /**
+   * Hate points when the protester falls. Ordinary types feed the economy's kill tally, which
+   * pays 1 Hate per `BALANCE.protestersPerHate` points; `bounty` types pay `hate` in full.
+   */
   hate: number;
+  /** Special event: `hate` is paid in full on the spot (Breta), not through the tally. */
+  bounty?: boolean;
   /** Capitol Integrity HP per second while on the steps. */
   capitolDps: number;
   /** Diverts to climb unguarded rooftops hosting snipers. */
@@ -129,7 +134,8 @@ export const PROTESTERS: readonly ProtesterDef[] = [
     index: PT.student,
     name: 'Student',
     level: 0,
-    hp: 30,
+    // Survives one rubber ball (22) even after a baton hit; the second ball drops them.
+    hp: 35,
     speed: 1.0,
     radius: 0.22,
     hate: 1,
@@ -143,6 +149,7 @@ export const PROTESTERS: readonly ProtesterDef[] = [
     index: PT.woke,
     name: 'Violent Woke',
     level: 0,
+    // Survives one rubber ball (22); the second drops them (44 ≥ 40).
     hp: 40,
     speed: 1.05,
     radius: 0.22,
@@ -184,14 +191,14 @@ export const PROTESTERS: readonly ProtesterDef[] = [
       kit(melee(8), {
         weapon: 'molotov',
         delivery: 'ballistic',
-        damage: 18,
+        damage: 11,
         cooldown: 8,
         range: 4,
         dmgType: 'fire',
         lethal: true,
         aoeRadius: 1.2,
         projectileSpeed: 6,
-        fire: { radius: 1.2, duration: 4, dps: 5 },
+        fire: { radius: 1.2, duration: 4, dps: 3 },
       }),
     ],
     weight: 5,
@@ -213,7 +220,7 @@ export const PROTESTERS: readonly ProtesterDef[] = [
       kit(null, {
         weapon: 'pistol',
         delivery: 'hitscan',
-        damage: 10,
+        damage: 6,
         cooldown: 1.8,
         range: 6,
         dmgType: 'bullet',
@@ -242,7 +249,7 @@ export const PROTESTERS: readonly ProtesterDef[] = [
         {
           weapon: 'rifle',
           delivery: 'hitscan',
-          damage: 8,
+          damage: 5,
           cooldown: 1.5,
           range: 7,
           dmgType: 'bullet',
@@ -256,7 +263,7 @@ export const PROTESTERS: readonly ProtesterDef[] = [
         {
           weapon: 'bazooka',
           delivery: 'ballistic',
-          damage: 60,
+          damage: 36,
           cooldown: 10,
           range: 7,
           dmgType: 'explosion',
@@ -285,7 +292,7 @@ export const PROTESTERS: readonly ProtesterDef[] = [
     climbs: false,
     resist: { rubber: 0.6, gas: 0.6 },
     loadouts: [kit(null, null)],
-    explode: { damage: 150, radius: 2, vsTankFraction: 0.5, crowdFactor: 0.5, capitolDamage: 40 },
+    explode: { damage: 90, radius: 2, vsTankFraction: 0.5, crowdFactor: 0.5, capitolDamage: 40 },
     weight: 3,
     chosen: ['blast hurts crowd at 50%', 'capitol blast 40'],
   },
@@ -298,6 +305,7 @@ export const PROTESTERS: readonly ProtesterDef[] = [
     speed: 0.8,
     radius: 0.2,
     hate: 100,
+    bounty: true,
     capitolDps: 1,
     climbs: false,
     loadouts: [kit(null, null)],

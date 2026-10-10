@@ -2,11 +2,14 @@
  * Minimap: the city in true 2:1 iso projection (so the camera view is a plain rectangle) inside
  * the brass M5 bezel. Base layer (ground, buildings, Capitol) is painted once; an overlay with
  * the crowd-density heat, Ministry units and the camera rectangle refreshes ~6×/s. Tap or drag
- * on it to move the camera.
+ * on it to move the camera. While the next wave is forecast (view/forecastView.ts), each
+ * district that will release protesters gets a blinking flag and a faint route to the Capitol
+ * (a bright dot runs along it; a hi-vis diamond rings districts joining for the first time).
  */
 import { BufferImageSource, Container, Sprite, Texture } from 'pixi.js';
 import { col } from '../../art/fx/draw';
 import { createBuffer, type PixelBuffer } from '../../art/lib/pixels';
+import { MINIMAP_FLAG } from '../../art/fx/waveMarkers';
 import { minimapFrame } from '../../art/uikit/panels';
 import { GROUNDS, type MapData } from '../../maps/contract';
 import type { GameController } from '../../game/controller';
@@ -142,11 +145,10 @@ export class Minimap {
   private blink = 0;
 
   constructor(
-    app: UiApp,
+    private readonly app: UiApp,
     private readonly game: GameController,
   ) {
     this.root.addChild(this.frame, this.base, this.over);
-    void app;
     const jump = (x: number, y: number): void => {
       const m = this.game.world.map;
       const t = minimapToTile(x - 6, y - 10, m.w, m.h, this.iw);
@@ -223,6 +225,24 @@ export class Minimap {
       d[o + 2] = (c >>> 8) & 255;
       d[o + 3] = 255;
     };
+    // Forecast routes (under the crowd heat).
+    const fv = this.game.view.forecast;
+    const fc = fv.alpha > 0 ? fv.current : null;
+    const reduced = !this.app.settings.shake;
+    if (fc) {
+      const faint = col('rust1');
+      const runner = col('rust4');
+      for (const ds of fc.districts) {
+        const r = fv.route(ds.district);
+        const run = reduced ? -1 : Math.floor(this.blink * 24) % Math.max(1, r.length);
+        for (let k = 0; k < r.length; k++) {
+          const t = r[k]!;
+          const i = t % m.w;
+          const q = tileToMinimap(i + 0.5, (t - i) / m.w + 0.5, m.w, m.h, iw);
+          put(Math.floor(q.x), Math.floor(q.y), Math.abs(k - run) <= 1 ? runner : faint);
+        }
+      }
+    }
     // Crowd heat: protesters per minimap pixel (via the tiles under it).
     const heat = [col('rust2'), col('crim1'), col('crim2'), col('pink2')];
     const hash = w.hash;
@@ -246,6 +266,32 @@ export class Minimap {
       const c = u.id === selected && Math.floor(this.blink * 4) % 2 ? sel : unit;
       put(x, y, c);
       put(x + 1, y, c);
+    }
+    // Forecast flags (blinking; NEW districts ringed with a hi-vis diamond).
+    if (fc) {
+      const on = reduced || Math.floor(this.blink * 3) % 2 === 0;
+      const pole = col('stone5');
+      const cloth = col(on ? 'crim2' : 'rust4');
+      const ring = col('hivis2');
+      for (const ds of fc.districts) {
+        const q = tileToMinimap(ds.rally.i + 0.5, ds.rally.j + 0.5, m.w, m.h, iw);
+        const fx = Math.floor(q.x);
+        const fy = Math.floor(q.y);
+        if (ds.isNew && on) {
+          for (let k = -3; k <= 3; k++) {
+            const a = 3 - Math.abs(k);
+            put(fx + k, fy - a, ring);
+            put(fx + k, fy + a, ring);
+          }
+        }
+        MINIMAP_FLAG.forEach((row, y) => {
+          for (let x = 0; x < row.length; x++) {
+            const ch = row[x];
+            if (ch === 'o') put(fx + x, fy - 5 + y, pole);
+            else if (ch === 'R') put(fx + x, fy - 5 + y, cloth);
+          }
+        });
+      }
     }
     // Camera rectangle.
     const v = this.game.camera.view();

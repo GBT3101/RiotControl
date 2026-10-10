@@ -28,6 +28,10 @@ export interface StatsLedger {
   capitolIntegrity: number;
   /** Damage absorbed by Ministry units. */
   damageTaken: number;
+  /** Times a mob rammed an officer over (outnumbering knockdowns, sim/mob.ts). */
+  officersRammed: number;
+  /** Protesters that started climbing a facade toward a rooftop unit. */
+  climbsStarted: number;
 }
 
 function zeros<K extends string>(keys: readonly K[]): Record<K, number> {
@@ -56,6 +60,8 @@ export function createStats(): StatsLedger {
     capitolDamage: 0,
     capitolIntegrity: 1,
     damageTaken: 0,
+    officersRammed: 0,
+    climbsStarted: 0,
   };
 }
 

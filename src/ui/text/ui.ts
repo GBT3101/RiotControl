@@ -19,6 +19,10 @@ export const UI_TEXT = {
   prophetsTitle: 'THE PROPHETS ARE COMING',
   prophetsLine: 'They explode on contact. Keep them off your men.',
   newThreat: (name: string) => `NEW THREAT: ${name.toUpperCase()}`,
+  /** Incoming-wave marker tooltip (district, expected head count, first time?, leading type). */
+  forecastTip: (district: string, count: string, isNew: boolean, lead: string | null) =>
+    `${district.toUpperCase()}${isNew ? ' (NEW)' : ''}: ABOUT ${count} PROTESTERS GATHER HERE.` +
+    (lead ? ` LED BY ${lead.toUpperCase()}.` : ''),
 };
 
 export const CREDITS: ReadonlyArray<[string, string]> = [

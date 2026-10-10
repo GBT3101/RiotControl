@@ -80,6 +80,16 @@ export class Unit {
   lastHurt = -1;
   /** Protesters fighting this unit on its roof (rooftop units). */
   roofAttackers = 0;
+  /**
+   * Outnumbering (sim/mob.ts, refreshed every few ticks): protesters on the unit ÷ its support,
+   * and the resulting multiplier on protester melee damage (1 = holding).
+   */
+  odds = 0;
+  mob = 1;
+  /** Rooftop units: seconds spent shooting at the crowd (decays when quiet) — climbers' rage. */
+  rage = 0;
+  /** Sim time the unit was last rammed over (knocked down by a mob), -1. View: knockdown pose. */
+  rammedAt = -1;
   kills = 0;
   /** Gas cone aim (unit vector) — view draws the spray while `state === ATTACKING`. */
   aimX = 1;
@@ -142,6 +152,10 @@ export class UnitPool {
     u.lastAttack = -1;
     u.lastHurt = -1;
     u.roofAttackers = 0;
+    u.odds = 0;
+    u.mob = 1;
+    u.rage = 0;
+    u.rammedAt = -1;
     u.kills = 0;
     u.z = 0;
     u.moving = false;

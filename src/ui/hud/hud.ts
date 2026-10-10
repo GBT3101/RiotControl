@@ -5,7 +5,7 @@
  */
 import { Container, Sprite } from 'pixi.js';
 import { rubberStamp } from '../../art/uikit/banners';
-import { makeInteractive } from '../core/node';
+import { makeInteractive, type Rect } from '../core/node';
 import { uiTex, destroyOwned } from '../core/tex';
 import type { UnitId } from '../../data/units';
 import type { GameController, HudSnapshot } from '../../game/controller';
@@ -13,6 +13,7 @@ import { Button, roundFaces } from '../core/button';
 import type { HudLayout } from '../layout';
 import type { UiApp } from '../app';
 import { DeployBar } from './deployBar';
+import { ForecastMarkers } from './forecast';
 import { InfoPanel } from './infoPanel';
 import { Minimap } from './minimap';
 import { Placement } from './placement';
@@ -27,6 +28,8 @@ export class Hud {
   readonly minimap: Minimap;
   readonly info: InfoPanel;
   readonly placement: Placement;
+  /** Incoming-wave markers (rally banners / edge pointers). */
+  readonly forecast: ForecastMarkers;
   /** Phones: shows/hides the minimap. */
   readonly mapToggle: Button;
   private snapshot: HudSnapshot;
@@ -45,11 +48,14 @@ export class Hud {
     this.minimap = new Minimap(app, game);
     this.info = new InfoPanel(app, game);
     this.placement = new Placement(app, game);
+    this.forecast = new ForecastMarkers(app, game);
+    this.forecast.avoid = () => this.forecastAvoid();
     this.mapToggle = new Button(roundFaces('codex', 'lg'), {
       onTap: () => app.toggleMinimap(),
       pad: 3,
     });
     this.root.addChild(
+      this.forecast.root,
       this.info.cueLayer,
       this.placement.root,
       this.wave.root,
@@ -95,11 +101,25 @@ export class Hud {
     this.deploy.update(dt);
     this.wave.update(dt, h);
     this.minimap.update(dt);
+    this.forecast.update(dt, l, this.root.visible);
     this.info.update(dt, l);
     this.placement.update(l);
     this.paused.visible =
       h.paused && !this.app.topScreen && !this.game.attract && !this.app.params.freeze;
     this.paused.position.set(Math.floor(l.W / 2), Math.floor(l.H / 2) - 20);
+  }
+
+  /** HUD pieces the forecast's edge pointers stay clear of. */
+  private forecastAvoid(): Rect[] {
+    const out: Rect[] = [];
+    const l = this.app.layout;
+    if (this.minimap.root.visible && l.minimap) out.push(l.minimap);
+    const w = this.wave.rect();
+    if (w) out.push({ x: w.x - 2, y: w.y - 12, w: w.w + 4, h: w.h + 14 });
+    if (this.mapToggle.visible)
+      out.push({ x: this.mapToggle.x, y: this.mapToggle.y, w: this.mapToggle.w, h: this.mapToggle.h });
+    if (this.info.root.visible) out.push(l.info);
+    return out;
   }
 
   /** Select a unit card (hotkeys). */
@@ -114,6 +134,7 @@ export class Hud {
     this.minimap.destroy();
     this.info.destroy();
     this.placement.destroy();
+    this.forecast.destroy();
     destroyOwned(this.root);
   }
 }

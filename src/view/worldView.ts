@@ -21,6 +21,7 @@ import { BodyView, type ThrowInfo } from './bodyView';
 import { CombatView } from './combatView';
 import { gradeAt, mixColor, PREP_TOD, stepTod, targetTod, type Grade } from './daylight';
 import { DecalLayer } from './decalLayer';
+import { ForecastView } from './forecastView';
 import { FxSystem } from './fx';
 import { Juice } from './juice';
 import { createViewLayers, type ViewLayers } from './layers';
@@ -66,6 +67,8 @@ export class WorldView {
   readonly combat: CombatView;
   readonly ambient: AmbientView;
   readonly overlays: OverlayView;
+  /** Incoming-wave forecast: route chevrons + the forecast state the HUD markers read. */
+  readonly forecast: ForecastView;
   private readonly occ: Uint8Array;
   private readonly renderer: Renderer;
   private tod = PREP_TOD;
@@ -169,6 +172,7 @@ export class WorldView {
       roofStand: (b) => this.cityArt.buildings.get(b)?.roofStand,
       occlusion: (x, y) => this.occlusionAt(x, y),
     });
+    this.forecast = new ForecastView(world, this.layers);
     this.layers.screen.addChild(this.juice.screen);
     if (q !== 'low') {
       // X-ray silhouettes: flat one-colour sprites (white silhouette textures × team colour).
@@ -494,6 +498,8 @@ export class WorldView {
     this.fx.update(now, dtSim);
     lap('fx');
     this.overlays.update(ui, now);
+    this.forecast.reducedMotion = this.juice.reducedMotion;
+    this.forecast.update(now, realDt);
     lap('overlays');
     this.decals.flush();
     lap('decals');

@@ -150,23 +150,52 @@ function climbTime(w: World, b: number): number {
   return w.map.buildings[b]!.storeys * BALANCE.climbSecondsPerStorey;
 }
 
+/** No solid tile on the straight walk from (x0, y0) to (x1, y1) (samples every ¼ tile). */
+function clearWalk(w: World, x0: number, y0: number, x1: number, y1: number): boolean {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const n = Math.ceil(Math.sqrt(dx * dx + dy * dy) * 4);
+  for (let k = 1; k < n; k++) {
+    if (w.nav.isSolidAt(x0 + (dx * k) / n, y0 + (dy * k) / n)) return false;
+  }
+  return true;
+}
+
+/**
+ * Climbers (Violent Woke, Violent Mob, Very Violent Mob) divert to rooftop units that are not
+ * guarded by a melee unit next to the facade. The pull grows with the rooftop unit's isolation
+ * (no friendly ground unit within `climb.coverRadius`: more climbers, noticed from further)
+ * and with its `rage` — how long it has been shooting at the crowd (playtest round: lone,
+ * far-off snipers get stormed within ~20–40 s of contact; covered ones much less).
+ */
 export const climber: ProtesterBehaviour = {
   id: 'climber',
   think(w, s) {
     const c = w.crowd;
-    if (c.state[s] !== PS.MARCH || w.roofBuildings.length === 0) return;
+    const st = c.state[s]!;
+    if (st !== PS.MARCH && st !== PS.RALLY && st !== PS.GATHER) return;
+    if (w.roofBuildings.length === 0) return;
     const x = c.x[s]!;
     const y = c.y[s]!;
-    const R = BALANCE.climbDetectRadius;
+    const C = BALANCE.climb;
     const pr = PROTESTERS[c.type[s]!]!.radius;
     for (const b of w.roofBuildings) {
-      if (w.roofGuarded[b] || w.roofClimbers[b]! >= BALANCE.maxClimbersPerRoof) continue;
+      if (w.roofGuarded[b]) continue;
+      const ru = w.roofUnitAt(b);
+      if (!ru) continue;
+      const covered = w.roofCovered[b] === 1;
+      const cap = covered ? BALANCE.maxClimbersPerRoof : BALANCE.maxClimbersIsolated;
+      if (w.roofClimbers[b]! >= cap) continue;
+      const heat = Math.min(1, ru.rage / C.rageFull);
+      const iso = covered ? C.coveredFactor : 1;
+      const R = BALANCE.climbDetectRadius + C.rageReach * heat * iso;
       const B = w.map.buildings[b]!;
       const dx = Math.max(B.i - x, 0, x - (B.i + B.w));
       const dy = Math.max(B.j - y, 0, y - (B.j + B.d));
       if (dx * dx + dy * dy > R * R) continue;
+      if (!w.rng.chance(C.chance * (1 + (C.rageChance - 1) * heat) * iso)) continue;
+      // Nearest facade point the protester can walk straight to.
       const pts = w.climbPointsOf(b);
-      if (pts.length === 0) continue;
       const mw = w.map.w;
       let best = -1;
       let bd = Infinity;
@@ -177,11 +206,12 @@ export const climber: ProtesterBehaviour = {
         const ex = ti + 0.5 - x;
         const ey = tj + 0.5 - y;
         const d = ex * ex + ey * ey;
-        if (d < bd) {
+        if (d < bd && clearWalk(w, x, y, ti + 0.5, tj + 0.5)) {
           bd = d;
           best = t;
         }
       }
+      if (best < 0) continue;
       const ti = best % mw;
       const tj = (best - ti) / mw;
       // Stand against the facade.
@@ -246,6 +276,7 @@ export function climbUpdate(w: World, s: number, dt: number): boolean {
       c.climb[s] = 0;
       c.anim[s] = PANIM.CLIMB;
       c.facing[s] = facing4(dx, dy); // face the wall
+      w.stats.climbsStarted++;
       w.events.push('climbStart', {
         handle: c.handle(s),
         building: b,
@@ -288,7 +319,8 @@ export function climbUpdate(w: World, s: number, dt: number): boolean {
     const def = PROTESTERS[c.type[s]!]!;
     const m = def.loadouts[c.loadout[s]!]!.melee;
     if (c.cd[s]! <= 0 && c.stun[s]! <= 0) {
-      const dps = m ? m.dps : 3;
+      // Roof brawl: grapple for at least `climb.brawlDps` (hurtUnit adds the outnumbering bonus).
+      const dps = Math.max(m ? m.dps : 0, BALANCE.climb.brawlDps);
       const interval = m ? m.interval : 1;
       c.cd[s] = interval;
       c.lastAtk[s] = w.time;

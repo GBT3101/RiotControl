@@ -5,7 +5,7 @@
  * loop's business (`core/loop.FixedStepLoop` calls `step()`).
  *
  * Step order: prev positions → director (spawns) → flow field (throttled) → spatial hash +
- * unit grid → roof guards → units → crowd → projectiles → areas → bodies → Capitol.
+ * unit grid → roof guards → outnumbering (mob.ts) → units → crowd → projectiles → areas → bodies → Capitol.
  */
 import { BALANCE, type QualityTier } from '../data/balance';
 import { WIN_LEGITIMACY } from '../data/levels';
@@ -22,6 +22,7 @@ import { Director } from './director';
 import { Economy } from './economy';
 import { EventBuffer } from './events';
 import { hashWorld } from './hash';
+import { updateMob } from './mob';
 import { Nav } from './nav';
 import { checkDeploy, deployUnit, type DeployCheck } from './placement';
 import { Projectiles } from './projectiles';
@@ -76,6 +77,8 @@ export class World {
   readonly roofUnit: Int16Array;
   /** Per building: an alive ground melee unit guards it (no climbing). */
   readonly roofGuarded: Uint8Array;
+  /** Per building: a friendly ground unit within `BALANCE.climb.coverRadius` (not isolated). */
+  readonly roofCovered: Uint8Array;
   /** Per building: protesters heading to / on its facade or roof. */
   readonly roofClimbers: Int16Array;
   /** Buildings currently hosting a rooftop unit. */
@@ -106,6 +109,7 @@ export class World {
     const nb = map.buildings.length;
     this.roofUnit = new Int16Array(nb).fill(-1);
     this.roofGuarded = new Uint8Array(nb);
+    this.roofCovered = new Uint8Array(nb);
     this.roofClimbers = new Int16Array(nb);
     this.climbPts = new Array<Int32Array | null>(nb).fill(null);
     this.rallyFields = map.spawns.map(() => null);
@@ -134,6 +138,8 @@ export class World {
     this.hash.rebuild(c);
     this.buildUnitGrid();
     if (this.tick % 15 === 0) this.updateRoofGuards();
+    updateMob(this);
+    if (this.phase !== 'playing') return;
     this.updateUnits(dt);
     if (this.phase !== 'playing') return;
     updateCrowd(this, dt);
@@ -205,21 +211,27 @@ export class World {
     }
   }
 
+  /** Roof guards (melee units next to the facade) and cover (any ground unit nearby). */
   private updateRoofGuards(): void {
-    const R = BALANCE.guardRadius;
+    const R2 = BALANCE.guardRadius ** 2;
+    const C2 = BALANCE.climb.coverRadius ** 2;
     for (const b of this.roofBuildings) {
       const B = this.map.buildings[b]!;
       let guarded = 0;
+      let covered = 0;
       for (const u of this.units.active) {
-        if (!u.alive || !u.def.guardsRooftops || u.building >= 0) continue;
+        if (!u.alive || u.building >= 0 || u.def.placement !== 'road') continue;
         const dx = Math.max(B.i - u.x, 0, u.x - (B.i + B.w));
         const dy = Math.max(B.j - u.y, 0, u.y - (B.j + B.d));
-        if (dx * dx + dy * dy <= R * R) {
+        const d2 = dx * dx + dy * dy;
+        if (d2 <= C2) covered = 1;
+        if (u.def.guardsRooftops && d2 <= R2) {
           guarded = 1;
           break;
         }
       }
       this.roofGuarded[b] = guarded;
+      this.roofCovered[b] = covered;
     }
   }
 

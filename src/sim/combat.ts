@@ -8,7 +8,7 @@ import { PROTESTERS, PT } from '../data/protesters';
 import { unitIndex, type AttackDef } from '../data/units';
 import { BODY_KIND } from './bodies';
 import { PS } from './crowd';
-import { gainHate, gainLegit } from './economy';
+import { gainHate, gainLegit, protesterHate } from './economy';
 import type { ActorKind } from './events';
 import { facing4, US, type Unit } from './units';
 import type { World } from './world';
@@ -87,7 +87,7 @@ export function killProtester(
     if (u) u.kills++;
   }
   c.release(s);
-  gainHate(w, def.hate, x, y, 'protester');
+  protesterHate(w, def.hate, def.bounty === true, x, y);
 }
 
 /** Remove a protester's references from units/roofs (before death or state change). */
@@ -180,7 +180,9 @@ export function hurtUnit(
   armourPiercing = false,
 ): boolean {
   if (!u.alive || u.def.invulnerable || amount <= 0) return false;
-  const dealt = armourPiercing ? amount : amount * u.armour[dmg]!;
+  let dealt = armourPiercing ? amount : amount * u.armour[dmg]!;
+  // Outnumbered (sim/mob.ts): a mob's blows land harder on a lone unit.
+  if (attackerKind === 'protester' && dmg === DMG.melee) dealt *= u.mob;
   u.hp -= dealt;
   u.lastHurt = w.time;
   w.stats.damageTaken += dealt;
@@ -365,17 +367,20 @@ export function blast(
 
 let tw: World | null = null;
 let tMelee = false;
+/** Building the shooter stands on (-1 = ground): it cannot see down its own facade. */
+let tRoof = -1;
 
 /** Threat weighting: lower = preferred (score = dist² × weight). */
 function targetWeight(s: number): number {
   const c = tw!.crowd;
   const st = c.state[s]!;
   if (st === PS.ON_ROOF || st === PS.CLIMB_DOWN) return 0;
-  if (st === PS.CLIMBING) return tMelee ? 0 : 0.5;
+  if (st === PS.CLIMBING) return tMelee || c.bld[s] === tRoof ? 0 : 0.5;
   const t = c.type[s]!;
   if (t === PT.prophet) return 0.35;
   if (st === PS.CAPITOL) return 0.6;
-  if (st === PS.TO_CLIMB) return 0.6;
+  // Cover shoots climbers on their way; the target itself does not single them out.
+  if (st === PS.TO_CLIMB) return c.bld[s] === tRoof ? 1 : 0.6;
   if (st === PS.ENGAGED) return 0.8;
   if (t === PT.breta) return 0.9;
   return 1;
@@ -383,9 +388,17 @@ function targetWeight(s: number): number {
 const MIN_WEIGHT = 0.35;
 
 /** Score of a protester for a shooter at (x, y) (Infinity = invalid). */
-export function targetScore(w: World, x: number, y: number, s: number, melee = false): number {
+export function targetScore(
+  w: World,
+  x: number,
+  y: number,
+  s: number,
+  melee = false,
+  roof = -1,
+): number {
   tw = w;
   tMelee = melee;
+  tRoof = roof;
   const wt = targetWeight(s);
   if (wt <= 0) return Infinity;
   const dx = w.crowd.x[s]! - x;
@@ -393,10 +406,18 @@ export function targetScore(w: World, x: number, y: number, s: number, melee = f
   return (dx * dx + dy * dy) * wt;
 }
 
-/** Best protester within `range` (threat-weighted nearest), or -1. */
-export function findTarget(w: World, x: number, y: number, range: number, melee = false): number {
+/** Best protester within `range` (threat-weighted nearest), or -1. `roof`: shooter's building. */
+export function findTarget(
+  w: World,
+  x: number,
+  y: number,
+  range: number,
+  melee = false,
+  roof = -1,
+): number {
   tw = w;
   tMelee = melee;
+  tRoof = roof;
   return w.hash.best(w.crowd, x, y, range, targetWeight, MIN_WEIGHT);
 }
 
@@ -421,6 +442,7 @@ export function findTargetBeyond(
 ): number {
   tw = w;
   tMelee = false;
+  tRoof = -1;
   tmx = x;
   tmy = y;
   tmMin2 = minRange * minRange;
@@ -436,7 +458,7 @@ export function acquireTarget(w: World, u: Unit, range: number, dt: number, mele
   let cur = u.target >= 0 ? c.resolve(u.target) : -1;
   let curScore = Infinity;
   if (cur >= 0) {
-    curScore = targetScore(w, u.x, u.y, cur, melee);
+    curScore = targetScore(w, u.x, u.y, cur, melee, u.building);
     const r = range * 1.05;
     if (!(curScore < Infinity) || dist2(u.x, u.y, c.x[cur]!, c.y[cur]!) > r * r) {
       cur = -1;
@@ -446,9 +468,9 @@ export function acquireTarget(w: World, u: Unit, range: number, dt: number, mele
   u.retargetT -= dt;
   if (cur < 0 || u.retargetT <= 0) {
     u.retargetT = BALANCE.unitRetarget + (u.id % 5) * 0.01;
-    const best = findTarget(w, u.x, u.y, range, melee);
+    const best = findTarget(w, u.x, u.y, range, melee, u.building);
     if (best >= 0 && best !== cur) {
-      const sc = targetScore(w, u.x, u.y, best, melee);
+      const sc = targetScore(w, u.x, u.y, best, melee, u.building);
       if (cur < 0 || sc < curScore * BALANCE.targetHysteresis) cur = best;
     }
   }

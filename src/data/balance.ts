@@ -11,14 +11,21 @@ export const BALANCE = {
   startHate: 100,
   startLegit: 0,
   /** Hate on any own unit death (blockades included; each Sniper Brigade member counts). */
-  hatePerUnitDeath: 10,
-  // Protester Hate payouts are per type (protesters.ts: student…paparazzi 1, Breta 100).
+  hatePerUnitDeath: 1,
+  /**
+   * Ordinary protester kills pay their `hate` into a tally that pays out 1 Hate per this many
+   * points (owner, playtest round: "1 Hate per 3 protesters"). `bounty` types (Breta) pay in full.
+   */
+  protestersPerHate: 3,
 
   // ── Simulation ─────────────────────────────────────────────────────────────────────────
   /** Fixed sim rate (Hz). */
   hz: 30,
-  /** Base protester walk speed (tiles/s) — ProtesterDef.speed multiplies it. */
-  walkSpeed: 1.15,
+  /** Base protester walk speed (tiles/s) — ProtesterDef.speed multiplies it (playtest round:
+   *  1.5× the M12 1.15). */
+  walkSpeed: 1.725,
+  /** The view's run cycle plays above this multiple of `walkSpeed` (sprinting Prophets, aura). */
+  runAnimAbove: 1.4,
   /** Per-protester gait variation (±fraction). */
   gaitVariation: 0.1,
   /** Crowd separation radius (tiles, centre to centre). */
@@ -72,12 +79,63 @@ export const BALANCE = {
   /** Interval between aggregated `capitolDamaged` events (s). */
   capitolEventInterval: 1,
 
+  // ── Outnumbering (playtest round: "protesters ram lone units over") ───────────────────
+  /**
+   * A ground unit's *odds* = protesters within `radius` of it ÷ its support (itself plus friendly
+   * ground units within `supportRadius`, weighted by `UnitDef.mobWeight`). Protester melee
+   * hits it × (1 + `slope` × (odds − `UnitDef.mobHold`)), clamped to [`minMult`, `maxMult`]:
+   * a lone officer in a mob melts, a tight squad shrugs blows off. Rooftop units count the
+   * climbers on their roof against themselves alone.
+   */
+  mob: {
+    radius: 1.2,
+    supportRadius: 3,
+    slope: 0.3,
+    minMult: 0.6,
+    maxMult: 3.5,
+    /** Recomputed every this many ticks. */
+    everyTicks: 6,
+    /**
+     * Rammed over: a unit that can be knocked down (`UnitDef.rammable`) facing at least
+     * `ramOdds` gets knocked down with probability `ramChance` × (odds − ramOdds + 1) (≤ 0.6)
+     * per update: `ramDamage` × the type's HP (crush, ignores armour) and `ramStun` seconds down.
+     */
+    ramOdds: 5,
+    ramChance: 0.02,
+    ramDamage: 0.25,
+    ramStun: 1.2,
+  },
+
   // ── Climbing / rooftops (PLAN §1.4) ───────────────────────────────────────────────────
+  /** Base reach (tiles from the footprint) at which a passing climber notices a rooftop unit. */
   climbDetectRadius: 3,
+  /** A Riot Control / horse within this many tiles of the footprint: nobody climbs. */
   guardRadius: 2.5,
   climbSecondsPerStorey: 1.5,
+  /** Climbers per roof when the rooftop unit has ground cover… */
   maxClimbersPerRoof: 2,
-  climbGiveUp: 6,
+  /** …and when it is isolated. */
+  maxClimbersIsolated: 4,
+  /** Seconds a protester may spend walking to its climb point. */
+  climbGiveUp: 9,
+  climb: {
+    /** No friendly ground unit within this many tiles of the footprint = isolated. */
+    coverRadius: 6,
+    /** Covered rooftop units are noticed this much less often / from this much less far. */
+    coveredFactor: 0.2,
+    /** Per protester decision (≈ 0.27 s): base chance to divert once in reach. */
+    chance: 0.06,
+    /** Rage: the rooftop unit's shooting at the crowd (seconds, decays at half speed). At
+     *  `rageFull` seconds the chance is ×`rageChance` and the reach grows by `rageReach`. */
+    rageFull: 25,
+    rageChance: 5,
+    rageReach: 5,
+    /** Roof brawl: climbers grapple for at least this many DPS (plus the outnumbering bonus;
+     *  a roof holds `UnitDef.mobHold` climbers per defender). */
+    brawlDps: 8,
+    /** The rooftop unit's point-blank defence deals this fraction of its weapon damage. */
+    defendFactor: 0.5,
+  },
 
   // ── Bodies ───────────────────────────────────────────────────────────────────────────
   bodyTtl: [20, 40] as [number, number],

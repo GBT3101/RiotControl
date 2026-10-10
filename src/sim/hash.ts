@@ -48,6 +48,8 @@ export function hashWorld(w: World): number {
     H.num(u.y);
     H.num(u.hp);
     H.int(u.members);
+    H.num(u.mob);
+    H.num(u.rage);
   }
   for (const p of w.projectiles.active) {
     H.int(p.id);
@@ -61,6 +63,7 @@ export function hashWorld(w: World): number {
   H.num(w.economy.hate);
   H.num(w.economy.legit);
   H.int(w.economy.level);
+  H.int(w.economy.killTally);
   H.num(w.capitol.hp);
   H.int(w.director.wave);
   H.int(w.bodies.count);
