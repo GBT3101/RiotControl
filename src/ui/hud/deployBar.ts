@@ -80,7 +80,8 @@ export class DeployBar {
     const c = UNIT_COPY[unit];
     const lvl = d.level > this.game.world.level ? `\nLOCKED until Level ${d.level}.` : '';
     const legit = d.invulnerable ? 'never dies' : `+${d.legit} Legit if it falls`;
-    return `${d.name.toUpperCase()}  [${this.game.deployOptions().find((o) => o.unit === unit)?.hotkey ?? ''}]\n${c.role}\nCost ${formatNumber(d.cost)} Hate · ${legit}${lvl}\n"${c.quip}"`;
+    // The hotkey already sits on the card's corner; the UI fonts have no bracket glyphs.
+    return `${d.name.toUpperCase()}\n${c.role}\nCost ${formatNumber(d.cost)} Hate · ${legit}${lvl}\n"${c.quip}"`;
   }
 
   /** Select a unit card (tap / hotkey). */
