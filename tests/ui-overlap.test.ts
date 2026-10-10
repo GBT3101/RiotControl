@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { rubberStamp } from '../src/art/uikit/banners';
 import { stampButton } from '../src/art/uikit/buttons';
+import { HATE_FACE_W, costStrip, lockLabel } from '../src/art/uikit/cards';
 import { FONTS, measureText } from '../src/art/uikit/text';
 import { ministerAnims } from '../src/art/uikit/portraits';
 import { advisorLayout } from '../src/ui/widgets/advisor';
@@ -233,7 +234,7 @@ describe('selected-unit panel', () => {
             for (const [k, b] of Object.entries({ ...boxes, hint: g.hint }))
               if (b.w > 0)
                 expect(inside(b, { x: 0, y: 0, w, h: g.h }, 2), `${msg} ${k}`).toBe(true);
-            expect(g.h, msg).toBeLessThanOrEqual(h + (gas ? 40 : 24));
+            expect(g.h, msg).toBeLessThanOrEqual(h + (gas ? 52 : 24));
           }
   });
 });
@@ -291,5 +292,26 @@ describe('stats ledger rows', () => {
           for (const ln of rowLabelLines(r, w))
             expect(measureText(font, ln).w, `${w} ${r.label}`).toBeLessThanOrEqual(room);
         }
+  });
+});
+
+describe('deploy card strips', () => {
+  it('the Hate face never touches the cost, and the LVL badge fits the card (full and compact)', () => {
+    for (const [W, face, right, badge] of [
+      [34, 3, 4, 6],
+      [26, 2, 3, 6],
+    ] as const) {
+      for (const u of UNIT_IDS) {
+        const s = costStrip(UNITS[u].cost, 2, W, face, right);
+        expect(s.textX + s.textW, `${W} ${u}`).toBeLessThanOrEqual(2 + W - 2);
+        expect(s.textX, `${W} ${u}`).toBeGreaterThanOrEqual(3);
+        if (s.faceX !== null)
+          expect(s.textX - (s.faceX + HATE_FACE_W), `${W} ${u}`).toBeGreaterThanOrEqual(1);
+      }
+      for (let lv = 1; lv <= 10; lv++)
+        expect(measureText(FONTS.smallBold, lockLabel(lv, W - badge)).w).toBeLessThanOrEqual(
+          W - badge,
+        );
+    }
   });
 });

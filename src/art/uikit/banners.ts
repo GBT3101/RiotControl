@@ -55,7 +55,23 @@ export function rubberStamp(text: string, ink: string, opts: StampOptions = {}):
       4 + pad + font.capHeight + 4,
       ink,
     );
-  // Worn ink: carve a few small cluster-shaped holes (never single-pixel noise).
+  // Worn ink: carve a few small cluster-shaped holes (never single-pixel noise) — in the
+  // border and the background only: the lettering stays whole so the stamp always reads.
+  const glyph = new Uint8Array(W * H);
+  {
+    const t = buf(W, H);
+    drawText(t, font, text, Math.floor((W - m.w) / 2), 3 + pad, ink);
+    if (opts.sub && subM)
+      drawText(
+        t,
+        FONTS.smallBold,
+        opts.sub,
+        Math.floor((W - subM.w) / 2),
+        4 + pad + font.capHeight + 4,
+        ink,
+      );
+    for (let i = 0; i < W * H; i++) glyph[i] = t.data[i * 4 + 3] ? 1 : 0;
+  }
   const rnd = prng(opts.seed ?? text.length * 31 + 7);
   const wear = opts.wear ?? 0.5;
   const holes = Math.round(((W * H) / 140) * wear);
@@ -66,7 +82,14 @@ export function rubberStamp(text: string, ink: string, opts: StampOptions = {}):
     const ry = r * (0.5 + rnd() * 0.5);
     for (let y = Math.floor(cy - 2); y <= cy + 2; y++) {
       for (let x = Math.floor(cx - 2); x <= cx + 2; x++) {
-        if (x >= 0 && y >= 0 && x < W && y < H && inEllipse(x, y, cx, cy, r, ry))
+        if (
+          x >= 0 &&
+          y >= 0 &&
+          x < W &&
+          y < H &&
+          !glyph[y * W + x] &&
+          inEllipse(x, y, cx, cy, r, ry)
+        )
           flat.data.fill(0, (y * W + x) * 4, (y * W + x) * 4 + 4);
       }
     }

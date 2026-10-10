@@ -535,7 +535,7 @@ export class Moments {
       this.info.tex.destroy(true);
     }
     // Wrapped (centred) to the screen: long unit names would run off a phone.
-    const maxW = Math.min(240, this.app.layout.W - 24);
+    const maxW = Math.min(320, this.app.layout.W - 24);
     const m = measureText(FONTS.smallBold, text, maxW);
     const b = buf(m.w + 14, m.h + 10);
     stamp(b, panel('tooltip', b.w, b.h), 0, 0);
