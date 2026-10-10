@@ -44,7 +44,17 @@ function seams(ramp: readonly RGBA[]): (rise: number) => SlopeTex {
   };
 }
 const TIN = seams([C('ink'), C('gray1'), C('gray2')]);
-const COPPER = seams([C('teal1'), C('teal1'), C('teal2')]);
+/** Verdigris copper: seams catch the light, the shade side goes blue-green. */
+const COPPER = (rise: number): SlopeTex => (a, b, l) => {
+  const ai = ((Math.floor(a) % 4) + 4) % 4;
+  const bi = Math.floor(b);
+  if (bi <= 0) return C('zinc0');
+  const base = l > 0 ? C('teal2') : l < 0 ? C('zinc0') : C('teal1');
+  const seam = l > 0 ? C('teal1') : l < 0 ? C('teal1') : C('teal2');
+  if (bi >= rise - 1) return seam;
+  if (ai === 0) return seam;
+  return hash(Math.floor(a) >> 2, bi >> 3, 5) % 11 === 0 ? seam : base;
+};
 
 /** Red clay tiles (Södermalm, the odd Gamla stan roof). */
 const TILES = (rise: number): SlopeTex => (a, b, l) => {
@@ -271,7 +281,7 @@ export const stockholm: EnvCity = {
       grid: { rows: 4, cols: 4, stagger: 0.5 },
     },
     plaza: {
-      tones: [C('gray5'), C('stone2'), C('gray6')],
+      tones: [C('gray5'), C('gray5'), C('gray6')],
       border: C('gray4'),
       joint: C('gray3'),
     },
@@ -459,7 +469,7 @@ export const stockholm: EnvCity = {
   },
 
   props: {
-    lamp: { grid: G.LAMP_STOCKHOLM, keys: { M: 'gray4', m: 'gray3', A: 'gray5', W: 'white' } },
+    lamp: { grid: G.LAMP_STOCKHOLM, keys: { M: 'gray5', m: 'gray4', A: 'gray6', W: 'white' } },
     metal: ['gray3', 'gray2'],
     bench: { frame: 'gray1', wood: 'earth4' },
     kiosk: { body: 'rust1', roof: 'gray2', top: { sign: 'navy2' } },

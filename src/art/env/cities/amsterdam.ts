@@ -312,7 +312,7 @@ export const amsterdam: EnvCity = {
       grid: { rows: 4, cols: 2, stagger: 0.5 },
     },
     plaza: {
-      tones: [C('gray5'), C('stone2'), C('gray5')],
+      tones: [C('gray5'), C('gray4'), C('gray5')],
       border: C('gray4'),
       joint: C('gray3'),
     },

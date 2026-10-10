@@ -181,16 +181,12 @@ MMMMMmmmm
 /** "Amsterdammertje": red-brown cast-iron bollard with the three St Andrew's crosses. */
 export const BOLLARD_AMSTERDAM = `
 .AMm.
-.MMm.
 MMMmm
 MwMwm
 MMwmm
 MwMwm
-MMMmm
-MwMwm
 MMwmm
 MwMwm
-MMMmm
 MMMmm
 .MMm.
 `;
