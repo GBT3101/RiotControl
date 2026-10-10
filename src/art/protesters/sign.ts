@@ -1,53 +1,62 @@
 /**
  * Protest signs (M4b): boards with tiny pixel slogans (3×5 font, see glyphs.ts), on a pole
  * (held in one hand) or as two-handed cardboard. Front (SE) shows the slogan, back (NE)
- * shows bare cardboard with tape. Slogans are city-flavoured via `SLOGANS[city]`.
+ * shows bare cardboard with tape. Slogans are city-flavoured via `SLOGANS[city]` (city copy).
  */
+import { CITIES, type CityId } from '../../maps/contract';
+import { CITY_COPY } from '../../ui/text/cities';
 import { keyGrid } from '../lib/grid';
 import type { PartDef } from './book';
 import { textRows } from './glyphs';
 import type { SignArt } from './figure';
 import type { Tone } from './tones';
 
-export type City = 'madrid' | 'london' | 'paris' | 'any';
+export type City = CityId | 'any';
 
-/** Short slogans (≤ ~17 px wide in the 3×5 font). `{sym}` = 5×5 symbol. */
+/** Slogans for any city. */
+const ANY_SLOGANS: readonly string[] = [
+  'NO!',
+  'WHY?',
+  'BAH',
+  'STOP',
+  'NOPE',
+  'BOO!',
+  '{heart}',
+  '{anarchy}',
+  '{fist}',
+  '{peace}',
+  'NO{x}',
+  'MEH',
+  'RAGE',
+  '?!',
+  '{frown}',
+  'DOWN',
+  '{arrow}',
+  'LOVE',
+  'MORE',
+  'LESS',
+  'UGH',
+  'STOPP',
+  'NOOO',
+  'WAT',
+  'HALP',
+  'PLZ',
+  'OK?',
+  '{eye}{eye}',
+  '{bolt}',
+  '{sun}',
+];
+
+/**
+ * Short slogans (≤ ~17 px wide in the 3×5 font). `{sym}` = 5×5 symbol. City slogans are part of
+ * each city's copy (src/ui/text/city/<city>.ts → CityCopy.slogans).
+ */
 export const SLOGANS: Readonly<Record<City, readonly string[]>> = {
-  any: [
-    'NO!',
-    'WHY?',
-    'BAH',
-    'STOP',
-    'NOPE',
-    'BOO!',
-    '{heart}',
-    '{anarchy}',
-    '{fist}',
-    '{peace}',
-    'NO{x}',
-    'MEH',
-    'RAGE',
-    '?!',
-    '{frown}',
-    'DOWN',
-    '{arrow}',
-    'LOVE',
-    'MORE',
-    'LESS',
-    'UGH',
-    'STOPP',
-    'NOOO',
-    'WAT',
-    'HALP',
-    'PLZ',
-    'OK?',
-    '{eye}{eye}',
-    '{bolt}',
-    '{sun}',
-  ],
-  madrid: ['¡NO!', 'BASTA', 'OLE', 'VALE', '¡YA!', 'ADIOS', 'NO!', 'FUERA', '¿POR?', 'JOPE'],
-  london: ['OI!', 'NO!', 'TEA?', 'BAH', 'NAFF', 'SORRY', 'MEH', 'OI OI', 'PANTS', 'CHEEK'],
-  paris: ['NON!', 'MERDE', 'ZUT', 'GREVE', 'BOF', 'NUL', 'NON', 'HELAS', 'NON{x}', 'OUSTE'],
+  any: ANY_SLOGANS,
+  ...(Object.fromEntries(CITIES.map((c) => [c, CITY_COPY[c].slogans])) as Record<
+    CityId,
+    readonly string[]
+  >),
 };
 
 /** Students' hand-made signs (more misspellings). */

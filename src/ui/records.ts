@@ -1,7 +1,8 @@
 /**
- * Best results per city (`riot.records.v1`), shown on the city-select postcards.
+ * Best results per city (`riot.records.v1`), shown on the city-select postcards. Every known
+ * city id has a record (zeros until played); only playable cities can add runs.
  */
-import type { CityId } from '../maps/contract';
+import { CITIES, type CityId } from '../maps/contract';
 import { browserStorage, readJson, writeJson, type KeyValueStorage } from './storage';
 
 export const RECORDS_KEY = 'riot.records.v1';
@@ -40,7 +41,7 @@ const num = (v: unknown): number =>
 export function sanitizeRecords(raw: unknown): Records {
   const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const out = {} as Records;
-  for (const c of ['madrid', 'london', 'paris'] as const) {
+  for (const c of CITIES) {
     const r = (o[c] && typeof o[c] === 'object' ? o[c] : {}) as Record<string, unknown>;
     out[c] = {
       runs: num(r.runs),

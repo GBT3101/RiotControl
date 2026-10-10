@@ -7,7 +7,7 @@
  *   resolveQuality(s.quality)            // 'auto' → detectQuality()
  */
 import type { QualityTier } from '../data/balance';
-import type { CityId } from '../maps/contract';
+import { CITIES, isPlayable, type CityId } from '../maps';
 import { browserStorage, readJson, writeJson, type KeyValueStorage } from './storage';
 
 export const GAME_SETTINGS_KEY = 'riot.settings.v1';
@@ -60,7 +60,7 @@ export function sanitizeGameSettings(raw: unknown): GameSettings {
     o.quality === 'auto' || o.quality === 'high' || o.quality === 'low' ? o.quality : d.quality;
   const done: Partial<Record<CityId, boolean>> = {};
   if (o.tutorialDone && typeof o.tutorialDone === 'object') {
-    for (const c of ['madrid', 'london', 'paris'] as const) {
+    for (const c of CITIES) {
       if ((o.tutorialDone as Record<string, unknown>)[c] === true) done[c] = true;
     }
   }
@@ -72,10 +72,8 @@ export function sanitizeGameSettings(raw: unknown): GameSettings {
     tutorialDone: done,
     minimap: typeof o.minimap === 'boolean' ? o.minimap : d.minimap,
     minimapPortrait: typeof o.minimapPortrait === 'boolean' ? o.minimapPortrait : false,
-    lastCity:
-      o.lastCity === 'madrid' || o.lastCity === 'london' || o.lastCity === 'paris'
-        ? o.lastCity
-        : undefined,
+    // Only a playable city (one with a blueprint) survives a reload.
+    lastCity: isPlayable(o.lastCity as string) ? (o.lastCity as CityId) : undefined,
     language: 'en',
     uiSize: o.uiSize === 'large' ? 'large' : 'auto',
   };

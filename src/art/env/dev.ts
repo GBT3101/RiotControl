@@ -11,6 +11,7 @@ import { stamp } from './util';
 import type { RoofType, BuildingKind } from '../../maps/contract';
 import { buildProps } from './props';
 import { renderPreview } from './preview';
+import { ENV_CITIES } from './style';
 
 export { renderPreview };
 
@@ -82,7 +83,7 @@ export function testBuildings(city: CityId, seed = 1): PixelBuffer {
 
 export function perfBuildings(n = 400): PixelBuffer {
   const t0 = performance.now();
-  const cities: CityId[] = ['madrid', 'london', 'paris'];
+  const cities = ENV_CITIES;
   const roofs: RoofType[] = ['flat', 'pitched', 'mansard', 'terrace'];
   for (let k = 0; k < n; k++) {
     const w = 1 + (k % 5);
@@ -93,7 +94,7 @@ export function perfBuildings(n = 400): PixelBuffer {
       storeys: 2 + (k % 5),
       roof: roofs[k % 4]!,
       kind: k % 3 === 0 ? 'commercial' : 'residential',
-      style: cities[k % 3]!,
+      style: cities[k % cities.length]!,
       rooftop: false,
       seed: k * 31 + 7,
     });
@@ -128,12 +129,7 @@ export function testProps(filter = ''): PixelBuffer {
 
 /** Review sheet: one building line-up per city above the prop contact sheet. */
 export function kitSheet(): PixelBuffer {
-  const parts = [
-    testBuildings('madrid', 3),
-    testBuildings('london', 3),
-    testBuildings('paris', 3),
-    testProps(),
-  ];
+  const parts = [...ENV_CITIES.map((c) => testBuildings(c, 3)), testProps()];
   const W = Math.max(...parts.map((p) => p.w));
   const H = parts.reduce((a, p) => a + p.h + 4, 0);
   const out = createBuffer(W, H);

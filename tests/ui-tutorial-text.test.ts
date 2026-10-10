@@ -6,10 +6,11 @@ import { describe, expect, it } from 'vitest';
 import { FONTS, measureText } from '../src/art/uikit/text';
 import { PROTESTERS } from '../src/data/protesters';
 import { UNIT_ORDER } from '../src/data/units';
-import { CITIES } from '../src/maps/contract';
+import { citiesOf } from '../src/maps/cityTable';
 import {
   CAPITOL_COPY,
   CITY_COPY,
+  OWN_COPY,
   CREDITS,
   DEFEAT_CLOSERS,
   FIRST_WAVE_LINE,
@@ -88,7 +89,7 @@ describe('writing: tutorial & hints (advisor bubbles)', () => {
 
 describe('writing: cities', () => {
   it('every city has a voice and paper variants', () => {
-    for (const c of CITIES) {
+    for (const c of citiesOf(OWN_COPY)) {
       const cc = CITY_COPY[c];
       check(`${c}.tagline`, cc.tagline, 40);
       advisorLine(`${c}.welcome`, cc.welcome);

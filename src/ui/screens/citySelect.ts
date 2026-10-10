@@ -17,7 +17,9 @@ import {
 } from '../../art/uikit/text';
 import { assemblePieces, capitolPictures } from '../../game/boot';
 import { art } from '../../art/lib/atlas';
-import { CITIES, type CityId } from '../../maps/contract';
+import { envStyle } from '../../art/env/style';
+// Only playable cities (with a blueprint) get a postcard.
+import { PLAYABLE_CITIES as CITIES, type CityId } from '../../maps';
 import { Button, stampFaces } from '../core/button';
 import { overlaps, textBox, type Box } from '../core/boxes';
 import { makeInteractive } from '../core/node';
@@ -32,6 +34,39 @@ import { backdrop, fitBackdrop, type Screen } from './screen';
 /** Pictures painted once per page visit (workers). */
 const pictures = new Map<CityId, PixelBuffer>();
 let painting: Promise<void> | null = null;
+
+/**
+ * Capitol pictures for the postcards (city select and the campaign map): the loaded city comes
+ * straight from the atlas, the other playable cities are painted once per page visit in
+ * background workers. Resolves when every picture that can be had is in.
+ */
+export function loadCityPictures(app: UiApp): Promise<void> {
+  for (const c of CITIES) {
+    if (pictures.has(c)) continue;
+    const re = new RegExp(`^lm\\.cap\\.${c}\\.0\\.\\d+$`);
+    const items = art
+      .names()
+      .filter((n) => re.test(n))
+      .map((n) => ({ buf: atlasBuffer(n), anchor: art.anim(n).anchor }))
+      .filter((x): x is { buf: PixelBuffer; anchor: { x: number; y: number } } => !!x.buf);
+    const b = assemblePieces(items);
+    if (b) pictures.set(c, b);
+  }
+  const missing = CITIES.filter((c) => !pictures.has(c));
+  if (missing.length && !painting) {
+    painting = capitolPictures(missing, app.params.nocache)
+      .then((m) => {
+        for (const [c, b] of m) pictures.set(c, b);
+      })
+      .catch(() => undefined);
+  }
+  return painting ?? Promise.resolve();
+}
+
+/** A city's postcard picture, once loaded (null until then). */
+export function cityPicture(city: CityId): PixelBuffer | null {
+  return pictures.get(city) ?? null;
+}
 
 /**
  * Crop a postcard window out of the capitol art: the w×h window with the most opaque pixels
@@ -89,8 +124,7 @@ export function postcardCrop(src: PixelBuffer, w: number, h: number): PixelBuffe
 /** Sky + ground behind the capitol cut-out, then the art; photo border. */
 function photo(city: CityId, art: PixelBuffer | null, w: number, h: number): PixelBuffer {
   const b = buf(w, h);
-  const sky =
-    city === 'london' ? ['sky', 'blue2'] : city === 'paris' ? ['sky', 'lilac'] : ['sky', 'ochre4'];
+  const sky = envStyle(city).postcardSky;
   for (let y = 0; y < h; y++) hline(b, 0, y, w, y < h * 0.55 ? sky[0]! : sky[1]!);
   rect(b, 0, Math.floor(h * 0.78), w, h - Math.floor(h * 0.78), 'stone3');
   if (art) {
@@ -284,27 +318,7 @@ export class CitySelectScreen implements Screen {
     }
     this.back = new Button(stampFaces('BACK'), { onTap: () => this.goBack(), pad: 3 });
     this.root.addChild(this.back);
-    // Capitol pictures: the loaded city comes straight from the atlas; paint the others.
-    for (const c of CITIES) {
-      if (pictures.has(c)) continue;
-      const re = new RegExp(`^lm\\.cap\\.${c}\\.0\\.\\d+$`);
-      const items = art
-        .names()
-        .filter((n) => re.test(n))
-        .map((n) => ({ buf: atlasBuffer(n), anchor: art.anim(n).anchor }))
-        .filter((x): x is { buf: PixelBuffer; anchor: { x: number; y: number } } => !!x.buf);
-      const b = assemblePieces(items);
-      if (b) pictures.set(c, b);
-    }
-    const missing = CITIES.filter((c) => !pictures.has(c));
-    if (missing.length && !painting) {
-      painting = capitolPictures(missing, app.params.nocache)
-        .then((m) => {
-          for (const [c, b] of m) pictures.set(c, b);
-        })
-        .catch(() => undefined);
-    }
-    void painting?.then(() => {
+    void loadCityPictures(app).then(() => {
       if (this.alive && this.l) this.layout(this.l);
     });
   }

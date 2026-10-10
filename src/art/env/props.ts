@@ -22,6 +22,7 @@ import { C, darker, lighter } from './color';
 import { parseGrid } from './bld/face';
 import { IsoCanvas, type Tex } from './raster';
 import * as P from './props.grid';
+import { ENV_CITIES, envCity, envStyle } from './style';
 import { Dice, hash, outlineDarker } from './util';
 
 export interface PropSprite {
@@ -431,8 +432,9 @@ function hedge(): PropSprite {
 }
 
 function bench(city: CityId): PropSprite {
-  const frame = city === 'paris' ? C('green1') : city === 'london' ? C('gray1') : C('gray2');
-  const wood = city === 'paris' ? C('green2') : C('earth4');
+  const st = envStyle(city).props.bench;
+  const frame = C(st.frame);
+  const wood = C(st.wood);
   return isoProp(
     10,
     (cv) => {
@@ -472,8 +474,10 @@ function bench(city: CityId): PropSprite {
 }
 
 function kiosk(city: CityId): PropSprite {
-  const body = city === 'paris' ? C('green1') : city === 'london' ? C('gray1') : C('green2');
-  const roof = city === 'paris' ? C('green2') : city === 'london' ? C('crim1') : C('green3');
+  const st = envStyle(city).props.kiosk;
+  const top = st.top;
+  const body = C(st.body);
+  const roof = C(st.roof);
   return isoProp(
     26,
     (cv) => {
@@ -514,7 +518,7 @@ function kiosk(city: CityId): PropSprite {
         left: () => darker(roof),
         right: () => darker(roof, 2),
       });
-      if (city === 'paris') {
+      if (top === 'dome') {
         // Little dome and gilded finial.
         cv.box(0.3, 0.3, 16, 0.7, 0.7, 19, {
           top: () => lighter(roof),
@@ -529,7 +533,7 @@ function kiosk(city: CityId): PropSprite {
         cv.pole({ u: 0.5, v: 0.5, z: 21 }, 2, C('ochre2'));
       } else {
         // Sign board on top.
-        const sc = city === 'madrid' ? C('crim1') : C('navy1');
+        const sc = C(top.sign);
         cv.box(0.3, 0.46, 16, 0.7, 0.54, 20, {
           top: () => C('gray6'),
           left: (u, _v, z) =>
@@ -577,8 +581,9 @@ function phonebox(): PropSprite {
 }
 
 function busStop(city: CityId): PropSprite {
-  const frame = city === 'paris' ? C('green1') : city === 'london' ? C('gray2') : C('gray3');
-  const roof = city === 'paris' ? C('green2') : city === 'madrid' ? C('crim1') : C('gray5');
+  const st = envStyle(city).props.busStop;
+  const frame = C(st.frame);
+  const roof = C(st.roof);
   return isoProp(
     22,
     (cv) => {
@@ -614,7 +619,7 @@ function busStop(city: CityId): PropSprite {
       });
       // Stop flag on a pole at the near end.
       cv.pole({ u: 0.12, v: 0.68, z: 0 }, 18, C('gray3'));
-      const flagC = city === 'london' ? C('crim2') : city === 'madrid' ? C('crim1') : C('navy2');
+      const flagC = C(st.flag);
       for (let z = 16; z < 21; z++) {
         cv.dot({ u: 0.12, v: 0.7, z }, flagC, 1);
         cv.dot({ u: 0.15, v: 0.7, z }, z === 18 ? C('white') : flagC, 1);
@@ -626,7 +631,7 @@ function busStop(city: CityId): PropSprite {
 }
 
 function planter(city: CityId, seed: number): PropSprite {
-  const stone = city === 'london' ? C('gray6') : city === 'paris' ? C('stone4') : C('stone3');
+  const stone = C(envStyle(city).props.planter);
   const box = isoProp(
     8,
     (cv) => {
@@ -669,18 +674,11 @@ function blitAt(
 
 function cafe(city: CityId, seed: number): PropSprite {
   const d = new Dice(seed);
-  const chair = city === 'paris' ? C('earth4') : city === 'london' ? C('earth2') : C('gray6');
-  const table = city === 'paris' ? C('white') : C('gray6');
-  const umb: [RGBA, RGBA] =
-    city === 'paris'
-      ? [C('crim1'), C('crim2')]
-      : city === 'london'
-        ? [C('green1'), C('green2')]
-        : d.pick<[RGBA, RGBA]>([
-            [C('white'), C('green2')],
-            [C('white'), C('crim2')],
-            [C('ochre3'), C('white')],
-          ]);
+  const st = envStyle(city).props.cafe;
+  const chair = C(st.chair);
+  const table = C(st.table);
+  const pair = st.umbrellas.length === 1 ? st.umbrellas[0]! : d.pick(st.umbrellas);
+  const umb: [RGBA, RGBA] = [C(pair[0]), C(pair[1])];
   return isoProp(
     24,
     (cv) => {
@@ -759,60 +757,27 @@ function tape(): PropSprite {
 // --------------------------------------------------------------------------------- lamps etc --
 
 function lamp(city: CityId): PropSprite {
-  const metal = city === 'paris' ? 'green1' : city === 'london' ? 'gray1' : 'gray2';
-  const k = keys({
-    M: city === 'paris' ? 'green2' : city === 'london' ? 'gray2' : 'gray3',
-    m: metal,
-    A: city === 'madrid' ? 'gray4' : 'ochre2',
-    L: 'stone5',
-    F: 'white',
-  });
-  const src = city === 'madrid' ? P.LAMP_MADRID : city === 'london' ? P.LAMP_LONDON : P.LAMP_PARIS;
-  return gridProp(src, k, { shadow: 3 }, ['L', 'F']);
+  const st = envStyle(city).props.lamp;
+  const k = keys({ ...st.keys, L: 'stone5', F: 'white' });
+  return gridProp(st.grid, k, { shadow: 3 }, ['L', 'F']);
 }
 
-const CITY_METAL: Record<CityId, [string, string, string]> = {
-  madrid: ['gray3', 'gray2', 'stone4'],
-  london: ['gray2', 'gray1', 'ochre2'],
-  paris: ['green2', 'green1', 'ochre2'],
-};
-
 function binProp(city: CityId): PropSprite {
-  if (city === 'paris')
-    return gridProp(P.BIN_PARIS, keys({ M: 'green2', m: 'green1' }), { shadow: 3 });
-  const k =
-    city === 'london'
-      ? keys({ B: 'gray2', b: 'gray1', A: 'ochre2', d: 'ink', m: 'gray1' })
-      : keys({ B: 'green2', b: 'green1', A: 'gray5', d: 'ink', m: 'gray2' });
-  return gridProp(P.BIN, k, { shadow: 3 });
+  const st = envStyle(city).props.bin;
+  return gridProp(st.grid, keys(st.keys), { shadow: 3 });
 }
 
 function bollard(city: CityId): PropSprite {
-  const [M, m, A] = CITY_METAL[city];
-  if (city === 'paris') return gridProp(P.BOLLARD_PARIS, keys({ M, m }), { shadow: 2 });
-  return gridProp(
-    P.BOLLARD,
-    keys({
-      M: city === 'madrid' ? 'earth2' : M,
-      m: city === 'madrid' ? 'earth1' : m,
-      A: city === 'madrid' ? 'stone4' : A,
-    }),
-    { shadow: 2 },
-  );
+  const st = envStyle(city).props.bollard;
+  return gridProp(st.grid, keys(st.keys), { shadow: 2 });
 }
 
 function hydrant(city: CityId): PropSprite {
-  const k =
-    city === 'madrid'
-      ? keys({ M: 'ochre2', m: 'ochre1', A: 'gray3' })
-      : city === 'london'
-        ? keys({ M: 'crim2', m: 'crim1', A: 'gray5' })
-        : keys({ M: 'crim2', m: 'crim1', A: 'ochre2' });
-  return gridProp(P.HYDRANT, k, { shadow: 3 });
+  return gridProp(P.HYDRANT, keys(envStyle(city).props.hydrant), { shadow: 3 });
 }
 
 function trafficLight(city: CityId): PropSprite {
-  const [M, m] = CITY_METAL[city];
+  const [M, m] = envStyle(city).props.metal;
   const off = { R: 'rust0', O: 'earth2', G: 'green0' };
   const frames = (['R', 'O', 'G'] as const).map((on) => {
     const k = keys({ M, m, ...off, [on]: on === 'R' ? 'crim2' : on === 'O' ? 'ochre3' : 'lime' });
@@ -836,8 +801,7 @@ function sign(t: SignType): PropSprite {
 }
 
 function metro(city: CityId): PropSprite {
-  const src =
-    city === 'madrid' ? P.METRO_MADRID : city === 'london' ? P.METRO_LONDON : P.METRO_PARIS;
+  const st = envStyle(city).props.metro;
   const k = keys({
     M: 'gray3',
     m: 'gray2',
@@ -847,12 +811,7 @@ function metro(city: CityId): PropSprite {
     O: 'ochre2',
     Y: 'ochre4',
   });
-  return gridProp(
-    src,
-    k,
-    { shadow: city === 'paris' ? 0 : 3 },
-    city === 'paris' ? ['O', 'Y'] : undefined,
-  );
+  return gridProp(st.grid, k, { shadow: st.shadow }, st.lightKeys ? [...st.lightKeys] : undefined);
 }
 
 function morris(seed: number): PropSprite {
@@ -874,7 +833,8 @@ function morris(seed: number): PropSprite {
   );
 }
 
-function flag(city: CityId): PropSprite {
+function flagProp(city: CityId): PropSprite {
+  const flag = envStyle(city).props.flag;
   const pole = gridBuf(P.FLAGPOLE, keys({ M: 'gray6', m: 'gray5', A: 'ochre2' }));
   const FW = 13;
   const FH = 8;
@@ -887,7 +847,7 @@ function flag(city: CityId): PropSprite {
       const dy = Math.round(wave * 1.1 * (x / FW) + (x / FW) * 1.5);
       const shade = Math.cos(x * 0.55 - f * (Math.PI / 2));
       for (let y = 0; y < FH; y++) {
-        let c = flagColour(city, x, y, FW, FH);
+        let c = flag(x, y, FW, FH);
         if (shade < -0.5) c = darker(c);
         else if (shade > 0.8 && x > 1) c = lighter(c);
         setPixel(b, x + 1, y + 1 + dy, c);
@@ -897,20 +857,6 @@ function flag(city: CityId): PropSprite {
   }
   const sp = finish(frames, { x: 0, y: pole.h - 1 }, { shadow: 2 });
   return { ...sp, fps: 6 };
-}
-
-function flagColour(city: CityId, x: number, y: number, W: number, H: number): RGBA {
-  if (city === 'paris') return x < W / 3 ? C('navy2') : x < (2 * W) / 3 ? C('white') : C('crim2');
-  if (city === 'madrid') return y < 2 || y >= H - 2 ? C('crim2') : C('ochre3');
-  // Union flag, simplified: blue field, white saltire + white-edged red cross.
-  const cx = (W - 1) / 2;
-  const cy = (H - 1) / 2;
-  if (Math.abs(x - cx) < 1 || Math.abs(y - cy) < 0.6) return C('crim2');
-  if (Math.abs(x - cx) < 2 || Math.abs(y - cy) < 1.6) return C('white');
-  const diag =
-    Math.abs((x - cx) * (H / W) - (y - cy)) < 0.7 || Math.abs((x - cx) * (H / W) + (y - cy)) < 0.7;
-  if (diag) return C('white');
-  return C('navy1');
 }
 
 function pigeonSheets(): Record<'idle' | 'peck' | 'fly', PropSprite> {
@@ -929,13 +875,12 @@ function pigeonSheets(): Record<'idle' | 'peck' | 'fly', PropSprite> {
 
 function bikeProp(kind: 'bicycle' | 'scooter', city: CityId, seed: number): PropSprite {
   const d = new Dice(seed);
+  const st = envStyle(city).props.bike;
   const body = C(
     kind === 'bicycle'
-      ? city === 'london'
-        ? 'crim2'
-        : city === 'madrid'
-          ? 'white'
-          : d.pick(['teal2', 'green3', 'blue1'])
+      ? st.colours.length === 1
+        ? st.colours[0]!
+        : d.pick(st.colours)
       : d.pick(['sky', 'crim2', 'ochre3', 'white', 'green3', 'stone4']),
   );
   const b = createBuffer(15, 11);
@@ -978,7 +923,7 @@ function bikeProp(kind: 'bicycle' | 'scooter', city: CityId, seed: number): Prop
     setPixel(b, 10, 2, ink);
     setPixel(b, 11, 2, ink);
     setPixel(b, 9, 2, C('gray3')); // bars
-    if (city === 'london' || city === 'madrid') {
+    if (st.basket) {
       // Hire-bike basket.
       setPixel(b, 12, 3, C('gray4'));
       setPixel(b, 12, 4, C('gray3'));
@@ -1003,6 +948,30 @@ function bikeProp(kind: 'bicycle' | 'scooter', city: CityId, seed: number): Prop
   }
   return finish([b], { x: 7, y: 9 }, { shadow: 4 });
 }
+
+// ------------------------------------------------------------------------------ city props --
+
+/** Prop builders handed to a city's own props (EnvCity.props.extra, src/art/env/cities/). */
+export interface PropKit {
+  /**
+   * Bottom-centre anchored prop from a props.grid.ts-style grid. `keys` override the shared
+   * BASE_KEYS (swatch names); `lightKeys` glow at night (first key ochre3, others ochre4).
+   */
+  gridProp(
+    src: string,
+    keys: Readonly<Record<string, string>>,
+    opts?: { shadow?: number },
+    lightKeys?: readonly string[],
+  ): PropSprite;
+  /** Prop built with the iso rasterizer on a one-tile canvas `height` px tall. */
+  isoProp(height: number, draw: (cv: IsoCanvas) => void, opts?: { shadow?: number }): PropSprite;
+}
+
+const PROP_KIT: PropKit = {
+  gridProp: (src, k, opts, lightKeys) =>
+    gridProp(src, keys(k), opts, lightKeys ? [...lightKeys] : undefined),
+  isoProp: (height, draw, opts) => isoProp(height, draw, opts),
+};
 
 // --------------------------------------------------------------------------------- registry --
 
@@ -1045,11 +1014,29 @@ export const PROP_KINDS = [
 ] as const;
 export type PropKind = (typeof PROP_KINDS)[number];
 
-const CITIES: readonly CityId[] = ['madrid', 'london', 'paris'];
 const TREE_VARIANTS = 3;
 const CAFE_VARIANTS = 2;
 const PLANTER_VARIANTS = 2;
 const BIKE_VARIANTS = 3;
+
+/**
+ * Fallbacks for decor kinds without their own art (the world view tries the kind first, then
+ * its fallback; a city can give such a kind real art with EnvCity.props.extra).
+ */
+export const PROP_FALLBACK: Readonly<Record<string, string>> = {
+  'tree.round': 'tree.oak',
+  'tree.willow': 'tree.chestnut',
+  'tree.cypress': 'tree.pine',
+  'lamp.rostral': 'lamp',
+  tube: 'metro',
+  sentrybox: 'phonebox',
+  cenotaph: 'statue',
+  'column.gilded': 'statue',
+  'statue.equestrian': 'statue',
+  'statue.lion': 'statue',
+  'statue.bear': 'statue',
+  fountain: 'wallace',
+};
 
 /** Kinds whose sprite depends on the decor axis ('i' default, 'j' = mirrored). */
 const AXIS_KINDS = new Set<string>(['hedge', 'bench', 'busstop', 'cafe', 'tape', 'bike']);
@@ -1057,9 +1044,13 @@ const AXIS_KINDS = new Set<string>(['hedge', 'bench', 'busstop', 'cafe', 'tape',
 /**
  * Registered sprite name for a decor placement. `seed` picks among variants; `axis` picks the
  * mirrored variant for axis-aligned props. City-specific icons (phonebox, morris …) exist for
- * every city (they fall back to the canonical design).
+ * every city (they fall back to the canonical design). A city whose environment style is not
+ * built yet uses Madrid's props.
  */
-export function propSprite(kind: string, city: CityId, seed = 0, axis: 'i' | 'j' = 'i'): string {
+export function propSprite(kind: string, cityId: CityId, seed = 0, axis: 'i' | 'j' = 'i'): string {
+  const city = envCity(cityId);
+  // The city's own props (EnvCity.props.extra) win over the shared catalogue.
+  if (envStyle(city).props.extra?.[kind]) return `prop.${kind}.${city}`;
   const h = hash(seed >>> 0, 0x9a1);
   const ax = AXIS_KINDS.has(kind) ? `.${axis}` : '';
   if (kind.startsWith('tree.')) return `prop.${kind}.${h % TREE_VARIANTS}`;
@@ -1114,7 +1105,7 @@ export function buildProps(): PropEntry[] {
   for (let v = 0; v < TREE_VARIANTS; v++) add(`prop.bush.${v}`, treeSprite('bush', v * 13 + 3));
   addAxis('prop.hedge', hedge());
   addAxis('prop.tape', tape());
-  for (const city of CITIES) {
+  for (const city of ENV_CITIES) {
     add(`prop.lamp.${city}`, lamp(city));
     addAxis(`prop.bench.${city}`, bench(city));
     add(`prop.kiosk.${city}`, kiosk(city));
@@ -1124,15 +1115,17 @@ export function buildProps(): PropEntry[] {
     add(`prop.hydrant.${city}`, hydrant(city));
     add(`prop.bollard.${city}`, bollard(city));
     add(`prop.trafficlight.${city}`, trafficLight(city));
-    add(`prop.flag.${city}`, flag(city));
+    add(`prop.flag.${city}`, flagProp(city));
     for (let v = 0; v < CAFE_VARIANTS; v++)
       addAxis(`prop.cafe.${city}.${v}`, cafe(city, v * 7 + city.length));
     for (let v = 0; v < PLANTER_VARIANTS; v++)
       add(`prop.planter.${city}.${v}`, planter(city, v * 5 + 1));
     for (let v = 0; v < BIKE_VARIANTS; v++) {
-      const kind = city === 'london' || v === 0 ? 'bicycle' : 'scooter';
+      const kind = !envStyle(city).props.bike.scooters || v === 0 ? 'bicycle' : 'scooter';
       addAxis(`prop.bike.${city}.${v}`, bikeProp(kind, city, v * 3 + city.length));
     }
+    for (const [kind, build] of Object.entries(envStyle(city).props.extra ?? {}))
+      add(`prop.${kind}.${city}`, build(PROP_KIT));
   }
   add('prop.phonebox', phonebox());
   add('prop.postbox', gridProp(P.POSTBOX, keys({ A: 'ochre2' }), { shadow: 3 }));

@@ -7,19 +7,11 @@
 import type { BuildingKind, CityId, RoofType } from '../../../maps/contract';
 import type { RGBA } from '../../palette';
 import { C, darker, lighter } from '../color';
+import { envStyle } from '../style';
 import { Dice, hash } from '../util';
-import {
-  Face,
-  K_GLASS,
-  K_RELIEF,
-  K_WALL,
-  n2,
-  parseGrid,
-  stampModule,
-  type KeyResolver,
-} from './face';
+import { Face, K_GLASS, K_RELIEF, K_WALL, n2, stampModule, type KeyResolver } from './face';
+import { GLOW, GLOW_HI, tag } from './kit';
 import type { Look, WallMat } from './looks';
-import * as M from './modules.grid';
 
 export const BAY = 10;
 export const STOREY = 10;
@@ -54,7 +46,7 @@ export function bayLayout(len: number): BayLayout {
   return { n, margin: Math.floor((len - n * BAY) / 2) };
 }
 
-/** Storey programme from the top storey down to the ground floor (exclusive). */
+/** Storey programme, top storey down to the ground floor (exclusive): FacadeStyle.floor. */
 export function floorProgramme(
   city: CityId,
   storeys: number,
@@ -63,28 +55,9 @@ export function floorProgramme(
   d: Dice,
 ): FloorType[] {
   const upper = storeys - 1;
+  const fs = envStyle(city).facade;
   const out: FloorType[] = [];
-  for (let k = 0; k < upper; k++) {
-    const fromGround = upper - k; // 1 = first floor
-    if (city === 'paris') {
-      // Haussmann: continuous balconies on the 2nd and 5th floors.
-      if (
-        fromGround === 2 ||
-        (fromGround === 5 && roof !== 'mansard') ||
-        (fromGround === upper && upper >= 4 && roof !== 'mansard' && fromGround !== 1)
-      )
-        out.push('gallery');
-      else out.push(fromGround === 1 && upper >= 3 ? 'plain' : 'balcony');
-    } else if (city === 'london') {
-      if (k === 0 && upper >= 3) out.push('small');
-      else if (fromGround === 1 && kind !== 'commercial')
-        out.push(d.chance(0.6) ? 'tall' : 'plain');
-      else out.push('plain');
-    } else {
-      if (k === 0 && upper >= 4 && d.chance(0.5)) out.push('small');
-      else out.push(kind === 'civic' ? 'tall' : d.chance(0.85) ? 'balcony' : 'plain');
-    }
-  }
+  for (let k = 0; k < upper; k++) out.push(fs.floor(k, upper, roof, kind, d));
   return out;
 }
 
@@ -173,11 +146,9 @@ function resolver(look: Look, f: Face, v: WinVars): KeyResolver {
 
 // --------------------------------------------------------------------------------- painting --
 
-const GLOW = C('ochre3');
-const GLOW_HI = C('ochre4');
-
 export function paintFace(look: Look, plan: FacePlan): Face {
   const { len, H, storeys } = plan;
+  const fs = envStyle(look.city).facade;
   const f = new Face(len, H);
   const d = new Dice(hash(plan.seed, plan.side === 'left' ? 11 : 23));
   const s = plan.seed;
@@ -191,7 +162,7 @@ export function paintFace(look: Look, plan: FacePlan): Face {
     for (let x = 0; x < len; x++) f.set(x, y, wallPixel(mat, base, x, y, s), K_WALL);
   }
   // Rusticated ground floor (Paris / civic / London stucco): deep channels.
-  if (look.groundMat === 'ashlar' || (look.city === 'london' && look.groundMat === 'smooth')) {
+  if (look.groundMat === 'ashlar' || (fs.rusticateSmooth && look.groundMat === 'smooth')) {
     for (let y = groundTop; y < H; y++) {
       const r = (y - groundTop) % 3;
       if (r === 2) for (let x = 0; x < len; x++) f.tint(x, y, darker(look.ground));
@@ -220,7 +191,7 @@ export function paintFace(look: Look, plan: FacePlan): Face {
   // 2. String course above the ground floor (and Paris balcony floors get slabs from modules).
   for (let x = 0; x < len; x++) {
     f.set(x, groundTop - 1, look.trim, K_RELIEF);
-    if (look.city === 'paris') f.set(x, groundTop - 2, lighter(look.trim), K_RELIEF);
+    if (fs.doubleStringCourse) f.set(x, groundTop - 2, lighter(look.trim), K_RELIEF);
   }
 
   // 3. Quoins.
@@ -264,7 +235,7 @@ export function paintFace(look: Look, plan: FacePlan): Face {
       const lit = d.chance(look.lit);
       const glow = lit ? GLOW : 0;
       const glowHi = lit ? GLOW_HI : 0;
-      paintUpperBay(f, look, type, x0, y0, res, glow, glowHi, d);
+      fs.upperBay({ f, look, type, x0, y0, res, glow, glowHi, d });
     }
     if (type === 'gallery') paintGallery(f, look, y0, nb, margin);
   }
@@ -276,8 +247,7 @@ export function paintFace(look: Look, plan: FacePlan): Face {
   paintTop(f, look, plan.roof, len);
 
   // 6. Drainpipes.
-  const pipe =
-    look.city === 'london' ? C('gray1') : look.city === 'paris' ? C('zinc2') : C('gray4');
+  const pipe = C(fs.pipe);
   for (const px of plan.pipes) {
     if (px < 0 || px >= len) continue;
     for (let y = 1; y < H - 1; y++) {
@@ -299,71 +269,6 @@ export function paintFace(look: Look, plan: FacePlan): Face {
     if (f.kindAt(x, H - 2) !== K_GLASS) f.darken(x, H - 2, n2(x, 0, s) < 0.5 ? 1 : 0);
   }
   return f;
-}
-
-function paintUpperBay(
-  f: Face,
-  look: Look,
-  type: FloorType,
-  x0: number,
-  y0: number,
-  res: KeyResolver,
-  glow: RGBA,
-  glowHi: RGBA,
-  d: Dice,
-): void {
-  const city = look.city;
-  if (city === 'madrid') {
-    if (type === 'small') {
-      stampModule(f, M.MAD_WIN, x0, y0, res, glow, glowHi);
-      if (d.chance(0.15)) stampModule(f, M.AC_UNIT, x0, y0, res);
-      return;
-    }
-    stampModule(f, M.MAD_DOOR, x0, y0, res, glow, glowHi);
-    const r = d.next();
-    if (r < 0.25) stampModule(f, M.MAD_BLIND_HALF, x0, y0, res);
-    else if (r < 0.33) stampModule(f, M.MAD_BLIND_FULL, x0, y0, res);
-    else if (r < 0.36) stampModule(f, M.PEEK, x0, y0, res);
-    if (type === 'balcony') {
-      stampModule(f, M.MAD_BALCONY, x0, y0, res);
-      const o = d.next();
-      if (o < 0.1) stampModule(f, M.FLOWERS, x0, y0, res);
-      else if (o < 0.14) stampModule(f, M.LAUNDRY, x0, y0, res);
-      else if (o < 0.155) stampModule(f, M.BANNER_NO, x0, y0, res);
-      else if (o < 0.17) stampModule(f, M.BALCONY_FLAG, x0, y0, flagRes(res, 'madrid'));
-    } else if (d.chance(0.25)) stampModule(f, M.AC_UNIT, x0, y0, res);
-    if (d.chance(0.04)) stampModule(f, M.SAT_DISH, x0, y0, res);
-    return;
-  }
-  if (city === 'london') {
-    if (type === 'small') stampModule(f, M.LDN_SASH_SMALL, x0 + 1, y0, res, glow, glowHi);
-    else if (type === 'tall') stampModule(f, M.LDN_SASH_TALL, x0, y0, res, glow, glowHi);
-    else stampModule(f, M.LDN_SASH, x0, y0, res, glow, glowHi);
-    const r = d.next();
-    if (r < 0.05) stampModule(f, M.PEEK, x0, y0, res);
-    else if (r < 0.14 && type !== 'small') stampModule(f, M.FLOWERS, x0, y0 + 4, res);
-    else if (r < 0.17 && type === 'tall') stampModule(f, M.BANNER_NO, x0, y0, res);
-    if (d.chance(0.04)) stampModule(f, M.SAT_DISH, x0, y0, res);
-    return;
-  }
-  // Paris
-  stampModule(f, M.PAR_WIN, x0, y0, res, glow, glowHi);
-  const r = d.next();
-  if (r < 0.16) stampModule(f, M.PAR_PERSIENNES, x0, y0, res);
-  else if (r < 0.2) stampModule(f, M.PEEK, x0, y0, res);
-  if (type === 'balcony') stampModule(f, M.PAR_BALCONNET, x0, y0, res);
-  if (type === 'gallery' || type === 'balcony') {
-    const o = d.next();
-    if (o < 0.09) stampModule(f, M.FLOWERS, x0, y0, res);
-    else if (o < 0.105) stampModule(f, M.BANNER_NO, x0, y0, res);
-    else if (o < 0.115) stampModule(f, M.BALCONY_FLAG, x0, y0, flagRes(res, 'paris'));
-  }
-}
-
-function flagRes(res: KeyResolver, city: CityId): KeyResolver {
-  // Hanging flags: Spain red/yellow/red; France blue/white/red rendered as horizontal bands.
-  const [c, C2] = city === 'madrid' ? [C('crim2'), C('ochre3')] : [C('blue1'), C('white')];
-  return (k, x, y) => (k === 'c' ? c : k === 'C' ? C2 : res(k, x, y));
 }
 
 /** Paris continuous wrought-iron balcony across the whole storey. */
@@ -391,8 +296,10 @@ function paintGroundFloor(
   d: Dice,
   vars: () => WinVars,
 ): void {
+  const fs = envStyle(look.city).facade;
   const commercial =
-    plan.kind === 'commercial' || (look.city === 'paris' && plan.kind !== 'civic' && d.chance(0.7));
+    plan.kind === 'commercial' ||
+    (fs.shopChance > 0 && plan.kind !== 'civic' && d.chance(fs.shopChance));
   const civic = plan.kind === 'civic';
   let b = 0;
   while (b < nb) {
@@ -401,27 +308,14 @@ function paintGroundFloor(
     const res = resolver(look, f, v);
     const door = plan.doorBays.has(b);
     if (door) {
-      const mod =
-        look.city === 'madrid' ? M.MAD_PORTAL : look.city === 'london' ? M.LDN_DOOR : M.PAR_DOOR;
-      stampModule(f, mod, x0, y0, res, d.chance(0.3) ? GLOW : 0, GLOW_HI);
+      stampModule(f, fs.door, x0, y0, res, d.chance(0.3) ? GLOW : 0, GLOW_HI);
       b++;
       continue;
     }
     const pair = b + 1 < nb && !plan.doorBays.has(b + 1);
     if (commercial && pair && d.chance(0.8)) {
       const lit = d.chance(0.85);
-      const mod =
-        look.city === 'madrid'
-          ? d.chance(0.35)
-            ? M.MAD_BAR
-            : M.MAD_SHOP
-          : look.city === 'london'
-            ? d.chance(0.35)
-              ? M.LDN_PUB
-              : M.LDN_SHOP
-            : d.chance(0.4)
-              ? M.PAR_CAFE
-              : M.PAR_SHOP;
+      const mod = fs.shop(d);
       // Each shop gets its own sign / awning colours.
       const sl = { ...look, ...shopColours(d) };
       const r2 = resolver(sl, f, v);
@@ -438,18 +332,7 @@ function paintGroundFloor(
       continue;
     }
     // Single bay.
-    if (look.city === 'madrid') {
-      if (commercial || d.chance(0.25)) {
-        stampModule(f, M.MAD_ROLLER, x0, y0, res);
-        if (d.chance(0.6)) tag(f, x0 + 1, y0 + 3, d);
-      } else stampModule(f, M.MAD_REJA, x0, y0, res, d.chance(0.3) ? GLOW : 0, GLOW_HI);
-    } else if (look.city === 'london') {
-      stampModule(f, M.LDN_SASH, x0, y0, res, d.chance(0.35) ? GLOW : 0, GLOW_HI);
-      if (!commercial && !civic) stampModule(f, M.LDN_RAILINGS, x0, y0, res);
-    } else {
-      stampModule(f, M.PAR_WIN, x0, y0, res, d.chance(0.3) ? GLOW : 0, GLOW_HI);
-      if (d.chance(0.5)) stampModule(f, M.PAR_PERSIENNES, x0, y0, res);
-    }
+    fs.groundBay({ f, look, x0, y0, res, d, commercial, civic });
     b++;
   }
 }
@@ -505,49 +388,15 @@ function signText(res: KeyResolver, look: Look, x0: number, y0: number, d: Dice)
   };
 }
 
-// Tiny spray tags for shutters and walls.
-const TAGS = [
-  `
-r.rr.
-rrr.r
-r.r.r
-`,
-  `
-.yy..
-y..yy
-.yy..
-`,
-  `
-p.p.p
-ppp.p
-`,
-];
-
-function tag(f: Face, x0: number, y0: number, d: Dice): void {
-  const g = parseGrid(d.pick(TAGS));
-  const col = C(d.pick(['crim2', 'pink2', 'lime', 'sky', 'white', 'ochre3', 'purple']));
-  for (let y = 0; y < g.h; y++) {
-    for (let x = 0; x < g.w; x++) {
-      if (g.rows[y]![x] === '.') continue;
-      if (f.kindAt(x0 + x, y0 + y) === K_GLASS) continue;
-      f.tint(x0 + x, y0 + y, col);
-    }
-  }
-}
-
 function paintTop(f: Face, look: Look, roof: RoofType, len: number): void {
   const T = look.trim;
+  const fs = envStyle(look.city).facade;
   if (roof === 'pitched') {
     // Eaves: deep shadow under the overhang, rafter-tail rhythm.
     for (let x = 0; x < len; x++) {
       f.set(x, 0, darker(look.wall, 2), K_WALL);
       f.set(x, 1, x % 3 === 0 ? darker(look.wall, 2) : darker(look.wall), K_WALL);
-      f.set(
-        x,
-        2,
-        look.city === 'london' ? T : f.get(x, 2),
-        look.city === 'london' ? K_RELIEF : K_WALL,
-      );
+      f.set(x, 2, fs.eavesTrim ? T : f.get(x, 2), fs.eavesTrim ? K_RELIEF : K_WALL);
     }
     return;
   }
@@ -563,7 +412,7 @@ function paintTop(f: Face, look: Look, roof: RoofType, len: number): void {
   // Flat / terrace parapet: coping, panel, band.
   for (let x = 0; x < len; x++) {
     f.set(x, 0, lighter(T), K_RELIEF);
-    f.set(x, 1, look.city === 'paris' ? (x % 2 === 0 ? T : darker(T)) : T, K_RELIEF);
+    f.set(x, 1, fs.dentilParapet ? (x % 2 === 0 ? T : darker(T)) : T, K_RELIEF);
     f.set(x, 2, darker(T), K_RELIEF);
   }
 }
@@ -588,7 +437,7 @@ function weather(f: Face, look: Look, plan: FacePlan, d: Dice): void {
       if (f.kindAt(x, y) === K_WALL && n2(x, y, 5) < 0.8) f.darken(x, y);
   }
   // A spray tag at street level now and then (not on civic stone).
-  if (plan.kind !== 'civic' && d.chance(look.city === 'london' ? 0.2 : 0.45)) {
+  if (plan.kind !== 'civic' && d.chance(envStyle(look.city).facade.tagChance)) {
     tag(f, d.int(0, Math.max(0, len - 6)), H - STOREY + d.int(4, 6), d);
   }
 }

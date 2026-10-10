@@ -8,6 +8,7 @@
  */
 import { BufferImageSource, Container, Sprite, Texture } from 'pixi.js';
 import { col } from '../../art/fx/draw';
+import { envStyle } from '../../art/env/style';
 import { createBuffer, type PixelBuffer } from '../../art/lib/pixels';
 import { MINIMAP_FLAG } from '../../art/fx/waveMarkers';
 import { minimapFrame } from '../../art/uikit/panels';
@@ -77,8 +78,6 @@ const GROUND_COLOUR: Record<string, string> = {
   quay: 'gray2',
 };
 
-const ROOF: Record<string, string> = { madrid: 'rust2', london: 'zinc2', paris: 'navy2' };
-
 /** Base minimap image (ground + buildings + Capitol). Pure. */
 export function minimapBase(map: MapData, tiles: Int32Array, iw: number, ih: number): PixelBuffer {
   const b = createBuffer(iw, ih);
@@ -90,7 +89,7 @@ export function minimapBase(map: MapData, tiles: Int32Array, iw: number, ih: num
     b.data[o + 2] = (c >>> 8) & 255;
     b.data[o + 3] = 255;
   };
-  const roof = ROOF[map.city] ?? 'zinc2';
+  const roof = envStyle(map.city).minimapRoof;
   for (let p = 0; p < tiles.length; p++) {
     const t = tiles[p]!;
     const o = p * 4;

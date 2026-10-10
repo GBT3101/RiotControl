@@ -233,7 +233,10 @@ function skillsScene(w: World): { i: number; j: number } | null {
     .sort((a, b) => open(b) - open(a));
   for (const p of roads) {
     const d0 = dist(p);
-    const up = roadsNear(w, p.i, p.j, 10).filter((q) => dist(q) >= d0 + 8 && dist(q) <= d0 + 12);
+    const up = roadsNear(w, p.i, p.j, 8).filter((q) => {
+      const e = Math.hypot(q.i - p.i, q.j - p.j);
+      return dist(q) > d0 + 1 && e >= 3.5 && e <= 7 && open(q) >= 46;
+    });
     if (up.length < 12) continue;
     const near = roadsNear(w, p.i, p.j, 4);
     let k = 0;
@@ -255,7 +258,11 @@ function skillsScene(w: World): { i: number; j: number } | null {
         300,
       );
     }
-    for (const u of w.units.active) if (u.def.ability) u.charge = u.def.ability.charge - 0.2;
+    for (const u of w.units.active) {
+      if (u.def.ability) u.charge = u.def.ability.charge - 0.2;
+      // The tank's main gun (friendly fire) holds: its missile is the show here.
+      if (u.type === 'tank') u.cd = 1e6;
+    }
     w.startWaves();
     const ci = up.reduce((a, q) => a + q.i, 0) / up.length;
     const cj = up.reduce((a, q) => a + q.j, 0) / up.length;

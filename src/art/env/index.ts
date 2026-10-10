@@ -11,14 +11,7 @@
  * samples and the composed previews are review material: they are registered only outside the
  * game page (gallery, Node tools/tests) so the game atlas and boot time stay lean.
  */
-import {
-  CITIES,
-  type BuildingKind,
-  type CityId,
-  type Ground,
-  type Marking,
-  type RoofType,
-} from '../../maps/contract';
+import type { BuildingKind, CityId, Ground, Marking, RoofType } from '../../maps/contract';
 import type { SpriteRegistry } from '../lib/registry';
 import { paintBuilding } from './bld/building';
 import { buildDecals } from './decals';
@@ -31,6 +24,7 @@ import {
 } from './ground';
 import { renderPreview } from './preview';
 import { buildProps } from './props';
+import { ENV_CITIES, envStyle } from './style';
 
 export {
   groundTile,
@@ -45,6 +39,8 @@ export { paintBuilding } from './bld/building';
 export type { BuildingArt, ClimbPoint } from './bld/building';
 export { propSprite, PROP_KINDS } from './props';
 export { decalSprite, DECAL_KINDS } from './decals';
+export { ENV_CITIES, OWN_ENV, envCity, envStyle } from './style';
+export type { EnvCity } from './style';
 
 /** True on the gallery page and in Node (tests, exporters); false in the game page. */
 function reviewContext(): boolean {
@@ -72,9 +68,9 @@ export function registerEnvironment(reg: SpriteRegistry): void {
   for (const d of buildDecals())
     reg.add(d.name, { group: 'decals', frames: d.sprite.img, anchor: d.sprite.anchor });
   if (!reviewContext()) return;
-  for (const city of CITIES) registerTileSamples(reg, city);
-  for (const city of CITIES) registerBuildingSamples(reg, city);
-  for (const city of CITIES) {
+  for (const city of ENV_CITIES) registerTileSamples(reg, city);
+  for (const city of ENV_CITIES) registerBuildingSamples(reg, city);
+  for (const city of ENV_CITIES) {
     const anchor = { x: 0, y: 0 };
     reg.add(`env.preview.${city}`, { group: 'preview', frames: renderPreview(city), anchor });
     reg.add(`env.preview.${city}.night`, {
@@ -166,12 +162,6 @@ const SAMPLE_SPECS: ReadonlyArray<
   [2, 2, 2, 'pitched', 'residential'],
 ];
 
-const CITY_ROOF: Record<CityId, RoofType> = {
-  madrid: 'terrace',
-  london: 'pitched',
-  paris: 'mansard',
-};
-
 function registerBuildingSamples(reg: SpriteRegistry, city: CityId): void {
   SAMPLE_SPECS.forEach(([w, d, storeys, roof, kind], k) => {
     const art = paintBuilding({
@@ -180,7 +170,7 @@ function registerBuildingSamples(reg: SpriteRegistry, city: CityId): void {
       w,
       d,
       storeys,
-      roof: roof === 'city' ? CITY_ROOF[city] : roof,
+      roof: roof === 'city' ? envStyle(city).sampleRoof : roof,
       kind,
       style: city,
       rooftop: k % 3 === 0,

@@ -4,12 +4,13 @@
  * buildings, trees, lamps, café terrace, a bit of park, a quay and a bridge over water.
  * Uses the same pure APIs the world view (M8) will use: groundTile, paintBuilding, propSprite.
  */
-import type { BuildingData, BuildingKind, CityId, RoofType } from '../../maps/contract';
+import type { BuildingData, CityId } from '../../maps/contract';
 import type { PixelBuffer } from '../lib/pixels';
 import { paintBuilding } from './bld/building';
 import { decalSprite, getDecal } from './decals';
 import { getProp, propSprite } from './props';
 import { addDecal, addSprite, renderScene, sceneFromRows, type Scene } from './scene';
+import { envStyle } from './style';
 
 // prettier-ignore
 const ROWS = [
@@ -56,55 +57,6 @@ const MARKS = [
   '................',
 ];
 
-interface CityPlan {
-  blds: Array<
-    [
-      i: number,
-      j: number,
-      w: number,
-      d: number,
-      storeys: number,
-      roof: RoofType,
-      kind: BuildingKind,
-    ]
-  >;
-  park: [string, string];
-  street: string;
-}
-
-const PLANS: Record<CityId, CityPlan> = {
-  madrid: {
-    blds: [
-      [0, 0, 3, 4, 5, 'terrace', 'residential'],
-      [3, 0, 2, 4, 4, 'pitched', 'commercial'],
-      [5, 0, 2, 4, 6, 'flat', 'commercial'],
-      [14, 0, 2, 4, 5, 'pitched', 'residential'],
-    ],
-    park: ['tree.pine', 'tree.plane'],
-    street: 'tree.plane',
-  },
-  london: {
-    blds: [
-      [0, 0, 3, 4, 4, 'pitched', 'residential'],
-      [3, 0, 2, 4, 4, 'pitched', 'commercial'],
-      [5, 0, 2, 4, 5, 'flat', 'commercial'],
-      [14, 0, 2, 4, 5, 'mansard', 'residential'],
-    ],
-    park: ['tree.oak', 'tree.plane'],
-    street: 'tree.plane',
-  },
-  paris: {
-    blds: [
-      [0, 0, 3, 4, 6, 'mansard', 'residential'],
-      [3, 0, 2, 4, 6, 'mansard', 'commercial'],
-      [5, 0, 2, 4, 5, 'mansard', 'commercial'],
-      [14, 0, 2, 4, 6, 'mansard', 'residential'],
-    ],
-    park: ['tree.chestnut', 'tree.plane'],
-    street: 'tree.plane',
-  },
-};
-
 function prop(s: Scene, name: string, i: number, j: number, du = 0.5, dv = 0.5): void {
   const p = getProp(name);
   const u = i + du;
@@ -112,7 +64,8 @@ function prop(s: Scene, name: string, i: number, j: number, du = 0.5, dv = 0.5):
   const x = Math.round((u - v) * 16);
   const y = Math.round((u + v) * 8);
   addSprite(s, p.frames[0]!, p.anchor, x, y, undefined, p.light);
-  if (name.startsWith('prop.lamp') || name.startsWith('prop.metro.paris')) s.pools.push([x, y, 9]);
+  // Lamps and lit signs (Paris Métro) cast a light pool at night.
+  if (p.light) s.pools.push([x, y, 9]);
 }
 
 function decal(s: Scene, name: string, i: number, j: number): void {
@@ -122,7 +75,7 @@ function decal(s: Scene, name: string, i: number, j: number): void {
 
 export function previewScene(city: CityId): Scene {
   const s = sceneFromRows(city, ROWS, MARKS);
-  const plan = PLANS[city];
+  const plan = envStyle(city).preview;
   const P = (kind: string, seed = 0, axis: 'i' | 'j' = 'i'): string =>
     propSprite(kind, city, seed, axis);
   // Buildings (+ cast shadows as decals).
@@ -139,7 +92,7 @@ export function previewScene(city: CityId): Scene {
       roof,
       rooftop: k === 2,
       doors: [{ i: i + Math.floor(w / 2), j: j + d }],
-      seed: (city === 'madrid' ? 1005 : 1000) + k * 77 + city.length,
+      seed: plan.seed + k * 77 + city.length,
     };
     const art = paintBuilding(spec);
     const wx = (i - j) * 16;
@@ -167,21 +120,7 @@ export function previewScene(city: CityId): Scene {
   prop(s, P('hydrant'), 13, 4, 0.3, 0.3);
   prop(s, P('sign', 0), 12, 5, 0.2, 0.8);
   // City icons.
-  if (city === 'paris') {
-    prop(s, P('morris'), 13, 12);
-    prop(s, P('wallace'), 7, 14);
-    prop(s, P('metro'), 13, 4, 0.5, 0.7);
-    prop(s, P('kiosk'), 15, 5);
-  } else if (city === 'london') {
-    prop(s, P('phonebox'), 13, 12);
-    prop(s, P('postbox'), 7, 12, 0.6, 0.4);
-    prop(s, P('metro'), 13, 5, 0.3, 0.7);
-    prop(s, P('kiosk'), 15, 5);
-  } else {
-    prop(s, P('kiosk'), 13, 12);
-    prop(s, P('metro'), 13, 5, 0.3, 0.7);
-    prop(s, P('flag'), 7, 14);
-  }
+  for (const [kind, i, j, du, dv] of plan.icons) prop(s, P(kind), i, j, du, dv);
   // Café terrace on the plaza.
   prop(s, P('cafe', 0), 14, 13);
   prop(s, P('cafe', 1), 15, 12);

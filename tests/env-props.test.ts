@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { createArtRegistry } from '../src/art';
 import { DECAL_KINDS, decalSprite } from '../src/art/env/decals';
 import { PROP_KINDS, propSprite } from '../src/art/env/props';
+import { ENV_CITIES } from '../src/art/env/style';
 import { CITIES } from '../src/maps/contract';
 
 describe('props & decals', () => {
   const reg = createArtRegistry();
 
+  // Every known city id: one without its own style yet resolves to Madrid's props.
   it('every decor kind resolves to a registered sprite for every city, seed and axis', () => {
     for (const kind of PROP_KINDS) {
       for (const city of CITIES) {
@@ -37,7 +39,7 @@ describe('props & decals', () => {
   });
 
   it('registers the composed previews and building samples in review contexts', () => {
-    for (const c of CITIES) {
+    for (const c of ENV_CITIES) {
       expect(reg.has(`env.preview.${c}`)).toBe(true);
       expect(reg.has(`bld.${c}.11`)).toBe(true);
       expect(reg.has(`tile.${c}.water.quay`)).toBe(true);

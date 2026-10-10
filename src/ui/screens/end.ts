@@ -21,6 +21,7 @@ import { textMask } from '../../art/uikit/logo';
 import { frontPage, frontPageLayout } from '../../art/uikit/newspaper';
 import { FONTS, drawText, measureText } from '../../art/uikit/text';
 import { tileToWorld } from '../../core/iso';
+import type { CityId } from '../../maps/contract';
 import { PROTESTER_IDS, protesterDef, type ProtesterId } from '../../data/protesters';
 import { BALANCE } from '../../data/balance';
 import { UNITS, UNIT_ORDER, type UnitId } from '../../data/units';
@@ -46,7 +47,7 @@ import { backdrop, fitBackdrop, type Screen } from './screen';
  * the picture stops above the stamp's corner when the stamp would land on it.
  */
 export function frontPageBox(
-  city: 'madrid' | 'london' | 'paris',
+  city: CityId,
   headline: string,
   deck: string,
   w: number,
@@ -62,7 +63,7 @@ export function frontPageBox(
  * deck wrap (narrow phones) so the picture keeps ≥ 56 px above the stamp's corner; ≤ `maxH`.
  */
 export function paperHeight(
-  city: 'madrid' | 'london' | 'paris',
+  city: CityId,
   headline: string,
   deck: string,
   w: number,

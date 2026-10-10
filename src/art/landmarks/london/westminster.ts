@@ -3,8 +3,8 @@
  * low-u front corner, Westminster Hall's great gable, St Stephen's porch with the steps on the
  * +v (Parliament Square) face, the octagonal Central Tower and Victoria Tower at the far end.
  */
-import { Scene, type Material, type ShadeCtx } from './engine/scene';
-import { R, hash, lv, mod, plain, type Ramp5 } from './engine/materials';
+import { Scene, type Material, type ShadeCtx } from '../engine/scene';
+import { R, hash, lv, mod, plain, type Ramp5 } from '../engine/materials';
 import {
   banner,
   breakAbove,
@@ -18,8 +18,8 @@ import {
   stepMat,
   windowStatus,
   type DamageState,
-} from './engine/kit';
-import type { Build, Overlay } from './types';
+} from '../engine/kit';
+import type { Build, Overlay } from '../types';
 
 export const WESTMINSTER_W = 14;
 export const WESTMINSTER_D = 6;

@@ -1,7 +1,7 @@
 /**
  * M2 map viewer (dev tool): canvas-2D debug render of the city blueprints.
  *
- *   /maps.html?city=madrid|london|paris
+ *   /maps.html?city=<playable city id>   (madrid|london|paris|…; unbuilt ids fall back to madrid)
  *     &view=top|iso      top-down (default; i → right, j → down) or flat isometric (game camera)
  *     &scale=12          top-down pixels per tile
  *     &seed=0            building/decor seed
@@ -11,13 +11,15 @@
  * yellow), the Capitol + steps, landmarks, spawn districts (+ doors, rally flags, unlock wave),
  * chokepoints, street names, decor, and a flow-field preview (distance to the steps).
  */
+import { envStyle } from '../art/env/style';
 import {
   BLUEPRINTS,
-  CITIES,
   GROUNDS,
   LANDMARKS,
   MARKINGS,
+  PLAYABLE_CITIES,
   loadMap,
+  playableOr,
   type CityId,
   type MapData,
 } from '../maps';
@@ -26,7 +28,7 @@ import { rasterize } from '../maps/rasterize';
 import { validateMap, type Issue } from '../maps/validate';
 
 const q = new URLSearchParams(location.search);
-const city = (CITIES.includes(q.get('city') as CityId) ? q.get('city') : 'madrid') as CityId;
+const city: CityId = playableOr(q.get('city'));
 const view = q.get('view') === 'iso' ? 'iso' : 'top';
 const S = Math.max(4, Math.min(24, Number(q.get('scale') ?? 12) || 12));
 const seed = Number(q.get('seed') ?? 0) || 0;
@@ -45,11 +47,8 @@ const GROUND_COLOR: Record<(typeof GROUNDS)[number], string> = {
   water: '#3577b4',
   quay: '#77767f',
 };
-const CITY_TINT: Record<CityId, [number, number, number]> = {
-  madrid: [214, 150, 92],
-  london: [176, 92, 74],
-  paris: [232, 214, 168],
-};
+/** Building tint of the city (EnvCity.mapTint). */
+const CITY_TINT = (c: CityId): [number, number, number] => [...envStyle(c).mapTint];
 const DISTRICT_COLORS = [
   '#ff5d73',
   '#4fd1ff',
@@ -89,10 +88,10 @@ const decorStyle = (kind: string): { c: string; r: number; glyph?: string } =>
 // ---------------------------------------------------------------------------------------------
 
 const t0 = performance.now();
-const fresh = rasterize(BLUEPRINTS[city], seed);
+const bp = BLUEPRINTS[city]!;
+const fresh = rasterize(bp, seed);
 const rasterMs = performance.now() - t0;
 const map: MapData = seed === 0 ? loadMap(city) : fresh;
-const bp = BLUEPRINTS[city];
 const t1 = performance.now();
 const issues = validateMap(map, bp);
 const validateMs = performance.now() - t1;
@@ -126,7 +125,7 @@ const link = (label: string, params: Record<string, string>, on: boolean): strin
 };
 header.innerHTML =
   `<h1>RIOT CONTROL · MAPS</h1>` +
-  CITIES.map((c) => link(c, { city: c }, c === city)).join('') +
+  PLAYABLE_CITIES.map((c) => link(c, { city: c }, c === city)).join('') +
   `<span>|</span>` +
   link('top-down', { view: 'top' }, view === 'top') +
   link('iso', { view: 'iso' }, view === 'iso') +
@@ -175,7 +174,7 @@ function drawTop(): HTMLCanvasElement {
     }
   }
   // Buildings.
-  const tint = CITY_TINT[city];
+  const tint = CITY_TINT(city);
   const districtOf = new Map<number, number>();
   map.spawns.forEach((s, k) => s.buildingIds.forEach((id) => districtOf.set(id, k)));
   for (const b of map.buildings) {
@@ -509,7 +508,7 @@ function drawIso(): HTMLCanvasElement {
     ox + (i - j) * (TW / 2),
     oy + (i + j) * (TH / 2),
   ];
-  const tint = CITY_TINT[city];
+  const tint = CITY_TINT(city);
   const diamond = (i: number, j: number, z: number): void => {
     const [x, y] = px(i, j);
     g.beginPath();

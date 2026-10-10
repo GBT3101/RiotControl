@@ -13,8 +13,39 @@
  * RIGHT face (the +i edge, facing SE, shaded). Capitol fronts face SW (+j).
  */
 
-export type CityId = 'madrid' | 'london' | 'paris';
-export const CITIES: readonly CityId[] = ['madrid', 'london', 'paris'];
+/**
+ * Every city of the Europe campaign (PLAN §2, §8). A city is *playable* once its blueprint is
+ * registered (src/maps/cities/index.ts → `PLAYABLE_CITIES` in src/maps); the rest are known ids
+ * that nothing at runtime may load yet. Order = canonical iteration order (the original three
+ * first, so their art, atlases and saves stay byte-identical).
+ */
+export type CityId =
+  | 'madrid'
+  | 'london'
+  | 'paris'
+  | 'budapest'
+  | 'berlin'
+  | 'stockholm'
+  | 'vienna'
+  | 'amsterdam'
+  | 'rome'
+  | 'barcelona'
+  | 'prague'
+  | 'milan';
+export const CITIES: readonly CityId[] = [
+  'madrid',
+  'london',
+  'paris',
+  'budapest',
+  'berlin',
+  'stockholm',
+  'vienna',
+  'amsterdam',
+  'rome',
+  'barcelona',
+  'prague',
+  'milan',
+];
 
 /** Ground materials; the index in this array is the value stored in `MapData.ground`. */
 export const GROUNDS = [
@@ -106,6 +137,15 @@ export const CAPITOL_FOOTPRINT: Readonly<Record<CityId, { w: number; d: number }
   madrid: { w: 9, d: 7 }, // Congreso de los Diputados
   london: { w: 14, d: 6 }, // Palace of Westminster incl. Elizabeth Tower at the low-i end
   paris: { w: 11, d: 7 }, // Palais Bourbon (Assemblée nationale)
+  budapest: { w: 16, d: 6 }, // Országház: long neo-Gothic river front, central dome
+  berlin: { w: 10, d: 8 }, // Reichstag with the glass dome
+  stockholm: { w: 10, d: 6 }, // Riksdagshuset on Helgeandsholmen
+  vienna: { w: 12, d: 7 }, // Parlament (Greek revival portico, Athena fountain in front)
+  amsterdam: { w: 9, d: 6 }, // Koninklijk Paleis on the Dam
+  rome: { w: 9, d: 6 }, // Palazzo Montecitorio (obelisk on the piazza)
+  barcelona: { w: 9, d: 6 }, // Parlament de Catalunya, Parc de la Ciutadella
+  prague: { w: 14, d: 6 }, // Prague Castle front with St Vitus
+  milan: { w: 9, d: 6 }, // Palazzo Marino on Piazza della Scala
 };
 
 export interface CapitolPlacement {
@@ -150,6 +190,52 @@ export const LANDMARKS = {
   eiffel: { city: 'paris', w: 6, d: 6, blocking: true, label: 'Tour Eiffel' },
   invalides: { city: 'paris', w: 8, d: 8, blocking: true, label: 'Les Invalides' },
   orsay: { city: 'paris', w: 10, d: 5, blocking: true, label: "Musée d'Orsay" },
+  // ── Europe campaign (PLAN §8.2). Footprints: docs/E0.md (real proportions, game scale). ──
+  stStephens: { city: 'budapest', w: 5, d: 7, blocking: true, label: 'Szent István-bazilika' },
+  budaCastle: { city: 'budapest', w: 12, d: 5, blocking: true, label: 'Budavári Palota' },
+  fishermansBastion: { city: 'budapest', w: 8, d: 3, blocking: true, label: 'Halászbástya' },
+  kossuth: { city: 'budapest', w: 2, d: 2, blocking: true, label: 'Kossuth-emlékmű' },
+  brandenburgGate: { city: 'berlin', w: 6, d: 2, blocking: true, label: 'Brandenburger Tor' },
+  victoryColumn: { city: 'berlin', w: 3, d: 3, blocking: true, label: 'Siegessäule' },
+  tvTower: { city: 'berlin', w: 4, d: 4, blocking: true, label: 'Fernsehturm' },
+  royalPalace: { city: 'stockholm', w: 9, d: 8, blocking: true, label: 'Kungliga slottet' },
+  cityHall: { city: 'stockholm', w: 8, d: 5, blocking: true, label: 'Stadshuset' },
+  riddarholmen: { city: 'stockholm', w: 5, d: 3, blocking: true, label: 'Riddarholmskyrkan' },
+  rathaus: { city: 'vienna', w: 10, d: 6, blocking: true, label: 'Rathaus' },
+  hofburg: { city: 'vienna', w: 12, d: 5, blocking: true, label: 'Hofburg' },
+  stephansdom: { city: 'vienna', w: 7, d: 4, blocking: true, label: 'Stephansdom' },
+  nationalMonument: {
+    city: 'amsterdam',
+    w: 3,
+    d: 3,
+    blocking: true,
+    label: 'Nationaal Monument',
+  },
+  nieuweKerk: { city: 'amsterdam', w: 6, d: 3, blocking: true, label: 'Nieuwe Kerk' },
+  centraalStation: { city: 'amsterdam', w: 13, d: 4, blocking: true, label: 'Centraal Station' },
+  westerkerk: { city: 'amsterdam', w: 5, d: 3, blocking: true, label: 'Westerkerk' },
+  pantheon: { city: 'rome', w: 5, d: 4, blocking: true, label: 'Pantheon' },
+  trevi: { city: 'rome', w: 4, d: 3, blocking: true, label: 'Fontana di Trevi' },
+  vittoriano: { city: 'rome', w: 10, d: 6, blocking: true, label: 'Vittoriano' },
+  colosseum: { city: 'rome', w: 10, d: 8, blocking: true, label: 'Colosseo' },
+  arcTriomf: { city: 'barcelona', w: 3, d: 2, blocking: true, label: 'Arc de Triomf' },
+  cascada: { city: 'barcelona', w: 5, d: 3, blocking: true, label: 'Cascada' },
+  columbus: { city: 'barcelona', w: 3, d: 3, blocking: true, label: 'Monument a Colom' },
+  sagradaFamilia: { city: 'barcelona', w: 7, d: 5, blocking: true, label: 'Sagrada Família' },
+  bridgeTower: {
+    city: 'prague',
+    w: 2,
+    d: 2,
+    blocking: true,
+    label: 'Staroměstská mostecká věž',
+  },
+  oldTownHall: { city: 'prague', w: 5, d: 3, blocking: true, label: 'Staroměstská radnice' },
+  tynChurch: { city: 'prague', w: 4, d: 3, blocking: true, label: 'Týnský chrám' },
+  dancingHouse: { city: 'prague', w: 3, d: 2, blocking: true, label: 'Tančící dům' },
+  duomo: { city: 'milan', w: 10, d: 6, blocking: true, label: 'Duomo di Milano' },
+  galleria: { city: 'milan', w: 8, d: 5, blocking: true, label: 'Galleria Vittorio Emanuele II' },
+  laScala: { city: 'milan', w: 6, d: 5, blocking: true, label: 'Teatro alla Scala' },
+  castello: { city: 'milan', w: 10, d: 8, blocking: true, label: 'Castello Sforzesco' },
 } as const satisfies Record<string, LandmarkDef>;
 export type LandmarkId = keyof typeof LANDMARKS;
 

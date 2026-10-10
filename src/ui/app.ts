@@ -3,7 +3,8 @@
  * the running game, and drives the screen flow:
  *
  *   boot/loading → Title (living city backdrop: attract-mode game, drifting camera)
- *     → City select (three dossier postcards) → loading (only if the city's art isn't loaded)
+ *     → Campaign map of Europe (E1: city pins → dossier card → DEPLOY) → loading (only if the
+ *       city's art isn't loaded)
  *     → Game (HUD) ⇄ Pause / Settings → End (newspaper + stats ledger) → again / other city / title
  *
  * `?city=…` (or `?skipTitle=1`) boots straight into a run (all M8 debug params still work);
@@ -26,7 +27,7 @@ import { bindKeyboard } from '../game/input';
 import { LoadingScreen } from '../game/loading';
 import { readParams, type GameParams } from '../game/params';
 import { detectQuality } from '../game/quality';
-import type { CityId } from '../maps/contract';
+import { playableOr, type CityId } from '../maps';
 import { DebugOverlay } from '../render/debugOverlay';
 import type { PixelStage } from '../render/stage';
 import { uiScale, uiScaleLarge } from '../render/zoom';
@@ -36,7 +37,7 @@ import { clearAtlasBuffers } from './core/tex';
 import { Hud } from './hud/hud';
 import { computeHudLayout, insetsToUi, NO_INSETS, type HudLayout, type Insets } from './layout';
 import { applyRun, loadRecords, saveRecords, type Records } from './records';
-import { CitySelectScreen } from './screens/citySelect';
+import { EuropeScreen } from './screens/europe';
 import { CreditsScreen } from './screens/credits';
 import { EndScreen } from './screens/end';
 import { PauseScreen } from './screens/pause';
@@ -114,7 +115,7 @@ export class UiApp {
   ) {
     this.settings = loadGameSettings();
     this.records = loadRecords();
-    this.city = params.city;
+    this.city = playableOr(params.city);
     this.touch =
       typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches ?? false);
     this.art = new ArtStore(stage, params.nocache);
@@ -516,10 +517,10 @@ export class UiApp {
     const top = this.topScreen;
     if (top instanceof TitleScreen && fromTitle) this.pop(top);
     this.mode = 'select';
-    this.push(new CitySelectScreen(this), 'select');
+    this.push(new EuropeScreen(this), 'select');
   }
 
-  /** Back from the city select to the title menu (same backdrop). */
+  /** Back from the campaign map to the title menu (same backdrop). */
   backToTitleMenu(): void {
     this.mode = 'title';
     this.push(new TitleScreen(this), 'title');
@@ -532,7 +533,9 @@ export class UiApp {
   /* ── Runs ────────────────────────────────────────────────────────────────────────── */
 
   /** Start a run in `city` (params: debug URL params for direct boots). */
-  async startRun(city: CityId, debugParams?: GameParams): Promise<void> {
+  async startRun(requested: CityId, debugParams?: GameParams): Promise<void> {
+    // Only built cities can be played (`?city=` of an unbuilt one, a stale pin …): fall back.
+    const city = playableOr(requested);
     const gen = ++this.generation;
     const p: GameParams = debugParams
       ? { ...debugParams, city }

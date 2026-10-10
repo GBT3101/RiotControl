@@ -3,8 +3,8 @@
  * hexastyle Corinthian portico, grand stair and the bronze lions (Daoíz & Velarde) face +v
  * (SW, the lit face).
  */
-import { Scene, type Material, type ShadeCtx } from './engine/scene';
-import { R, hash, lv, mod, mod_, plain, sampleModule, moduleColour } from './engine/materials';
+import { Scene, type Material, type ShadeCtx } from '../engine/scene';
+import { R, hash, lv, mod, mod_, plain, sampleModule, moduleColour } from '../engine/materials';
 import {
   balustradeCut,
   banner,
@@ -19,9 +19,9 @@ import {
   windowStatus,
   type DamageState,
   type Decal,
-} from './engine/kit';
-import type { Build, Overlay } from './types';
-import { bronzeLion, lamp } from './props';
+} from '../engine/kit';
+import type { Build, Overlay } from '../types';
+import { bronzeLion, lamp } from '../props';
 
 export const CONGRESO_W = 9;
 export const CONGRESO_D = 7;

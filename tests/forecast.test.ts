@@ -2,7 +2,7 @@ import { Container } from 'pixi.js';
 import { describe, expect, it } from 'vitest';
 import { waveSize } from '../src/data/balance';
 import { PT } from '../src/data/protesters';
-import { loadMap, CITIES } from '../src/maps';
+import { loadMap, PLAYABLE_CITIES } from '../src/maps';
 import {
   Forecaster,
   districtRoute,
@@ -198,7 +198,7 @@ describe('wave forecast', () => {
   });
 
   it('real cities: every district has a marker spot and a route to the Capitol', () => {
-    for (const city of CITIES) {
+    for (const city of PLAYABLE_CITIES) {
       const w = new World(loadMap(city), { seed: 1 });
       const fc = new Forecaster();
       for (let d = 0; d < w.map.spawns.length; d++) {

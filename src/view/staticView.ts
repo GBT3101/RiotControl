@@ -10,7 +10,7 @@
  */
 import { Sprite, type Container } from 'pixi.js';
 import { art, type AnimClip } from '../art/lib/atlas';
-import { propSprite } from '../art/env/props';
+import { PROP_FALLBACK, propSprite } from '../art/env/props';
 import { depthKey, tileToWorld } from '../core/iso';
 import type { BuildingInfo, LandmarkInfo, PieceInfo } from '../game/assets/jobs';
 import type { CityArt } from '../game/assets';
@@ -44,22 +44,6 @@ interface LightSprite {
   /** Additive pool (light layer) vs lit pixels (entity layer). */
   additive: boolean;
 }
-
-/** Fallbacks for decor kinds without their own art. */
-const PROP_FALLBACK: Readonly<Record<string, string>> = {
-  'tree.round': 'tree.oak',
-  'tree.willow': 'tree.chestnut',
-  'tree.cypress': 'tree.pine',
-  'lamp.rostral': 'lamp',
-  tube: 'metro',
-  sentrybox: 'phonebox',
-  cenotaph: 'statue',
-  'column.gilded': 'statue',
-  'statue.equestrian': 'statue',
-  'statue.lion': 'statue',
-  'statue.bear': 'statue',
-  fountain: 'wallace',
-};
 
 export interface RoofInfo {
   /** World px of the roof stand centre (ground projection). */

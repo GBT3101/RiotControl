@@ -1,7 +1,11 @@
 /**
- * End-screen newspapers: city mastheads ("El Orden", "The Daily Order", "L'Ordre du Jour")
- * and a composable front page (newsprint frame + masthead + headline + fake column text).
+ * End-screen newspapers: city mastheads ("El Orden", "The Daily Order", "L'Ordre du Jour" — the
+ * words live in each city's copy, src/ui/text/city/<city>.ts) and a composable front page
+ * (newsprint frame + masthead + headline + fake column text).
  */
+import { CITIES, type CityId } from '../../maps/contract';
+import { citiesOf } from '../../maps/cityTable';
+import { CITY_COPY, OWN_COPY, type CityCopy } from '../../ui/text/cities';
 import type { SpriteRegistry } from '../lib/registry';
 import type { PixelBuffer } from '../lib/pixels';
 import { buf, hline, px, rect, stamp, vline } from '../fx/draw';
@@ -11,25 +15,14 @@ import { textMask } from './logo';
 import { panel } from './panels';
 import { FONTS, drawText, measureText } from './text';
 
-export type City = 'madrid' | 'london' | 'paris';
+export type City = CityId;
 
-export const MASTHEADS: Record<City, { title: string; dateline: string; motto: string }> = {
-  madrid: {
-    title: 'El Orden',
-    dateline: 'MADRID · EDICIÓN ESPECIAL · 2 €',
-    motto: '«Todo en orden, nada en duda»',
-  },
-  london: {
-    title: 'The Daily Order',
-    dateline: 'LONDON · LATE EXTRA · 50p',
-    motto: '"Keep calm and obey"',
-  },
-  paris: {
-    title: "L'Ordre du Jour",
-    dateline: 'PARIS · ÉDITION SPÉCIALE · 2 €',
-    motto: '« Liberté, Égalité, Formulaire »',
-  },
-};
+/** Newspaper mastheads per city (copy: src/ui/text/city/<city>.ts → CityCopy.masthead). */
+export const MASTHEADS: Readonly<Record<City, { title: string; dateline: string; motto: string }>> =
+  Object.fromEntries(CITIES.map((c) => [c, CITY_COPY[c].masthead])) as Record<
+    City,
+    CityCopy['masthead']
+  >;
 
 /** Integer upscale (nearest). */
 export function scaleBuffer(src: PixelBuffer, n: number): PixelBuffer {
@@ -285,7 +278,7 @@ export function frontPage(
 }
 
 export function registerNewspaper(reg: SpriteRegistry): void {
-  for (const c of Object.keys(MASTHEADS) as City[]) {
+  for (const c of citiesOf(OWN_COPY)) {
     reg.add(`ui.masthead.${c}`, { group: 'ui', frames: masthead(c), anchor: { x: 0, y: 0 } });
   }
 }

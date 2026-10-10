@@ -79,7 +79,10 @@ function crowd(w: number, d: number, n: number): PreviewActor[] {
   return a;
 }
 
-const SPECS: Record<CityId, Omit<PreviewSpec, 'actors' | 'state'> & { w: number; d: number }> = {
+/** Review previews (E4: add your city's Capitol + two of its landmarks). */
+const SPECS: Partial<
+  Record<CityId, Omit<PreviewSpec, 'actors' | 'state'> & { w: number; d: number }>
+> = {
   madrid: {
     city: 'madrid',
     w: 9,
@@ -112,8 +115,8 @@ const SPECS: Record<CityId, Omit<PreviewSpec, 'actors' | 'state'> & { w: number;
 describe('M3b previews', () => {
   it('composes a preview and damage strip for every city', async () => {
     const reg = await registry();
-    for (const city of ['madrid', 'london', 'paris'] as const) {
-      const s = SPECS[city];
+    for (const city of Object.keys(SPECS) as CityId[]) {
+      const s = SPECS[city]!;
       const prev = composePreview(reg, {
         ...s,
         state: 0,

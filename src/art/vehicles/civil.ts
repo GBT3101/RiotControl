@@ -21,7 +21,7 @@ export type CivState = 'ok' | 'burnt';
 // Shared builders
 // ---------------------------------------------------------------------------------------------
 
-interface CarSpec {
+export interface CarSpec {
   L: number;
   W: number;
   wheelR: number;
@@ -74,7 +74,7 @@ function windowPaint(spec: CarSpec, state: CivState): Paint {
 }
 
 /** A car: lower body, greenhouse, wheels, lamps, bumpers. */
-function car(spec: CarSpec, frame: number, state: CivState): Model {
+export function car(spec: CarSpec, frame: number, state: CivState): Model {
   const m = new Model();
   const burnt = state === 'burnt';
   const { L, W } = spec;
@@ -157,7 +157,7 @@ function car(spec: CarSpec, frame: number, state: CivState): Model {
 }
 
 /** Tall box vehicle (vans, trucks, buses): body box, sloped cab front, windows by callback. */
-interface BoxSpec {
+export interface BoxSpec {
   L: number;
   W: number;
   H: number;
@@ -175,7 +175,7 @@ interface BoxSpec {
   bevel?: number;
 }
 
-function boxVehicle(spec: BoxSpec, frame: number, state: CivState): Model {
+export function boxVehicle(spec: BoxSpec, frame: number, state: CivState): Model {
   const m = new Model();
   const burnt = state === 'burnt';
   const hx = spec.L / 2;
@@ -286,7 +286,7 @@ function boxVehicle(spec: BoxSpec, frame: number, state: CivState): Model {
 }
 
 /** Blue lightbar on the roof; frames alternate left/right lamps. */
-function lightbar(
+export function lightbar(
   m: Model,
   at: V3,
   len: number,
@@ -306,7 +306,7 @@ function lightbar(
   m.boxc(c, [at[0], at[1] + len / 4, at[2] + 0.4], [1.4, len / 2 - 0.2, 0.9]);
 }
 
-function sideDecals(
+export function sideDecals(
   m: Model,
   hy: number,
   img: ReturnType<typeof text>,
@@ -321,7 +321,7 @@ function sideDecals(
 }
 
 /** Burnt shell: every material charred, decals gone, soot streaks above windows. */
-function burn(m: Model): Model {
+export function burn(m: Model): Model {
   for (const p of m.prims) {
     const base = burntKey(p.mat);
     const paint = p.paint;
@@ -339,9 +339,9 @@ function burn(m: Model): Model {
 // Vehicle catalogue
 // ---------------------------------------------------------------------------------------------
 
-type Builder = (frame: number, state: CivState) => Model;
+export type Builder = (frame: number, state: CivState) => Model;
 
-const hatch =
+export const hatch =
   (body: string, roofMat?: string): Builder =>
   (f, s) =>
     car(
@@ -364,7 +364,7 @@ const hatch =
       s,
     );
 
-const sedan =
+export const sedan =
   (body: string, extras?: CarSpec['extras'], side?: Paint): Builder =>
   (f, s) =>
     car(
@@ -666,7 +666,7 @@ const fireTruck: Builder = (f, s) =>
     s,
   );
 
-interface BusSpec {
+export interface BusSpec {
   body: string;
   decks: 1 | 2;
   band?: string;
@@ -680,7 +680,7 @@ interface BusSpec {
 }
 
 /** City bus, single or double deck. */
-const bus =
+export const bus =
   (spec: BusSpec): Builder =>
   (f, s) => {
     const H = spec.decks === 2 ? 23 : 14.5;
@@ -789,7 +789,7 @@ const busParis = bus({
 });
 
 /** Vespa: parked (no rider) or ridden. */
-const vespa =
+export const vespa =
   (body: string, rider: boolean): Builder =>
   (f, s) => {
     const burnt = s === 'burnt';
@@ -826,7 +826,7 @@ const vespa =
 // Registration
 // ---------------------------------------------------------------------------------------------
 
-interface CivDef {
+export interface CivDef {
   id: string;
   build: Builder;
   /** Lights flash → parked is a 2-frame anim. */
@@ -839,6 +839,8 @@ interface CivDef {
   hw: number;
   /** Roof height (for the overturned pose: rests on its roof). */
   roof?: number;
+  /** Driving variant with a rider (scooters); parked frames use `build`. */
+  rider?: Builder;
 }
 
 const CIVS: CivDef[] = [
@@ -908,58 +910,65 @@ function fxFrames(models: Model[]): { base: Model; overlays: Model['overlays'][]
 }
 
 export function registerCivil(reg: SpriteRegistry): void {
-  for (const c of CIVS) {
-    for (const d of DIR4) {
-      const v: View = { yaw: yaw8(d as Dir4) };
-      const put = (
-        name: string,
-        a: { frames: PixelBuffer[]; anchor: { x: number; y: number } },
-        fps: number,
-        tags: string[] = [],
-      ) =>
-        reg.add(`veh.${c.id}.${name}.${d}`, {
-          group: G,
-          frames: a.frames,
-          fps,
-          anchor: a.anchor,
-          hasShadow: true,
-          tags: ['decor', ...tags],
-        });
-      const driver = RIDERS[c.id] ?? c.build;
-      const drive = renderAnim(
-        [0, 1].map((f) => driver(f, 'ok')),
-        MATS,
-        v,
-      );
-      put('drive', drive, 8);
-      // Parked: the drive frames without a rider (lights keep flashing on emergency vehicles).
-      const parked = RIDERS[c.id] ? renderAnim([c.build(0, 'ok')], MATS, v) : drive;
-      put(
-        'parked',
-        c.flashing ? parked : { frames: [parked.frames[0]!], anchor: parked.anchor },
-        c.flashing ? 4 : 0,
-      );
-      if (c.burnt) put('burnt', renderAnim([burn(c.build(0, 'burnt'))], MATS, v), 0, ['aftermath']);
-      if (c.flipped) {
-        // Overturned: on its roof, wheels in the air.
-        const fv: View = c.roof
-          ? { yaw: v.yaw, roll: 180, offset: [0, 0, c.roof] }
-          : { yaw: v.yaw, roll: 90, offset: [0, 0, c.hw] };
-        put('flipped', renderAnim([c.build(0, 'ok')], MATS, fv), 0, ['aftermath']);
-      }
-      if (c.burning) {
-        const big = c.id.startsWith('bus');
-        const frames = [0, 1, 2, 3].map((f) => {
-          const m = burn(c.build(0, 'burnt'));
-          flame(m, [big ? 8 : 2, 0, big ? 13 : 7], f, true, 0);
-          flame(m, [big ? -6 : -3, big ? 2 : 1, big ? 13 : 6], f, big, 2);
-          if (big) flame(m, [-16, -2, 12], f, false, 1);
-          smokeColumn(m, [0, 0, big ? 22 : 14], f, 'dark', 3, 5);
-          return m;
-        });
-        const fx = fxFrames(frames);
-        put('burning', renderFx(fx.base, fx.overlays, MATS, v), 8, ['aftermath']);
-      }
+  for (const c of CIVS) registerCiv(reg, c);
+}
+
+/**
+ * Register one decor vehicle (`veh.<id>.<drive|parked|burnt|flipped|burning>.<dir>`). City
+ * vehicles (src/art/vehicles/cities/<city>.ts) go through here too.
+ */
+export function registerCiv(reg: SpriteRegistry, c: CivDef): void {
+  for (const d of DIR4) {
+    const v: View = { yaw: yaw8(d as Dir4) };
+    const put = (
+      name: string,
+      a: { frames: PixelBuffer[]; anchor: { x: number; y: number } },
+      fps: number,
+      tags: string[] = [],
+    ) =>
+      reg.add(`veh.${c.id}.${name}.${d}`, {
+        group: G,
+        frames: a.frames,
+        fps,
+        anchor: a.anchor,
+        hasShadow: true,
+        tags: ['decor', ...tags],
+      });
+    const rider = c.rider ?? RIDERS[c.id];
+    const driver = rider ?? c.build;
+    const drive = renderAnim(
+      [0, 1].map((f) => driver(f, 'ok')),
+      MATS,
+      v,
+    );
+    put('drive', drive, 8);
+    // Parked: the drive frames without a rider (lights keep flashing on emergency vehicles).
+    const parked = rider ? renderAnim([c.build(0, 'ok')], MATS, v) : drive;
+    put(
+      'parked',
+      c.flashing ? parked : { frames: [parked.frames[0]!], anchor: parked.anchor },
+      c.flashing ? 4 : 0,
+    );
+    if (c.burnt) put('burnt', renderAnim([burn(c.build(0, 'burnt'))], MATS, v), 0, ['aftermath']);
+    if (c.flipped) {
+      // Overturned: on its roof, wheels in the air.
+      const fv: View = c.roof
+        ? { yaw: v.yaw, roll: 180, offset: [0, 0, c.roof] }
+        : { yaw: v.yaw, roll: 90, offset: [0, 0, c.hw] };
+      put('flipped', renderAnim([c.build(0, 'ok')], MATS, fv), 0, ['aftermath']);
+    }
+    if (c.burning) {
+      const big = c.id.startsWith('bus');
+      const frames = [0, 1, 2, 3].map((f) => {
+        const m = burn(c.build(0, 'burnt'));
+        flame(m, [big ? 8 : 2, 0, big ? 13 : 7], f, true, 0);
+        flame(m, [big ? -6 : -3, big ? 2 : 1, big ? 13 : 6], f, big, 2);
+        if (big) flame(m, [-16, -2, 12], f, false, 1);
+        smokeColumn(m, [0, 0, big ? 22 : 14], f, 'dark', 3, 5);
+        return m;
+      });
+      const fx = fxFrames(frames);
+      put('burning', renderFx(fx.base, fx.overlays, MATS, v), 8, ['aftermath']);
     }
   }
 }

@@ -15,6 +15,7 @@ import {
 } from '../lib/pixels';
 import { C, darker, lighter } from './color';
 import { parseGrid } from './bld/face';
+import { ENV_CITIES, envStyle } from './style';
 import { Dice } from './util';
 
 export interface DecalSprite {
@@ -274,6 +275,11 @@ export function buildDecals(): DecalEntry[] {
     ['non', TAG_NON],
     ['riot', TAG_RIOT],
   ];
+  // City graffiti words with their own design (EnvCity.decals.tagGrid), after the shared ones.
+  for (const c of ENV_CITIES) {
+    const own = envStyle(c).decals;
+    if (own.tagGrid && !tags.some(([n]) => n === own.tag)) tags.push([own.tag, own.tagGrid]);
+  }
   tags.forEach(([n, src], k) => {
     const col = C(SPRAY[(k * 3) % SPRAY.length]!);
     out.push({

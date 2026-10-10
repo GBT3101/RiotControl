@@ -11,299 +11,77 @@
  *
  * Chords carry their own 7-note scale ("chord-scale"), so borrowed chords (E major in A minor,
  * the major trio of a pasodoble) colour the melody correctly.
+ *
+ * Vocabulary (chords, drums, rhythms, bass): kit.ts. City styles: cities/<city>.ts (one module
+ * per city, cities/index.ts lists them — docs/E0.md).
  */
 import { hashString, Rng } from '../../core/rng';
+import type { CityId } from '../../maps/contract';
+import { cityTable, citiesOf, type CityTable } from '../../maps/cityTable';
 import type { InstId } from './instruments';
+import * as MUSIC_MODULES from './cities';
+import {
+  C12,
+  C8,
+  CHORALE_BASS,
+  I,
+  IV,
+  MAJOR,
+  MARCH_BASS,
+  POMP_BASS,
+  R12,
+  R8,
+  V,
+  V7,
+  V7h,
+  Vh,
+  VI,
+  WALTZ_BASS,
+  chord,
+  dirgeDrums,
+  endDrums,
+  i_,
+  ii,
+  iv,
+  marchDrums,
+  roll,
+  victoryDrums,
+  vi,
+  waltzDrums,
+  type Chord,
+  type CityMusic,
+  type Flavour,
+  type NoteEvent,
+  type Style,
+  type Theme,
+} from './kit';
 
-export type Theme = 'hold' | 'march' | 'victory' | 'defeat';
-export type Flavour = 'ministry' | 'madrid' | 'london' | 'paris';
-
-export interface NoteEvent {
-  /** Onset in 16th steps from the bar start (may be fractional for rolls). */
-  step: number;
-  /** Length in steps. */
-  len: number;
-  inst: InstId;
-  /** MIDI note (percussion: 0). */
-  midi: number;
-  /** 0…1. */
-  vel: number;
-  bend?: number;
-  vib?: number;
-}
-
-export interface Chord {
-  /** Root, semitones above the key tonic. */
-  root: number;
-  /** Chord pitch classes relative to the tonic (0…11). */
-  tones: readonly number[];
-  /** 7-note scale (semitones above the tonic, ascending from the tonic). */
-  scale: readonly number[];
-}
-
-export const MAJOR = [0, 2, 4, 5, 7, 9, 11] as const;
-export const MINOR = [0, 2, 3, 5, 7, 8, 10] as const;
-export const HARMONIC = [0, 2, 3, 5, 7, 8, 11] as const;
-
-type Quality = 'M' | 'm' | '7' | 'd' | '5';
-const QUALITY: Record<Quality, number[]> = {
-  M: [0, 4, 7],
-  m: [0, 3, 7],
-  '7': [0, 4, 7, 10],
-  d: [0, 3, 6],
-  '5': [0, 7],
-};
-
-export function chord(root: number, q: Quality, scale: readonly number[]): Chord {
-  return { root, tones: QUALITY[q].map((i) => (root + i) % 12), scale };
-}
-
-// Shorthands in major / minor keys.
-const Ma = (root: number, q: Quality): Chord => chord(root, q, MAJOR);
-const mi = (root: number, q: Quality): Chord => chord(root, q, MINOR);
-const hm = (root: number, q: Quality): Chord => chord(root, q, HARMONIC);
-const I = Ma(0, 'M');
-const ii = Ma(2, 'm');
-const iii = Ma(4, 'm');
-const IV = Ma(5, 'M');
-const V = Ma(7, 'M');
-const V7 = Ma(7, '7');
-const vi = Ma(9, 'm');
-const i_ = mi(0, 'm');
-const iv = mi(5, 'm');
-const VI = mi(8, 'M');
-const VII = mi(10, 'M');
-const III = mi(3, 'M');
-const Vh = hm(7, 'M');
-const V7h = hm(7, '7');
-
-export type DrumFn = (ctx: DrumCtx) => NoteEvent[];
-
-export interface DrumCtx {
-  layer: number;
-  barInSection: number;
-  sectionBars: number;
-  night: boolean;
-  vamp: boolean;
-  steps: number;
-  rng: Rng;
-  /** Last bar of the section. */
-  sectionEnd: boolean;
-}
-
-export interface Style {
-  id: string;
-  theme: Theme;
-  flavour: Flavour;
-  beatsPerBar: number;
-  stepsPerBeat: number;
-  /** MIDI note of the tonic in the melody octave. */
-  key: number;
-  /** BPM at intensity 0 and 1. */
-  tempo: [number, number];
-  form: readonly string[];
-  sections: Readonly<Record<string, readonly Chord[]>>;
-  nightSections?: Readonly<Record<string, readonly Chord[]>>;
-  /** One-shot (victory/defeat): play the form once, then stop. */
-  oneShot: boolean;
-  lead: InstId;
-  harmony: InstId;
-  /** Chord stabs ("pah"/waltz 2-3) instrument and steps. */
-  chordInst: InstId | null;
-  chordSteps: readonly number[];
-  bass: InstId;
-  /** Bass pattern: [step, 'root' | 'fifth' | 'walk', len]. */
-  bassSteps: readonly (readonly [number, 'root' | 'fifth' | 'third', number])[];
-  rhythms: readonly (readonly number[])[];
-  cadences: readonly (readonly number[])[];
-  glock: boolean;
-  drums: DrumFn;
-  /** Hand-written melody per section (overrides generation): [step, len, degree] per bar. */
-  melody?: Readonly<Record<string, readonly (readonly (readonly [number, number, number])[])[]>>;
-}
-
-// ── Drum parts ───────────────────────────────────────────────────────────────────────────
-
-const hit = (inst: InstId, step: number, vel: number): NoteEvent => ({ step, len: 1, inst, midi: 0, vel });
-
-function roll(from: number, to: number, v0: number, v1: number, rate = 0.5): NoteEvent[] {
-  const out: NoteEvent[] = [];
-  const n = Math.round((to - from) / rate);
-  for (let k = 0; k < n; k++) out.push(hit('snare', from + k * rate, v0 + ((v1 - v0) * k) / Math.max(1, n - 1)));
-  return out;
-}
-
-/** 2/4 street march (8 steps). */
-const marchDrums: DrumFn = (d) => {
-  const out: NoteEvent[] = [];
-  const last = d.barInSection === d.sectionBars - 1;
-  if (d.night) {
-    out.push({ step: 0, len: 4, inst: 'timpani', midi: 0, vel: 0.5 });
-    for (let s = 0; s < d.steps; s++) out.push(hit('hat', s, s % 2 ? 0.12 : 0.22));
-  } else {
-    out.push(hit('kick', 0, 0.75), hit('kick', 4, 0.5));
-  }
-  if (d.vamp || d.layer <= 1) {
-    out.push(hit('snare', 4, 0.32), hit('snare', 6, 0.25));
-    return out;
-  }
-  if (last && d.layer >= 2) {
-    out.push(hit('snare', 0, 0.55), hit('snare', 2, 0.4));
-    out.push(...roll(4, 8, 0.25, d.layer >= 4 ? 0.85 : 0.65));
-  } else if (d.barInSection % 2 === 0) {
-    out.push(hit('snare', 0, 0.5), hit('snare', 2, 0.35), hit('snare', 3, 0.28), hit('snare', 4, 0.6), hit('snare', 6, 0.4));
-  } else {
-    out.push(hit('snare', 0, 0.5), hit('snare', 2, 0.35), hit('snare', 4, 0.6), hit('snare', 5, 0.3), hit('snare', 6, 0.4), hit('snare', 7, 0.3));
-  }
-  if (d.layer >= 3) {
-    if (d.barInSection === 0) out.push(hit('cymbal', 0, 0.6));
-    out.push(hit('snare', 1, 0.15), hit('snare', 5.5, 0.18));
-  }
-  if (d.layer >= 4) {
-    if (d.barInSection !== 0) out.push(hit('cymbal', 0, 0.35));
-    if (!last) out.push(hit('snare', 7, 0.3), hit('snare', 7.5, 0.35));
-  }
-  return out;
-};
-
-/** 4/4 broad brass-band march (16 steps). */
-const pompDrums: DrumFn = (d) => {
-  const out: NoteEvent[] = [];
-  const last = d.barInSection === d.sectionBars - 1;
-  if (d.night) {
-    out.push({ step: 0, len: 8, inst: 'timpani', midi: 0, vel: 0.55 }, { step: 8, len: 8, inst: 'timpani', midi: 0, vel: 0.4 });
-    for (let s = 0; s < d.steps; s += 2) out.push(hit('hat', s, 0.18));
-  } else {
-    out.push(hit('kick', 0, 0.8), hit('kick', 8, 0.55));
-    if (d.layer >= 3) out.push(hit('kick', 4, 0.35), hit('kick', 12, 0.35));
-  }
-  if (d.vamp || d.layer <= 1) {
-    out.push(hit('snare', 4, 0.3), hit('snare', 12, 0.3));
-    return out;
-  }
-  if (last) {
-    out.push(hit('snare', 4, 0.5), ...roll(8, 16, 0.25, d.layer >= 4 ? 0.85 : 0.6));
-  } else {
-    out.push(hit('snare', 4, 0.5), hit('snare', 12, 0.5), hit('snare', 10, 0.3), hit('snare', 14, 0.3));
-  }
-  if (d.layer >= 3 && d.barInSection === 0) out.push(hit('cymbal', 0, 0.7));
-  if (d.layer >= 4) {
-    if (d.barInSection !== 0) out.push(hit('cymbal', 0, 0.4));
-    if (!last) out.push(hit('snare', 6, 0.25), hit('snare', 7, 0.3));
-  }
-  return out;
-};
-
-/** Pasodoble: march + castanet ruffles. */
-const pasodobleDrums: DrumFn = (d) => {
-  const out = marchDrums(d);
-  if (d.layer >= 2 && !d.vamp) {
-    for (const [s, v] of [
-      [0, 0.6],
-      [1, 0.3],
-      [2, 0.45],
-      [4, 0.6],
-      [6, 0.45],
-      [7, 0.3],
-    ] as const) {
-      out.push(hit('castanet', s, v));
-    }
-    if (d.layer >= 4) out.push(hit('castanet', 3, 0.3), hit('castanet', 5, 0.3));
-  }
-  return out;
-};
-
-/** Waltz/elevator (12 steps): soft brushes; layer 2 (breather) adds a light snare. */
-const waltzDrums: DrumFn = (d) => {
-  const out: NoteEvent[] = [hit('hat', 4, 0.12), hit('hat', 8, 0.12)];
-  if (d.layer >= 2) out.push(hit('snare', 8, 0.12), hit('kick', 0, 0.25));
-  return out;
-};
-
-const madridHoldDrums: DrumFn = (d) => {
-  const out = waltzDrums(d);
-  for (const [s, v] of [
-    [0, 0.45],
-    [4, 0.3],
-    [6, 0.25],
-    [8, 0.35],
-    [10, 0.25],
-  ] as const) {
-    out.push(hit('castanet', s, v));
-  }
-  return out;
-};
-
-/** 4/4 chorale (16 steps): nearly nothing — a timpani swell at section starts. */
-const choraleDrums: DrumFn = (d) =>
-  d.barInSection === 0 ? [{ step: 0, len: 8, inst: 'timpani', midi: 0, vel: 0.3 }] : [];
-
-const victoryDrums: DrumFn = (d) => {
-  const out: NoteEvent[] = [hit('kick', 0, 0.8), hit('kick', 8, 0.6)];
-  if (d.barInSection === 0) out.push(hit('cymbal', 0, 0.8));
-  out.push(hit('snare', 4, 0.5), hit('snare', 12, 0.5));
-  if (d.sectionEnd) out.push(...roll(8, 16, 0.3, 0.9));
-  return out;
-};
-
-const endDrums: DrumFn = (d) =>
-  d.barInSection === 0
-    ? [hit('cymbal', 0, 0.9), hit('kick', 0, 0.9), { step: 0, len: 16, inst: 'timpani', midi: 0, vel: 0.8 }]
-    : [];
-
-const dirgeDrums: DrumFn = (d) => [
-  { step: 0, len: 8, inst: 'timpani', midi: 0, vel: 0.55 },
-  ...(d.barInSection % 2 === 1 ? [hit('snare', 12, 0.2), hit('snare', 14, 0.2)] : []),
-];
-
-// ── Styles ───────────────────────────────────────────────────────────────────────────────
-
-const R8 = [
-  [0, 2, 4, 6],
-  [0, 3, 4, 6],
-  [0, 4],
-  [0, 2, 3, 4, 6],
-  [0, 1, 2, 4, 6],
-  [0, 4, 6],
-  [0, 2, 4],
-  [0, 3, 4, 7],
-] as const;
-const C8 = [[0], [0, 4], [0, 2, 4]] as const;
-const R12 = [
-  [0, 4, 8],
-  [0, 6, 8],
-  [0, 4, 6, 8],
-  [0, 8],
-  [0, 2, 4, 8],
-  [0, 3, 4, 8],
-] as const;
-const C12 = [[0], [0, 4]] as const;
-const R16 = [
-  [0, 8],
-  [0, 6, 8, 12],
-  [0, 4, 8, 12],
-  [0, 12, 14],
-  [0, 8, 12],
-  [0, 4, 6, 8, 12],
-] as const;
-const C16 = [[0], [0, 8]] as const;
-
-const MARCH_BASS = [
-  [0, 'root', 2],
-  [4, 'fifth', 2],
-] as const;
-const WALTZ_BASS = [[0, 'root', 3]] as const;
-const POMP_BASS = [
-  [0, 'root', 4],
-  [8, 'fifth', 4],
-] as const;
-const CHORALE_BASS = [
-  [0, 'root', 8],
-  [8, 'fifth', 8],
-] as const;
+export {
+  HARMONIC,
+  MAJOR,
+  MINOR,
+  chord,
+  type Chord,
+  type CityMusic,
+  type DrumCtx,
+  type DrumFn,
+  type Flavour,
+  type NoteEvent,
+  type Style,
+  type StyleSpec,
+  type Theme,
+} from './kit';
 
 function style(s: Omit<Style, 'id'>): Style {
   return { ...s, id: `${s.theme}:${s.flavour}` };
+}
+
+/** Cities with their own music (src/audio/music/cities/<city>.ts), canonical order. */
+export const OWN_MUSIC: CityTable<CityMusic> = cityTable<CityMusic>(MUSIC_MODULES, 'city music');
+const MUSIC_CITIES: readonly CityId[] = citiesOf(OWN_MUSIC);
+
+function cityStyle(theme: 'hold' | 'march', city: CityId): Style {
+  return style({ theme, flavour: city, ...OWN_MUSIC[city]![theme] });
 }
 
 const STYLES: Style[] = [
@@ -315,27 +93,7 @@ const STYLES: Style[] = [
     oneShot: false, lead: 'vibes', harmony: 'epiano', chordInst: 'epiano', chordSteps: [4, 8],
     bass: 'tuba', bassSteps: WALTZ_BASS, rhythms: R12, cadences: C12, glock: false, drums: waltzDrums,
   }),
-  style({
-    theme: 'hold', flavour: 'madrid', beatsPerBar: 3, stepsPerBeat: 4, key: 69, tempo: [100, 104],
-    form: ['A', 'A', 'B', 'A'],
-    sections: { A: [i_, VII, VI, Vh, i_, VII, VI, Vh], B: [III, VII, i_, Vh, III, VII, VI, Vh] },
-    oneShot: false, lead: 'pluck', harmony: 'pluck', chordInst: 'pluck', chordSteps: [4, 8],
-    bass: 'tuba', bassSteps: WALTZ_BASS, rhythms: R12, cadences: C12, glock: false, drums: madridHoldDrums,
-  }),
-  style({
-    theme: 'hold', flavour: 'london', beatsPerBar: 4, stepsPerBeat: 4, key: 70, tempo: [76, 80],
-    form: ['A', 'B'],
-    sections: { A: [I, IV, I, V, vi, IV, V, I], B: [IV, I, ii, V, I, IV, V7, I] },
-    oneShot: false, lead: 'horn', harmony: 'horn', chordInst: 'epiano', chordSteps: [0, 8],
-    bass: 'tuba', bassSteps: CHORALE_BASS, rhythms: R16, cadences: C16, glock: true, drums: choraleDrums,
-  }),
-  style({
-    theme: 'hold', flavour: 'paris', beatsPerBar: 3, stepsPerBeat: 4, key: 69, tempo: [120, 126],
-    form: ['A', 'A', 'B', 'A'],
-    sections: { A: [i_, i_, V7h, V7h, V7h, V7h, i_, i_], B: [iv, iv, i_, i_, V7h, V7h, i_, V7h] },
-    oneShot: false, lead: 'accordion', harmony: 'accordion', chordInst: 'accordion', chordSteps: [4, 8],
-    bass: 'tuba', bassSteps: WALTZ_BASS, rhythms: R12, cadences: C12, glock: false, drums: waltzDrums,
-  }),
+  ...MUSIC_CITIES.map((c) => cityStyle('hold', c)),
   // Marches.
   style({
     theme: 'march', flavour: 'ministry', beatsPerBar: 2, stepsPerBeat: 4, key: 70, tempo: [108, 136],
@@ -345,33 +103,7 @@ const STYLES: Style[] = [
     oneShot: false, lead: 'brass', harmony: 'horn', chordInst: 'horn', chordSteps: [2, 6],
     bass: 'tuba', bassSteps: MARCH_BASS, rhythms: R8, cadences: C8, glock: true, drums: marchDrums,
   }),
-  style({
-    theme: 'march', flavour: 'madrid', beatsPerBar: 2, stepsPerBeat: 4, key: 69, tempo: [112, 132],
-    form: ['A', 'A', 'B', 'B'],
-    sections: {
-      A: [i_, VII, VI, Vh, i_, VII, VI, Vh],
-      B: [I, I, IV, I, V7, V7, I, V7h],
-    },
-    nightSections: { A: [i_, VII, VI, Vh, i_, VII, VI, Vh], B: [iv, iv, i_, i_, VI, VI, Vh, Vh] },
-    oneShot: false, lead: 'trumpet', harmony: 'horn', chordInst: 'horn', chordSteps: [2, 6],
-    bass: 'tuba', bassSteps: MARCH_BASS, rhythms: R8, cadences: C8, glock: false, drums: pasodobleDrums,
-  }),
-  style({
-    theme: 'march', flavour: 'london', beatsPerBar: 4, stepsPerBeat: 4, key: 65, tempo: [96, 120],
-    form: ['A', 'A', 'B', 'A'],
-    sections: { A: [I, IV, I, V, I, IV, V, I], B: [vi, iii, IV, I, ii, V, I, V7] },
-    nightSections: { A: [i_, iv, i_, Vh, i_, iv, Vh, i_], B: [VI, III, iv, i_, iv, Vh, i_, V7h] },
-    oneShot: false, lead: 'brass', harmony: 'horn', chordInst: 'horn', chordSteps: [4, 12],
-    bass: 'tuba', bassSteps: POMP_BASS, rhythms: R16, cadences: C16, glock: true, drums: pompDrums,
-  }),
-  style({
-    theme: 'march', flavour: 'paris', beatsPerBar: 2, stepsPerBeat: 4, key: 67, tempo: [116, 140],
-    form: ['A', 'A', 'B', 'A'],
-    sections: { A: [I, I, V7, V7, V7, V7, I, I], B: [IV, IV, I, I, V7, V7, I, V7] },
-    nightSections: { A: [i_, i_, V7h, V7h, V7h, V7h, i_, i_], B: [iv, iv, i_, i_, V7h, V7h, i_, V7h] },
-    oneShot: false, lead: 'accordion', harmony: 'accordion', chordInst: 'accordion', chordSteps: [2, 6],
-    bass: 'tuba', bassSteps: MARCH_BASS, rhythms: R8, cadences: C8, glock: true, drums: marchDrums,
-  }),
+  ...MUSIC_CITIES.map((c) => cityStyle('march', c)),
 ];
 
 type Tune = (readonly (readonly [number, number, number])[])[];
@@ -401,7 +133,7 @@ const DIRGE_TUNE: Tune = [
 ];
 
 function oneShots(flavour: Flavour): Style[] {
-  const lead: InstId = flavour === 'madrid' ? 'trumpet' : flavour === 'paris' ? 'accordion' : 'brass';
+  const lead: InstId = flavour === 'ministry' ? 'brass' : (OWN_MUSIC[flavour]?.fanfare ?? 'brass');
   return [
     style({
       theme: 'victory', flavour, beatsPerBar: 4, stepsPerBeat: 4, key: 72, tempo: [100, 100],
@@ -427,7 +159,7 @@ function oneShots(flavour: Flavour): Style[] {
 
 const ALL_STYLES: Style[] = [
   ...STYLES,
-  ...(['ministry', 'madrid', 'london', 'paris'] as const).flatMap(oneShots),
+  ...(['ministry', ...MUSIC_CITIES] as const).flatMap(oneShots),
 ];
 
 export function styleFor(theme: Theme, flavour: Flavour): Style {

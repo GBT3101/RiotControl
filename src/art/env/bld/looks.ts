@@ -1,10 +1,12 @@
 /**
  * Per-city building palettes ("looks"): seeded but cohesive choices of wall, trim, joinery,
- * ironwork, shopfront and roof materials — each city draws from its own palette subset.
+ * ironwork, shopfront and roof materials — each city draws from its own palette subset
+ * (EnvCity.awnings / EnvCity.look in src/art/env/cities/<city>.ts).
  */
 import type { BuildingKind, CityId } from '../../../maps/contract';
 import type { RGBA } from '../../palette';
-import { C, darker, lighter } from '../color';
+import { C } from '../color';
+import { envStyle } from '../style';
 import type { Dice } from '../util';
 
 export type WallMat = 'stucco' | 'brick' | 'ashlar' | 'smooth';
@@ -60,32 +62,10 @@ const SHOP_SIGNS: ReadonlyArray<readonly [string, string]> = [
   ['teal1', 'white'],
 ];
 
-const AWNINGS: Record<CityId, ReadonlyArray<readonly [string, string]>> = {
-  madrid: [
-    ['green2', 'green3'],
-    ['green2', 'white'],
-    ['rust1', 'rust2'],
-    ['ochre1', 'ochre2'],
-    ['navy1', 'white'],
-    ['crim1', 'white'],
-  ],
-  london: [
-    ['green1', 'white'],
-    ['navy1', 'white'],
-    ['crim1', 'white'],
-    ['gray1', 'stone4'],
-  ],
-  paris: [
-    ['crim1', 'crim2'],
-    ['crim1', 'white'],
-    ['green1', 'green2'],
-    ['navy1', 'white'],
-    ['rust1', 'ochre2'],
-  ],
-};
-
+/** Roll a building's palette: shared shop colours, then the city's own roll (EnvCity.look). */
 export function makeLook(city: CityId, kind: BuildingKind, d: Dice): Look {
-  const aw = pick(d, AWNINGS[city]);
+  const style = envStyle(city);
+  const aw = pick(d, style.awnings);
   const sg = pick(d, SHOP_SIGNS);
   const cloth = CLOTH.map((c) => C(c));
   const base = {
@@ -96,100 +76,5 @@ export function makeLook(city: CityId, kind: BuildingKind, d: Dice): Look {
     cloth,
     lit: 0.4,
   };
-  if (city === 'madrid') {
-    const civic = kind === 'civic';
-    const wallName = civic
-      ? pick(d, ['stone4', 'stone5', 'earth6'])
-      : d.weighted<string>([
-          ['ochre2', 6],
-          ['ochre3', 4],
-          ['stone4', 4],
-          ['earth6', 4],
-          ['earth5', 2],
-          ['rust3', 1],
-          ['stone5', 2],
-          ['rust2', 1],
-        ]);
-    const brick = wallName === 'rust2';
-    const light = ['stone4', 'stone5', 'earth6', 'ochre3'].includes(wallName);
-    return {
-      ...base,
-      mat: brick ? 'brick' : civic ? 'ashlar' : 'stucco',
-      wall: C(wallName),
-      groundMat: civic ? 'ashlar' : 'smooth',
-      ground: civic ? C('stone3') : d.chance(0.5) ? C('stone3') : darker(C(wallName)),
-      trim: light
-        ? C(pick(d, ['white', 'stone5', 'ochre2']))
-        : C(pick(d, ['stone5', 'white', 'stone4'])),
-      frame: C(pick(d, ['white', 'green2', 'earth2', 'white'])),
-      shutter: C(pick(d, ['green2', 'green3', 'earth3', 'stone3', 'green2'])),
-      iron: C('gray2'),
-      ironHi: C('gray4'),
-      door: C(pick(d, ['earth2', 'earth1', 'green1', 'earth3'])),
-      slope: 'terracotta',
-      flat: C('gray5'),
-      quoins: !brick && d.chance(0.5),
-    };
-  }
-  if (city === 'london') {
-    const civic = kind === 'civic';
-    const style = civic
-      ? 'portland'
-      : d.weighted<string>([
-          ['stock', 4],
-          ['red', 3],
-          ['stucco', 2],
-          ['grey', 2],
-        ]);
-    const wall = {
-      stock: pick(d, ['earth4', 'stone2']),
-      red: pick(d, ['rust2', 'rust1']),
-      stucco: pick(d, ['white', 'gray7', 'stone5']),
-      grey: 'stone2',
-      portland: 'gray7',
-    }[style]!;
-    const stucco = style === 'stucco' || style === 'portland';
-    return {
-      ...base,
-      mat: stucco ? (civic ? 'ashlar' : 'smooth') : 'brick',
-      wall: C(wall),
-      groundMat: stucco || d.chance(0.6) ? 'smooth' : 'brick',
-      ground: stucco ? C(wall) : C(pick(d, ['white', 'gray7', 'stone5'])),
-      trim: stucco ? C(pick(d, ['white', 'stone5'])) : C(pick(d, ['white', 'stone5', 'gray7'])),
-      frame: C('white'),
-      shutter: C('green1'),
-      iron: C('ink'),
-      ironHi: C('gray2'),
-      door: C(pick(d, ['crim1', 'gray1', 'navy1', 'green1', 'ochre2', 'teal1', 'plum1'])),
-      slope: 'slate',
-      flat: C('gray3'),
-      quoins: !stucco && d.chance(0.35),
-    };
-  }
-  // Paris — Haussmann limestone.
-  const civic = kind === 'civic';
-  const wallName = civic
-    ? 'stone5'
-    : d.weighted<string>([
-        ['stone4', 6],
-        ['stone5', 3],
-        ['stone3', 2],
-        ['gray7', 1],
-      ]);
-  return {
-    ...base,
-    mat: 'ashlar',
-    wall: C(wallName),
-    groundMat: 'ashlar',
-    ground: C(wallName),
-    trim: lighter(C(wallName)),
-    frame: C(pick(d, ['white', 'gray7', 'stone5'])),
-    shutter: C(pick(d, ['gray6', 'stone4', 'zinc3', 'gray7'])),
-    iron: C('ink'),
-    ironHi: C('gray2'),
-    door: C(pick(d, ['green1', 'navy1', 'gray1', 'rust0', 'teal1'])),
-    slope: 'zinc',
-    flat: C('zinc2'),
-    quoins: false,
-  };
+  return { ...base, ...style.look(kind, d) };
 }

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   BLUEPRINTS,
-  CITIES,
   CAPITOL_FOOTPRINT,
+  PLAYABLE_CITIES,
   GROUNDS,
   LANDMARKS,
   buildingAt,
@@ -13,13 +13,15 @@ import {
   loadMap,
   nearestWalkable,
   tileIndex,
+  type CityId,
   type MapData,
 } from '../src/maps';
 import { distanceField } from '../src/maps/flow';
 import { rasterize } from '../src/maps/rasterize';
 import { spawnDoors, validateMap } from '../src/maps/validate';
 
-const REQUIRED_STREETS: Record<(typeof CITIES)[number], string[]> = {
+/** Key real streets per city (E2: add your city's — a few separate lines). */
+const REQUIRED_STREETS: Partial<Record<CityId, string[]>> = {
   madrid: [
     'Carrera de San Jerónimo',
     'Calle de Alcalá',
@@ -61,9 +63,9 @@ function hashMap(m: MapData): string {
   return `${h >>> 0}:${JSON.stringify(m.buildings)}:${JSON.stringify(m.decor)}:${JSON.stringify(m.spawns)}`;
 }
 
-describe.each(CITIES)('%s blueprint', (city) => {
+describe.each(PLAYABLE_CITIES)('%s blueprint', (city) => {
   const map = loadMap(city);
-  const bp = BLUEPRINTS[city];
+  const bp = BLUEPRINTS[city]!;
 
   it('passes every validator with no errors', () => {
     const errors = validateMap(map, bp).filter((x) => x.level === 'error');
@@ -152,7 +154,7 @@ describe.each(CITIES)('%s blueprint', (city) => {
 
   it('labels the real streets', () => {
     const names = new Set(map.streets.map((s) => s.name));
-    for (const n of REQUIRED_STREETS[city]) expect(names, n).toContain(n);
+    for (const n of REQUIRED_STREETS[city] ?? []) expect(names, n).toContain(n);
   });
 
   it('places only its own city landmarks', () => {
@@ -211,11 +213,10 @@ describe('map API helpers', () => {
 });
 
 describe('seed robustness', () => {
-  it.each(CITIES)('%s validates for seeds 1..12', (city) => {
+  it.each(PLAYABLE_CITIES)('%s validates for seeds 1..12', (city) => {
+    const bp = BLUEPRINTS[city]!;
     for (let seed = 1; seed <= 12; seed++) {
-      const errors = validateMap(rasterize(BLUEPRINTS[city], seed), BLUEPRINTS[city]).filter(
-        (x) => x.level === 'error',
-      );
+      const errors = validateMap(rasterize(bp, seed), bp).filter((x) => x.level === 'error');
       expect(errors, `seed ${seed}`).toEqual([]);
     }
   });

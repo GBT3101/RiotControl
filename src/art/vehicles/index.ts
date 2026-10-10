@@ -7,6 +7,7 @@
  */
 import type { SpriteRegistry } from '../lib/registry';
 import { registerCivil } from './civil';
+import { registerCityVehicles } from './cityVehicles';
 import { DIR16, DIR8, yaw16, yaw8 } from './dirs';
 import { HELI_MUZZLE, HELI_POSES, heliBody, type HeliPose } from './heli';
 import { downwashAnim, heliBeam, heliShadow, rotorAnim } from './heliFx';
@@ -289,5 +290,6 @@ export function registerVehicles(reg: SpriteRegistry): void {
   registerTank(reg);
   registerHeli(reg);
   registerCivil(reg);
+  registerCityVehicles(reg);
   registerIcons(reg);
 }

@@ -1,13 +1,14 @@
 /**
- * Ambient life: parked cars along the kerbs (city mix, police vans with flashing lights near
- * the Capitol) that get burnt, flipped or set alight as the riot escalates; pigeon flocks in
- * plazas and parks that scatter when a crowd comes near; litter accumulating where crowds
- * march; siren light pools at night.
+ * Ambient life: parked cars along the kerbs (the city's mix, EnvCity.cars; police vans with
+ * flashing lights near the Capitol) that get burnt, flipped or set alight as the riot
+ * escalates; pigeon flocks in plazas and parks that scatter when a crowd comes near; litter
+ * accumulating where crowds march; siren light pools at night.
  */
 import { Sprite } from 'pixi.js';
 import { art } from '../art/lib/atlas';
 import { depthKey, tileToWorld } from '../core/iso';
-import { GROUNDS, type CityId, type MapData } from '../maps/contract';
+import { envStyle } from '../art/env/style';
+import { GROUNDS, type MapData } from '../maps/contract';
 import type { World } from '../sim/world';
 import { totalFallen } from '../sim/stats';
 import type { DecalLayer } from './decalLayer';
@@ -22,42 +23,6 @@ function hash(a: number, b: number, c = 0): number {
   return (h ^ (h >>> 16)) >>> 0;
 }
 
-const CITY_CARS: Readonly<Record<CityId, string[]>> = {
-  madrid: [
-    'taxi_madrid',
-    'taxi_madrid',
-    'hatch',
-    'hatch_white',
-    'sedan_beige',
-    'scooter',
-    'delivery_van',
-    'hatch_silver',
-    'sedan',
-    'bus_madrid',
-  ],
-  london: [
-    'cab_london',
-    'cab_london',
-    'hatch_blue',
-    'sedan_black',
-    'delivery_van',
-    'hatch_silver',
-    'sedan',
-    'hatch',
-    'bus_london',
-  ],
-  paris: [
-    'car_2cv',
-    'car_twingo',
-    'scooter',
-    'scooter_red',
-    'hatch_white',
-    'sedan_teal',
-    'delivery_van',
-    'hatch_yellow',
-    'bus_paris',
-  ],
-};
 /** Base id for aftermath sprites (colour variants share them). */
 function baseId(id: string): string {
   return id.startsWith('hatch')
@@ -177,7 +142,7 @@ export class AmbientView {
         const nearCap =
           Math.abs(i - (cap.i + cap.w / 2)) < cap.w / 2 + 7 &&
           Math.abs(j - (cap.j + cap.d / 2)) < cap.d / 2 + 7;
-        const list = CITY_CARS[m.city];
+        const list = envStyle(m.city).cars;
         let id = list[h % list.length]!;
         const police = nearCap && h % 3 === 0;
         if (police) id = 'police_van';

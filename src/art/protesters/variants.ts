@@ -6,6 +6,7 @@
  * are built, so variant `v7` of a type is stable across quality tiers.
  */
 import { Rng } from '../../core/rng';
+import { envStyle } from '../env/style';
 import type { Attack, Carry, Gait, Idle, Kit } from './anims';
 import type { Build, Look } from './figure';
 import { SLOGANS, STUDENT_SLOGANS, makeBoard, makeSign, type City, type SignStyle } from './sign';
@@ -154,12 +155,10 @@ function sign(rng: Rng, city: City, card: boolean, student: boolean, name: strin
   return makeSign(style, name);
 }
 
-const CITY_ITEM: Readonly<Record<City, string>> = {
-  any: 'umbrella',
-  london: 'umbrella',
-  paris: 'baguette',
-  madrid: 'pot',
-};
+/** The city's protest item and how often woke protesters swing it (EnvCity.protest). */
+function cityProtest(city: City): { item: string; wokeChance: number } {
+  return city === 'any' ? { item: 'umbrella', wokeChance: 0 } : envStyle(city).protest;
+}
 
 interface Rolled {
   wear: Wear;
@@ -186,8 +185,8 @@ function rollStudent(rng: Rng, city: City, name: string): Rolled {
   w.expr = rng.pick(['neutral', 'neutral', 'happy']);
   const carry: Carry = pw(rng, [['card', 2.6], ['pole', 1.6], ['phone', 2.2], ['none', 2], ['megaphone', 0.6], ['item', 1], ['flag', 0.6]]);
   const idle: Idle =
-    carry === 'card' ? 'card' : carry === 'pole' || carry === 'flag' ? 'sign' : carry === 'phone' ? 'phone' : carry === 'megaphone' ? 'megaphone' : carry === 'item' && city === 'madrid' ? 'pot' : rng.chance(0.5) ? 'vape' : 'chant';
-  const item = CITY_ITEM[city];
+    carry === 'card' ? 'card' : carry === 'pole' || carry === 'flag' ? 'sign' : carry === 'phone' ? 'phone' : carry === 'megaphone' ? 'megaphone' : carry === 'item' && cityProtest(city).item === 'pot' ? 'pot' : rng.chance(0.5) ? 'vape' : 'chant';
+  const item = cityProtest(city).item;
   const kit: Kit = {
     carry: carry === 'item' && item === 'pot' ? 'pot' : carry,
     carryItem: carry === 'item' ? item : undefined,
@@ -223,7 +222,8 @@ function rollWoke(rng: Rng, city: City, name: string): Rolled {
   w.back = pw(rng, [['tote', 4.5], ['backpack', 1.5], [undefined, 4]]);
   w.expr = 'angry';
   const carry: Carry = pw(rng, [['megaphone', 2], ['item', 2], ['pole', 3], ['none', 3], ['flag', 1]]);
-  const item = city === 'paris' && rng.chance(0.4) ? 'baguette' : 'umbrella';
+  const local = cityProtest(city);
+  const item = local.wokeChance > 0 && rng.chance(local.wokeChance) ? local.item : 'umbrella';
   const kit: Kit = {
     carry,
     carryItem: carry === 'item' ? item : carry === 'megaphone' ? 'megaphone' : undefined,

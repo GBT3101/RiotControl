@@ -4,10 +4,9 @@
  *   import { loadMap, isWalkable, buildingAt } from './maps';
  *   const map = loadMap('madrid');
  */
-import { london } from './cities/london';
-import { madrid } from './cities/madrid';
-import { paris } from './cities/paris';
 import type { Blueprint } from './blueprint';
+import * as BLUEPRINT_MODULES from './cities';
+import { cityTable, citiesOf, type CityTable } from './cityTable';
 import {
   GROUNDS,
   PLACEABLE_ROAD,
@@ -25,7 +24,28 @@ export { distanceField, descend } from './flow';
 export { rasterize } from './rasterize';
 export type { Blueprint } from './blueprint';
 
-export const BLUEPRINTS: Readonly<Record<CityId, Blueprint>> = { madrid, london, paris };
+export { cityTable, citiesOf, resolveCities, type CityTable } from './cityTable';
+
+/** Blueprints of the cities that exist (src/maps/cities/index.ts, one line per city). */
+export const BLUEPRINTS: CityTable<Blueprint> = cityTable<Blueprint>(
+  BLUEPRINT_MODULES,
+  'blueprint',
+);
+
+/**
+ * Playable cities = the ones with a blueprint, in canonical order. Everything that lets a player
+ * (or a bot, a debug URL, a saved setting) pick a city must draw from this list.
+ */
+export const PLAYABLE_CITIES: readonly CityId[] = citiesOf(BLUEPRINTS);
+
+export function isPlayable(city: string | null | undefined): city is CityId {
+  return !!city && (PLAYABLE_CITIES as readonly string[]).includes(city);
+}
+
+/** `city` when playable, else `fallback` (debug URLs, saved settings, campaign pins). */
+export function playableOr(city: string | null | undefined, fallback: CityId = 'madrid'): CityId {
+  return isPlayable(city) ? city : fallback;
+}
 
 const cache = new Map<string, MapData>();
 
@@ -34,7 +54,9 @@ export function loadMap(city: CityId, seed = 0): MapData {
   const key = `${city}:${seed}`;
   let map = cache.get(key);
   if (!map) {
-    map = rasterize(BLUEPRINTS[city], seed);
+    const bp = BLUEPRINTS[city];
+    if (!bp) throw new Error(`loadMap: "${city}" is not playable yet (no blueprint, docs/E0.md)`);
+    map = rasterize(bp, seed);
     cache.set(key, map);
   }
   return map;

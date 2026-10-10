@@ -3,11 +3,11 @@
  * Headless balance sweep (M12): N seeds × bots × cities, run in parallel worker threads, using
  * simulated time only. Each worker loads the TS sim once through Vite's module runner.
  *
- *   npm run playtest                                   # 3 seeds × balanced/escalate/passive/cheap/sacrificial × 3 cities
+ *   npm run playtest                                   # 3 seeds × balanced/escalate/passive/cheap/sacrificial × every playable city
  *   npm run playtest -- --bots balanced --cities madrid --seeds 1,2 --minutes 60
  *   npm run playtest -- --seeds 5 --jobs 4 --json shots/playtest.json --quality mobile
  *
- * Flags: --bots a,b  --cities madrid,london,paris  --seeds N | a,b,c  --minutes M (cap, default 65)
+ * Flags: --bots a,b  --cities a,b (default: every playable city)  --seeds N | a,b,c  --minutes M (cap, default 65)
  *        --quality desktop|mobile|low  --jobs J (default min(4, cores))  --json file  --verbose
  *        --set path=value,... (patch balance data for this sweep, e.g. waves.growth=1.15,units.riot.hp=90,
  *        mob.maxMult=1, or bot.spread=3 to spread the bots' officers out of each other's support)
@@ -18,6 +18,7 @@ import { availableParallelism } from 'node:os';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { pickCities } from './lib/cities.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -48,7 +49,7 @@ if (!isMainThread) {
   };
   const list = (v) => v.split(',').filter(Boolean);
   const bots = list(arg('bots', 'balanced,escalate,cheap,sacrificial,passive'));
-  const cities = list(arg('cities', 'madrid,london,paris'));
+  const cities = await pickCities(arg('cities', 'all'), 'playtest');
   const seedArg = arg('seeds', '3');
   const seeds = seedArg.includes(',')
     ? list(seedArg).map(Number)

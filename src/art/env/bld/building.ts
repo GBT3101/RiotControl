@@ -16,6 +16,7 @@ import { SHADOW, SHADOW_ALPHA, resolveColor, type RGBA } from '../../palette';
 import { createBuffer, setPixel, type PixelBuffer, type Point } from '../../lib/pixels';
 import { C, darker, lighter } from '../color';
 import { IsoCanvas, type Tex, type V3 } from '../raster';
+import { envStyle, type SlopeTex } from '../style';
 import { Dice, hash, outlineDarker } from '../util';
 import type { Face } from './face';
 import { BAY, CORNICE, STOREY, bayLayout, floorProgramme, paintFace } from './facade';
@@ -125,10 +126,9 @@ function planRoof(spec: Spec, H: number): RoofPlan {
 
 // -------------------------------------------------------------------------------- textures ---
 
-/** Slope texture: a = px along the eave, b = px of rise above the eave. */
-type SlopeTex = (a: number, b: number, light: number) => RGBA;
-
 function slopeTex(look: Look, rise: number): SlopeTex {
+  const custom = envStyle(look.city).roofs.slopeTex;
+  if (custom) return custom(look, rise);
   const shadeBy = (c: RGBA, l: number): RGBA => (l > 0 ? lighter(c, l) : l < 0 ? darker(c, -l) : c);
   if (look.slope === 'terracotta') {
     const ramp = [C('rust1'), C('rust2'), C('rust3')];
@@ -171,11 +171,9 @@ function slopeTex(look: Look, rise: number): SlopeTex {
 
 function flatTex(look: Look, terrace: boolean, seed: number): (u: number, v: number) => RGBA {
   if (terrace) {
-    // Floor tiles: Madrid terracotta (baldosa de barro), London/Paris grey concrete pavers.
-    const [joint, a, b] =
-      look.city === 'madrid'
-        ? [C('rust1'), C('earth4'), C('rust2')]
-        : [C('gray4'), C('gray6'), C('gray5')];
+    // Floor tiles (RoofStyle.terraceTiles): Madrid terracotta, London/Paris grey pavers.
+    const [jt, ta, tb] = envStyle(look.city).roofs.terraceTiles;
+    const [joint, a, b] = [C(jt), C(ta), C(tb)];
     return (u, v) => {
       const fu = u * 4;
       const fv = v * 4;
@@ -462,7 +460,8 @@ function paintPitched(
   if (w - 2 * ru <= 0.01 || dd - 2 * rv <= 0.01)
     line3(cv, { u: ru, v: rv, z: Z }, { u: w - ru, v: dd - rv, z: Z }, lighter(ridge));
   // Chimneys.
-  if (look.city === 'london') {
+  const rs = envStyle(look.city).roofs;
+  if (rs.pitchedChimneys === 'partyWalls') {
     // Brick stacks on the party walls with a row of terracotta pots.
     for (const u of w >= 2 ? [0.15, w - 0.35] : [w / 2 - 0.11]) {
       const v0 = Math.max(0.1, dd / 2 - 0.35);
@@ -477,7 +476,7 @@ function paintPitched(
     chimney(cv, u, v, 0.16, 0.16, H, Z + 3, look.wall, look.trim, false);
   }
   // Dormer-ish attic window on the front slope (Madrid buhardilla) now and then.
-  if (look.city === 'madrid' && w >= 2 && d.chance(0.4)) {
+  if (rs.dormer && w >= 2 && d.chance(0.4)) {
     const u0 = Math.floor(w / 2) - 0.15;
     const vf = dd - rv * 0.35;
     const zf = H + rp.rise * 0.35;
@@ -586,8 +585,9 @@ function paintMansard(
     );
   }
   // Chimney stacks: rows along the back and the party walls, with clay pots.
-  const plaster = look.city === 'london' ? C('rust2') : C('stone3');
-  const plasterHi = look.city === 'london' ? C('rust3') : C('stone4');
+  const [stack, stackHi] = envStyle(look.city).roofs.mansardStacks;
+  const plaster = C(stack);
+  const plasterHi = C(stackHi);
   const nStacks = Math.max(1, Math.round(w / 2));
   for (let k = 0; k < nStacks; k++) {
     const u = ((k + 0.5) * w) / nStacks - 0.3;
@@ -817,7 +817,7 @@ function rooftopClutter(
     1,
     Math.round(((aw * av) / (sparse ? 3 : 1.4)) * (spec.rooftop ? 0.7 : 1)),
   );
-  const city = look.city;
+  const clutter = envStyle(look.city).roofs.clutter;
   // Stair housing first on bigger roofs.
   if (aw * av > 2 && !sparse) {
     const p = place(0.6, 0.5);
@@ -850,7 +850,7 @@ function rooftopClutter(
         },
         right: () => C('gray5'),
       });
-    } else if (r < 0.5 && (city === 'madrid' || terrace)) {
+    } else if (r < 0.5 && (clutter || terrace)) {
       // Water tank on legs.
       const p = place(0.35, 0.35);
       if (!p) continue;
@@ -890,7 +890,7 @@ function rooftopClutter(
         [0, 2],
       ] as const)
         cv.dot({ u: p[0] + du, v: p[1] + 0.03, z: z + dz }, C('gray7'), 1);
-    } else if (r < 0.88 && (city === 'madrid' || terrace)) {
+    } else if (r < 0.88 && (clutter || terrace)) {
       // Laundry line with clothes.
       const p = place(0.8, 0.1);
       if (!p) continue;

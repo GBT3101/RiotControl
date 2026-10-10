@@ -3,7 +3,10 @@
  * crowd bed, run a real-time stress test with an output meter, and expose offline render
  * checks on `window.__audioDev` (used by src/audio/dev/check.mjs).
  */
+import type { CityId } from '../../maps/contract';
+import { citiesOf } from '../../maps/cityTable';
 import { AudioEngine } from '../engine';
+import { OWN_MUSIC } from '../music/patterns';
 import { SFX } from '../sfx/catalog';
 import { LOOP_IDS, SFX_IDS, type LoopId, type MusicPhase, type SfxId, type VolumeChannel } from '../types';
 import { VOLUME_CHANNELS } from '../settings';
@@ -106,13 +109,15 @@ const orbit = $<HTMLInputElement>('#orbit');
 
 const phase = $<HTMLSelectElement>('#phase');
 const city = $<HTMLSelectElement>('#city');
+// One option per city with its own music (src/audio/music/cities/).
+for (const c of citiesOf(OWN_MUSIC)) city.add(new Option(c, c));
 const level = $<HTMLInputElement>('#level');
 const crowd = $<HTMLInputElement>('#crowd');
 const night = $<HTMLInputElement>('#night');
 const anger = $<HTMLInputElement>('#anger');
 const autoAnger = $<HTMLInputElement>('#autoAnger');
 function applyMusic(): void {
-  audio.setCity(city.value === 'none' ? null : (city.value as 'madrid' | 'london' | 'paris'));
+  audio.setCity(city.value === 'none' ? null : (city.value as CityId));
   audio.setMusicState({
     phase: phase.value as MusicPhase,
     level: Number(level.value),

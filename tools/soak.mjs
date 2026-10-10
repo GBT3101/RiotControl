@@ -5,7 +5,7 @@
  * JS heap growth across restarts (after forced GC), Pixi scene-graph / texture / listener /
  * worker / audio-node growth, long tasks and per-frame JS cost (sim / view / render).
  *
- *   node tools/soak.mjs                       # flows + victory & defeat game for every city
+ *   node tools/soak.mjs                       # flows + victory & defeat game for every playable city
  *   node tools/soak.mjs --only flows          # menu flows + restart leak check only
  *   node tools/soak.mjs --only games --cities paris --speed 60
  *   node tools/soak.mjs --no-build --dist /tmp/dist --json shots/soak.json
@@ -21,6 +21,7 @@
  * Exit 1 on any page error / console error, or when the heap grows > --leak-mb across restarts.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { pickCities } from './lib/cities.mjs';
 import { dirname, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { chromium } from 'playwright-core';
@@ -30,7 +31,7 @@ const root = resolve(import.meta.dirname, '..');
 const { values: args } = parseArgs({
   options: {
     only: { type: 'string', default: 'all' },
-    cities: { type: 'string', default: 'madrid,london,paris' },
+    cities: { type: 'string', default: 'all' },
     speed: { type: 'string', default: '40' },
     viewport: { type: 'string', default: '1024x640' },
     'no-build': { type: 'boolean', default: false },
@@ -41,7 +42,7 @@ const { values: args } = parseArgs({
     restarts: { type: 'string', default: '3' },
   },
 });
-const cities = args.cities.split(',').filter(Boolean);
+const cities = await pickCities(args.cities, 'soak');
 const speed = Number(args.speed) || 40;
 const [vw, vh] = args.viewport.split('x').map(Number);
 const outDir = resolve(root, args.dist);

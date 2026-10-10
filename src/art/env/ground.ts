@@ -45,6 +45,7 @@ import { createBuffer, getPixel, setPixel, type PixelBuffer } from '../lib/pixel
 import type { RGBA } from '../palette';
 import { C, darker, lighter, shade } from './color';
 import * as G from './ground.grid';
+import { envStyle } from './style';
 import { Dice, hash, hashF, mod } from './util';
 
 export const GROUND_IMG_W = 32;
@@ -285,7 +286,8 @@ function cellPixel(g: CellGrid, sh: CellShading, x: number, y: number): RGBA {
 // City materials
 // ---------------------------------------------------------------------------------------------
 
-interface CityMats {
+/** A city's ground materials (EnvCity.ground). */
+export interface CityMats {
   asphalt: RGBA;
   asphaltSpeck: [RGBA, RGBA];
   paint: RGBA;
@@ -306,130 +308,11 @@ interface CityMats {
   rail: { top: RGBA; lit: RGBA; shade: RGBA; dark: RGBA };
   lot: RGBA;
   leaves: boolean;
+  /** Bridge balustrades are cast-iron railings (else stone balusters). */
+  ironRail: boolean;
 }
 
-const MATS: Record<CityId, CityMats> = {
-  madrid: {
-    asphalt: C('gray3'),
-    asphaltSpeck: [C('gray2'), C('stone1')],
-    paint: C('white'),
-    paintWorn: C('gray6'),
-    yellowLines: false,
-    kerbTop: C('stone4'),
-    kerbLit: C('stone3'),
-    kerbShade: C('stone1'),
-    side: {
-      tones: [C('stone3'), C('stone3'), C('stone2'), C('stone3'), C('stone4')],
-      joint: C('stone1'),
-      grid: { rows: 2, cols: 3, stagger: 0.5 },
-    },
-    cobble: {
-      tones: [C('stone2'), C('stone2'), C('stone1'), C('stone2'), C('gray5')],
-      joint: C('stone0'),
-      grid: { rows: 4, cols: 4, stagger: 0.5 },
-    },
-    plaza: {
-      tones: [C('stone3'), C('stone3'), C('stone4')],
-      border: C('stone2'),
-      joint: C('stone1'),
-    },
-    grass: { base: 'grass', stripes: false, dry: 0.35 },
-    gravel: { base: C('stone3'), dark: C('stone2'), light: C('stone4') },
-    water: {
-      deep: C('green0'),
-      base: C('teal1'),
-      ripple: C('green1'),
-      hi: C('teal2'),
-      spark: C('sky'),
-    },
-    quayLit: C('stone2'),
-    quayShade: C('stone1'),
-    quayJoint: C('stone0'),
-    rail: { top: C('stone4'), lit: C('stone3'), shade: C('stone2'), dark: C('stone1') },
-    lot: C('stone2'),
-    leaves: false,
-  },
-  london: {
-    asphalt: C('gray3'),
-    asphaltSpeck: [C('gray2'), C('zinc1')],
-    paint: C('white'),
-    paintWorn: C('gray6'),
-    yellowLines: true,
-    kerbTop: C('gray6'),
-    kerbLit: C('gray5'),
-    kerbShade: C('gray3'),
-    side: {
-      tones: [C('gray5'), C('gray5'), C('gray6'), C('gray5'), C('gray4')],
-      joint: C('gray3'),
-      grid: { rows: 2, cols: 2, stagger: 0.5 },
-    },
-    cobble: {
-      tones: [C('gray4'), C('gray4'), C('gray3'), C('gray4'), C('stone1')],
-      joint: C('gray2'),
-      grid: { rows: 4, cols: 4, stagger: 0.5 },
-    },
-    plaza: {
-      tones: [C('gray6'), C('gray6'), C('gray7')],
-      border: C('gray5'),
-      joint: C('gray4'),
-    },
-    grass: { base: 'grass', stripes: true, dry: 0 },
-    gravel: { base: C('stone2'), dark: C('stone1'), light: C('stone3') },
-    water: {
-      deep: C('zinc0'),
-      base: C('zinc1'),
-      ripple: C('zinc0'),
-      hi: C('zinc3'),
-      spark: C('zinc4'),
-    },
-    quayLit: C('gray5'),
-    quayShade: C('gray4'),
-    quayJoint: C('gray2'),
-    rail: { top: C('green3'), lit: C('green2'), shade: C('green1'), dark: C('green0') },
-    lot: C('gray4'),
-    leaves: true,
-  },
-  paris: {
-    asphalt: C('gray3'),
-    asphaltSpeck: [C('gray2'), C('zinc1')],
-    paint: C('white'),
-    paintWorn: C('gray6'),
-    yellowLines: false,
-    kerbTop: C('gray6'),
-    kerbLit: C('gray5'),
-    kerbShade: C('gray4'),
-    side: {
-      tones: [C('stone3'), C('stone4'), C('stone3'), C('stone3'), C('stone4')],
-      joint: C('stone2'),
-      grid: { rows: 2, cols: 2, stagger: 0 },
-    },
-    cobble: {
-      tones: [C('zinc2'), C('zinc2'), C('gray5'), C('zinc2'), C('zinc3')],
-      joint: C('zinc0'),
-      grid: { rows: 4, cols: 4, stagger: 0.5 },
-    },
-    plaza: {
-      tones: [C('stone4'), C('stone4'), C('stone5')],
-      border: C('stone3'),
-      joint: C('stone2'),
-    },
-    grass: { base: 'grass', stripes: false, dry: 0.12 },
-    gravel: { base: C('stone4'), dark: C('stone3'), light: C('stone5') },
-    water: {
-      deep: C('zinc1'),
-      base: C('zinc2'),
-      ripple: C('zinc1'),
-      hi: C('zinc3'),
-      spark: C('sky'),
-    },
-    quayLit: C('stone3'),
-    quayShade: C('stone2'),
-    quayJoint: C('stone1'),
-    rail: { top: C('stone5'), lit: C('stone4'), shade: C('stone3'), dark: C('stone2') },
-    lot: C('stone2'),
-    leaves: true,
-  },
-};
+// Per-city values: src/art/env/cities/<city>.ts (`ground`), read through envStyle(city).
 
 /**
  * Isolated specks need no seamless lattice (nothing continues across an edge), so grit, blades
@@ -546,14 +429,14 @@ function cellPixelUV(g: CellGrid, sh: CellShading, u: number, v: number, scale: 
   return tone;
 }
 
-function grassFill(m: CityMats, city: CityId, seed: number): Fill {
+function grassFill(m: CityMats, seed: number): Fill {
   const base = C('green3');
   const sp = speckleMap(specks(seed, 16, 4));
   return (x, y) => {
     let c = base;
     if (m.grass.stripes) {
       const [, v] = uvOf(x, y);
-      if (mod(v, 1) >= 0.5 && city === 'london') c = C('green4');
+      if (mod(v, 1) >= 0.5) c = C('green4');
     }
     // Blades: a darker "v" with a lit tip above.
     const k = sp.get(y * 32 + x);
@@ -1086,7 +969,6 @@ function drawRailing(
   e: EdgeName,
   m: CityMats,
   kind: 'balustrade' | 'parapet',
-  city: CityId,
 ): void {
   const x0 = e === 'nw' || e === 'sw' ? 1 : 16;
   const x1 = e === 'nw' || e === 'sw' ? 15 : 30;
@@ -1096,7 +978,7 @@ function drawRailing(
     kind === 'parapet'
       ? { top: lighter(m.quayLit), lit: m.quayLit, shade: m.quayShade, dark: m.quayJoint }
       : m.rail;
-  const iron = city === 'london' && kind === 'balustrade';
+  const iron = m.ironRail && kind === 'balustrade';
   for (let x = x0; x <= x1; x++) {
     const base = edgeRow(e, x) + GROUND_HEADROOM;
     const post = mod(x, 16) === 1 || mod(x, 16) === 0;
@@ -1201,7 +1083,7 @@ export function groundCtxAt(map: MapData, i: number, j: number, frame = 0): Grou
 }
 
 function paintGround(ctx: GroundCtx): PixelBuffer {
-  const m = MATS[ctx.city];
+  const m = envStyle(ctx.city).ground;
   const rels = relsOf(ctx);
   const variant = variantOf(ctx);
   const seed = hash(variant, ctx.ground.length, 0xabc);
@@ -1229,7 +1111,7 @@ function paintGround(ctx: GroundCtx): PixelBuffer {
       fill = bridgeFill(m, seed);
       break;
     case 'grass':
-      fill = grassFill(m, ctx.city, seed);
+      fill = grassFill(m, seed);
       break;
     case 'parkPath':
       fill = gravelFill(m, seed);
@@ -1274,7 +1156,7 @@ function paintGround(ctx: GroundCtx): PixelBuffer {
   const railKind = g === 'bridge' ? 'balustrade' : g === 'quay' ? 'parapet' : null;
   if (railKind) {
     for (const e of ['nw', 'ne', 'sw', 'se'] as const) {
-      if (rels[e] === Rel.DownWater) drawRailing(img, e, m, railKind, ctx.city);
+      if (rels[e] === Rel.DownWater) drawRailing(img, e, m, railKind);
     }
   }
   return img;

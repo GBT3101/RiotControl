@@ -3,8 +3,8 @@
  * Corinthian portico, the broad stair with its marble statues and the tricolour face +v
  * (the Seine / Pont de la Concorde side).
  */
-import { Scene, type Material } from './engine/scene';
-import { R, hash, lv, mod, mod_, moduleColour, plain, sampleModule } from './engine/materials';
+import { Scene, type Material } from '../engine/scene';
+import { R, hash, lv, mod, mod_, moduleColour, plain, sampleModule } from '../engine/materials';
 import {
   balustradeCut,
   banner,
@@ -21,9 +21,9 @@ import {
   textGrid,
   windowStatus,
   type DamageState,
-} from './engine/kit';
-import type { Build, Overlay } from './types';
-import { lamp, marbleStatue } from './props';
+} from '../engine/kit';
+import type { Build, Overlay } from '../types';
+import { lamp, marbleStatue } from '../props';
 
 export const BOURBON_W = 11;
 export const BOURBON_D = 7;

@@ -1,6 +1,7 @@
 /**
  * Game entry. Without `?city` the game opens on the title screen (M9: title → city select →
- * run); `?city=madrid|london|paris` (or `?skipTitle=1`) boots straight into a run. The M1
+ * run); `?city=<playable city>` (or `?skipTitle=1`) boots straight into a run (an unbuilt city
+ * id falls back to Madrid: ui/app.ts startRun). The M1
  * test-map demo stays reachable with `?demo=1`. All debug params: src/game/params.ts.
  */
 import { readParams } from './game/params';

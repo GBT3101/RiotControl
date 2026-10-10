@@ -19,6 +19,7 @@ import {
   isAnimatedGround,
 } from '../../art/env/ground';
 import { buildProps } from '../../art/env/props';
+import { envStyle } from '../../art/env/style';
 import { registerFx } from '../../art/fx';
 import { CAPITOL_ART, SECONDARY, toPlacements, type OverlayPlacement } from '../../art/landmarks';
 import type { DamageState } from '../../art/landmarks/engine/kit';
@@ -508,14 +509,14 @@ function sprinkleDecal(map: MapData, i: number, j: number): string | null {
   const g = GROUNDS[map.ground[j * map.w + i]!];
   const h = hash3(i, j, 0xdeca1);
   const r = (h % 1000) / 1000;
+  const local = envStyle(map.city).decals;
   if (g === 'sidewalk' || g === 'plaza' || g === 'cobble') {
-    if (r < 0.012)
-      return `decal.tag.${['anarchy', 'heart', 'no', 'oi', 'riot', map.city === 'madrid' ? 'mola' : 'non'][h % 6]}`;
+    if (r < 0.012) return `decal.tag.${['anarchy', 'heart', 'no', 'oi', 'riot', local.tag][h % 6]}`;
     if (r < 0.03) return `decal.litter.${h % 3}`;
     if (r < 0.04) return `decal.leaflets.${h % 2}`;
-    if (map.city === 'london' && r < 0.06) return `decal.puddle.${h % 2}`;
+    if (local.puddles && r < 0.06) return `decal.puddle.${h % 2}`;
   } else if (g === 'asphalt') {
-    if (map.city === 'london' && r < 0.02) return `decal.puddle.${h % 2}`;
+    if (local.puddles && r < 0.02) return `decal.puddle.${h % 2}`;
     if (r < 0.006) return `decal.scorch.${h % 3}`;
   }
   return null;

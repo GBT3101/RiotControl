@@ -1,12 +1,15 @@
 /**
- * Landmark overlays: waving flags (hand-drawn designs, procedurally waved with ramp shading),
- * fire tongues, smoke columns and Big Ben's clock hands. All are small animated sprites placed
- * on top of the static landmark sprites at documented offsets (see overlays in index.ts).
+ * Landmark overlays: waving flags (each city's designs, procedurally waved with ramp shading),
+ * fire tongues, smoke columns and city overlays (Big Ben's clock hands, london/clock.ts). All
+ * are small animated sprites placed on top of the static landmark sprites at documented offsets
+ * (see overlays in index.ts).
  */
 import { resolveColor, type SwatchName } from '../palette';
 import { createBuffer, setPixel, outline, type PixelBuffer } from '../lib/pixels';
 import type { SpriteRegistry } from '../lib/registry';
 import { hash } from './engine/materials';
+import { LANDMARK_CITIES, OWN_LANDMARKS } from './registry';
+import { FLAG_W, type FlagDef } from './types';
 
 // ---------------------------------------------------------------------------------------------
 // Flags
@@ -21,60 +24,22 @@ const CLOTH: Record<string, readonly [SwatchName, SwatchName, SwatchName]> = {
   R: ['rust0', 'crim1', 'crim2'],
   o: ['earth3', 'ochre2', 'ochre3'],
   k: ['navy0', 'navy1', 'navy2'],
+  g: ['green0', 'green2', 'green3'],
+  K: ['ink', 'gray1', 'gray2'],
 };
 
-type Design = (x: number, y: number) => string;
-
-const FW = 22;
-const FH = 14;
-
-const spain: Design = (x, y) => {
-  if (y < 4 || y >= 11) return 'r';
-  // Coat of arms near the hoist.
-  if (x >= 4 && x <= 7 && y >= 5 && y <= 9) {
-    if (x === 4 || x === 7) return y === 5 || y === 9 ? 'y' : 'o';
-    return (x + y) % 2 === 0 ? 'R' : 'o';
-  }
-  return 'y';
-};
-
-const france: Design = (x) => (x < 7 ? 'b' : x < 15 ? 'w' : 'r');
-
-/**
- * Union flag, pixel-authored for the 22×14 cloth (M13a): 2-px red St George cross with 1-px
- * white fimbriation; each quadrant is 9×5, so the saltire diagonals are clean 2:1 stairs
- * (1-px red over a 3-px white band) instead of thresholded distance fields that broke up into
- * noise once the columns were waved.
- */
-const union: Design = (x, y) => {
-  if (x === 10 || x === 11 || y === 6 || y === 7) return 'R';
-  if (x === 9 || x === 12 || y === 5 || y === 8) return 'w';
-  const u = x < 9 ? x : FW - 1 - x;
-  const v = y < 5 ? y : FH - 1 - y;
-  const line = Math.floor(u / 2);
-  if (v === line) return 'R';
-  if (Math.abs(v - line) === 1 || (u % 2 === 1 && v === line + 1)) return 'w';
-  return 'b';
-};
-
-const DESIGNS: Record<string, { d: Design; h: number }> = {
-  es: { d: spain, h: FH },
-  fr: { d: france, h: FH },
-  uk: { d: union, h: FH },
-};
+/** Every city's flags (LandmarkCity.flags), in city order: lm.flag.<code>. */
+const DESIGNS: Readonly<Record<string, FlagDef>> = Object.fromEntries(
+  LANDMARK_CITIES.flatMap((c) => Object.entries(OWN_LANDMARKS[c]!.flags)),
+);
 
 /**
  * Waving flag frames. Anchor = the hoist's top pixel (sits on the pole tip): the flag flies
  * to the screen right of the pole. `torn` = ragged fly end, scorch and holes.
  */
-export function flagFrames(
-  code: keyof typeof DESIGNS,
-  n = 6,
-  torn = false,
-  scale = 1,
-): PixelBuffer[] {
+export function flagFrames(code: string, n = 6, torn = false, scale = 1): PixelBuffer[] {
   const { d, h } = DESIGNS[code]!;
-  const w = Math.round(FW * scale);
+  const w = Math.round(FLAG_W * scale);
   const hh = Math.round(h * scale);
   const amp = 2.2;
   const frames: PixelBuffer[] = [];
@@ -255,7 +220,7 @@ export function clockHands(side: 'l' | 'r', n = 12): PixelBuffer[] {
 
 export function registerLandmarkFx(reg: SpriteRegistry): void {
   const g = 'landmarks';
-  for (const code of ['es', 'uk', 'fr'] as const) {
+  for (const code of Object.keys(DESIGNS)) {
     const fr = flagFrames(code, 6, false);
     reg.add(`lm.flag.${code}`, { group: g, frames: fr, fps: 8, anchor: { x: 1, y: 1 } });
     reg.add(`lm.flag.${code}.torn`, {
@@ -288,16 +253,6 @@ export function registerLandmarkFx(reg: SpriteRegistry): void {
     fps: 6,
     anchor: { x: 11, y: 47 },
   });
-  reg.add('lm.capitol.london.hands.l', {
-    group: g,
-    frames: clockHands('l'),
-    fps: 1,
-    anchor: { x: 8, y: 8 },
-  });
-  reg.add('lm.capitol.london.hands.r', {
-    group: g,
-    frames: clockHands('r'),
-    fps: 1,
-    anchor: { x: 8, y: 8 },
-  });
+  // City overlays (Big Ben's hands …).
+  for (const city of LANDMARK_CITIES) OWN_LANDMARKS[city]!.registerFx?.(reg);
 }
