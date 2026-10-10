@@ -7,6 +7,8 @@
  * uniform on any devicePixelRatio, including fractional ones (1.25, 2.625 …).
  */
 import { Application, TextureSource } from 'pixi.js';
+// Eval-free shader/uniform sync, so the game also runs on hosts whose CSP forbids 'unsafe-eval'.
+import 'pixi.js/unsafe-eval';
 
 export interface StageSize {
   /** Device pixels. */

@@ -38,6 +38,6 @@ boot().catch((err: unknown) => {
   console.error(err);
   const pre = document.createElement('pre');
   pre.className = 'boot-error';
-  pre.textContent = `Riot Control failed to start:\n${err instanceof Error ? err.stack : String(err)}`;
+  pre.textContent = `Riot Control failed to start:\n${err instanceof Error ? `${err.name}: ${err.message}\n${err.stack ?? ''}` : String(err)}`;
   document.body.appendChild(pre);
 });
