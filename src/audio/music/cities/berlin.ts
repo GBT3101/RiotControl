@@ -36,21 +36,35 @@ const ACID = [0, 0, 12, 0, 7, 0, 10, 12] as const;
 const berlinDrums: DrumFn = (d) => {
   if (d.layer <= 2 || d.vamp) return marchDrums(d);
   const last = d.barInSection === d.sectionBars - 1;
-  const pedal = (step: number, vel: number): NoteEvent => ({ step, len: 1.4, inst: 'tuba', midi: MARCH_KEY - 24, vel });
+  const pedal = (step: number, vel: number): NoteEvent => ({
+    step,
+    len: 1.4,
+    inst: 'tuba',
+    midi: MARCH_KEY - 24,
+    vel,
+  });
   if (d.layer === 3) {
     // The pulse arrives under the march.
-    const out = marchDrums(d);
-    out.push(hit('kick', 0, 0.85), hit('kick', 4, 0.85));
-    out.push(hit('hat', 2, 0.32), hit('hat', 6, 0.32), hit('clap', 4, 0.4));
-    out.push(pedal(2, 0.5), pedal(6, 0.5));
+    const out = marchDrums(d).filter((n) => n.inst !== 'kick');
+    out.push(hit('kick', 0, 0.7), hit('kick', 4, 0.7));
+    out.push(hit('hat', 2, 0.3), hit('hat', 6, 0.3), hit('clap', 4, 0.35));
+    out.push(pedal(2, 0.38), pedal(6, 0.38));
     return out;
   }
   // Layer 4: the club.
-  const out: NoteEvent[] = [hit('kick', 0, 0.95), hit('kick', 4, 0.95), hit('clap', 4, 0.5)];
+  const out: NoteEvent[] = [hit('kick', 0, 0.8), hit('kick', 4, 0.8), hit('clap', 4, 0.45)];
   for (let s = 0; s < 8; s++) out.push(hit('hat', s, s % 2 ? 0.34 : 0.14));
   if (d.barInSection % 4 === 0) out.push(hit('cymbal', 0, 0.45));
-  out.push(pedal(2, 0.6), pedal(6, 0.6));
-  ACID.forEach((o, s) => out.push({ step: s, len: 0.7, inst: 'chip', midi: MARCH_KEY - 12 + o, vel: s % 2 ? 0.3 : 0.45 }));
+  out.push(pedal(2, 0.42), pedal(6, 0.42));
+  ACID.forEach((o, s) =>
+    out.push({
+      step: s,
+      len: 0.7,
+      inst: 'chip',
+      midi: MARCH_KEY - 12 + o,
+      vel: s % 2 ? 0.22 : 0.32,
+    }),
+  );
   if (last) out.push(...roll(4, 8, 0.25, 0.8));
   return out;
 };

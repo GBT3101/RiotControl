@@ -140,6 +140,57 @@ for (const k of ['clap', 'hoHey', 'boo'] as const) {
   $(`#chant-${k}`).addEventListener('click', () => audio.forceChant(k));
 }
 
+// City themes (E5): one row per city — the prep hold and the march's three intensity layers
+// (calm L1, tense L3, climax L4) plus night — and an offline loudness table against Madrid.
+{
+  const CASES = {
+    hold: { phase: 'prep', level: 0, crowd: 0, night: false },
+    calm: { phase: 'wave', level: 0, crowd: 0, night: false },
+    tense: { phase: 'wave', level: 6, crowd: 600, night: false },
+    climax: { phase: 'wave', level: 10, crowd: 3000, night: false },
+    night: { phase: 'wave', level: 6, crowd: 600, night: true },
+  } as const;
+  const box = el('fieldset', {}, [el('legend', { textContent: 'city themes: hold · march L1 / L3 / L4 · night' })]);
+  for (const c of citiesOf(OWN_MUSIC)) {
+    const row = el('div', {}, [el('b', { textContent: c.padEnd(10, ' ') })]);
+    for (const [name, k] of Object.entries(CASES)) {
+      const b = el('button', { textContent: name });
+      b.addEventListener('click', () => {
+        city.value = c;
+        phase.value = k.phase;
+        level.value = String(k.level);
+        night.checked = k.night;
+        // The crowd slider drives the music intensity; the crowd bed stays off for auditioning.
+        crowd.value = String(k.crowd);
+        applyMusic();
+        audio.setCrowd({ size: 0 });
+      });
+      row.append(b);
+    }
+    box.append(row);
+  }
+  const report = el('pre');
+  const measure = el('button', { textContent: 'measure loudness offline (8 s each)' });
+  measure.addEventListener('click', () => {
+    report.textContent = 'rendering…';
+    void (async () => {
+      const lines: string[] = [];
+      for (const c of citiesOf(OWN_MUSIC)) {
+        const cells: string[] = [];
+        for (const k of ['hold', 'calm', 'climax'] as const) {
+          const o = CASES[k];
+          const r = await renderMusic({ ...o, phase: o.phase as MusicPhase, city: c, seconds: 8 });
+          cells.push(`${k} ${r.rmsDb.toFixed(1)}/${r.peakDb.toFixed(1)}`);
+        }
+        lines.push(`${c.padEnd(10)} ${cells.join('   ')}   (rms/peak dBFS)`);
+        report.textContent = lines.join('\n');
+      }
+    })();
+  });
+  box.append(measure, report);
+  $('#phase').closest('section')!.append(box);
+}
+
 // ── Stress ──────────────────────────────────────────────────────────────────────────────
 
 let stress = false;

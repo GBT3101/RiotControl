@@ -49,16 +49,34 @@ const tarantellaDrums: DrumFn = (d) => {
   if (last) {
     out.push(hit('snare', 0, 0.5), ...roll(3, 6, 0.25, d.layer >= 4 ? 0.85 : 0.65));
   } else {
-    out.push(hit('snare', 0, 0.45), hit('snare', 2, 0.3), hit('snare', 3, 0.55), hit('snare', 5, 0.35));
+    out.push(
+      hit('snare', 0, 0.45),
+      hit('snare', 2, 0.3),
+      hit('snare', 3, 0.55),
+      hit('snare', 5, 0.35),
+    );
   }
   if (d.layer >= 3) {
     if (d.barInSection === 0) out.push(hit('cymbal', 0, 0.6));
     if (last) {
       // The grand swell: brass on the tonic chord (every section ends on A minor), timpani roll.
-      for (const [m, v] of [[KEY - 12, 0.5], [KEY - 9, 0.45], [KEY - 5, 0.45], [KEY, 0.5]] as const) {
-        out.push({ step: 0, len: 6, inst: 'brass', midi: m, vel: v * (d.layer >= 4 ? 1.1 : 0.9), vib: 0.15 });
+      for (const [m, v] of [
+        [KEY - 12, 0.5],
+        [KEY - 9, 0.45],
+        [KEY - 5, 0.45],
+        [KEY, 0.5],
+      ] as const) {
+        out.push({
+          step: 0,
+          len: 6,
+          inst: 'brass',
+          midi: m,
+          vel: v * (d.layer >= 4 ? 1.1 : 0.9),
+          vib: 0.15,
+        });
       }
-      for (let s = 0; s < 6; s++) out.push({ step: s, len: 1, inst: 'timpani', midi: 0, vel: 0.25 + 0.08 * s });
+      for (let s = 0; s < 6; s++)
+        out.push({ step: s, len: 1, inst: 'timpani', midi: 0, vel: 0.25 + 0.08 * s });
     }
   }
   if (d.layer >= 4 && d.barInSection !== 0) out.push(hit('cymbal', 0, 0.35));

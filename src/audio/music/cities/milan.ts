@@ -32,7 +32,8 @@ import {
 const bandaDrums: DrumFn = (d) => {
   const out = marchDrums(d);
   if (d.layer >= 2 && !d.vamp && !d.night) out.push(hit('cymbal', 0, d.layer >= 4 ? 0.4 : 0.28));
-  if (d.layer >= 3 && d.barInSection % 2 === 0) out.push({ step: 0, len: 4, inst: 'timpani', midi: 0, vel: 0.45 });
+  if (d.layer >= 3 && d.barInSection % 2 === 0)
+    out.push({ step: 0, len: 4, inst: 'timpani', midi: 0, vel: 0.45 });
   return out;
 };
 

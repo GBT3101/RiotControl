@@ -9,3 +9,11 @@
  */
 export {};
 export { budapest } from './budapest';
+export { berlin } from './berlin';
+export { stockholm } from './stockholm';
+export { amsterdam } from './amsterdam';
+export { vienna } from './vienna';
+export { rome } from './rome';
+export { barcelona } from './barcelona';
+export { milan } from './milan';
+export { prague } from './prague';

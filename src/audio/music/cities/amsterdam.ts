@@ -1,6 +1,7 @@
 /**
- * AMSTERDAM — music: the draaiorgel, the street organ wheezing on the bridge. Every voice is the
- * organ patch (flue + reed celeste, bellows tremulant, wind noise), bass pipes included. The prep
+ * AMSTERDAM — music: the draaiorgel, the street organ wheezing on the bridge. Tune, counter-melody
+ * and chords are the organ patch (flue + reed celeste, bellows tremulant, wind noise) over the
+ * tuba-like bass pipes. The prep
  * hold is the organ's waltz in G; the wave march is its jolly 2/4 march with the organ's own
  * drum, woodblock ticks from layer 2 and the glockenspiel register from layer 3. Organ fanfare.
  * Original melodies (E5).
@@ -44,7 +45,7 @@ export const amsterdam: CityMusic = {
     form: ['A', 'A', 'B', 'A'],
     sections: { A: [I, I, IV, I, V7, V7, I, I], B: [vi, vi, ii, ii, V7, V7, I, V7] },
     oneShot: false, lead: 'organ', harmony: 'organ', chordInst: 'organ', chordSteps: [4, 8],
-    bass: 'organ', bassSteps: WALTZ_BASS, rhythms: R12, cadences: C12, glock: false, drums: orgelWaltz,
+    bass: 'tuba', bassSteps: WALTZ_BASS, rhythms: R12, cadences: C12, glock: false, drums: orgelWaltz,
     melody: {
       // A barrel-organ waltz: a little turn, the jump to the octave, a lilt down the dominant.
       A: [
@@ -65,7 +66,7 @@ export const amsterdam: CityMusic = {
     sections: { A: [I, I, IV, I, V7, V7, I, I], B: [vi, vi, ii, ii, V7, V7, I, V7] },
     nightSections: { A: [i_, i_, iv, i_, V7h, V7h, i_, i_], B: [VI, VI, iv, iv, V7h, V7h, i_, V7h] },
     oneShot: false, lead: 'organ', harmony: 'organ', chordInst: 'organ', chordSteps: [2, 6],
-    bass: 'organ', bassSteps: MARCH_BASS,
+    bass: 'tuba', bassSteps: MARCH_BASS,
     rhythms: [[0, 1, 2, 4, 5, 6], [0, 2, 4, 6], [0, 2, 3, 4, 6], [0, 4, 6], [0, 1, 2, 4]],
     cadences: [[0], [0, 4]], glock: true, drums: orgelMarch,
     melody: {

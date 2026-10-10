@@ -15,7 +15,8 @@ import type { GroundFill } from '../ground';
 import type { PropKit, PropSprite } from '../props';
 import type { IsoCanvas } from '../raster';
 import type { EnvCity, OrnamentCtx, SlopeTex } from '../style';
-import { Dice, hash } from '../util';
+import type { Dice } from '../util';
+import { hash } from '../util';
 import * as G from './rome.grid';
 
 // ------------------------------------------------------------------------- shared helpers --
@@ -63,6 +64,29 @@ export function settFill(
     if (ly === 1 && lx === cw - 2) return darker(base);
     if (ly === 1 && lx === 0 && (key & 4) === 0) return joint;
     return base;
+  };
+}
+
+/**
+ * An SPQR manhole cover on one detail variant in twelve: cast-iron disc, rim, and the city's
+ * initials as a row of raised letters.
+ */
+export function withManhole(fill: GroundFill, salt: number): GroundFill {
+  const letters = ['#.##..#.##.##', '##.#.#.#.#.##', '.#.##.#.##.#.'];
+  return (x, y, u, v, seed) => {
+    if (hash(seed, salt) % 12 === 0) {
+      const dx = (x + 0.5 - 16) / 5;
+      const dy = (y + 0.5 - 8) / 2.6;
+      const r = dx * dx + dy * dy;
+      if (r < 1) {
+        if (r > 0.62) return dx + dy < 0 ? C('gray2') : C('gray1');
+        const lx = x - 10;
+        const ly = y - 7;
+        if (ly >= 0 && ly < 3 && lx >= 0 && lx < 13 && letters[ly]![lx] === '#') return C('gray5');
+        return (x + y) % 2 === 0 ? C('gray3') : C('gray2');
+      }
+    }
+    return fill(x, y, u, v, seed);
   };
 }
 
@@ -141,7 +165,11 @@ export function peel(
       }
       const course = y >> 1;
       const mortar = (y & 1) === 1 || ((x + (course & 1) * 2) & 3) === 0;
-      f.tint(x, y, mortar ? darker(brick) : (hash(x >> 2, course, 3) & 3) === 0 ? lighter(brick) : brick);
+      f.tint(
+        x,
+        y,
+        mortar ? darker(brick) : (hash(x >> 2, course, 3) & 3) === 0 ? lighter(brick) : brick,
+      );
     }
   }
 }
@@ -174,9 +202,15 @@ export function pottedPlant(
     const rr = r * Math.sqrt((k + 0.5) / (big ? 26 : 12));
     const du = Math.cos(a) * rr;
     const dv = Math.sin(a) * rr;
-    const dz = (big ? 3 : 2) + 1 + ((h - 2) * (1 - rr / r)) + (k % 3) * 0.4;
+    const dz = (big ? 3 : 2) + 1 + (h - 2) * (1 - rr / r) + (k % 3) * 0.4;
     const lit = du - dv < 0;
-    const c = leaves[Math.min(leaves.length - 1, Math.max(0, (lit ? 2 : 1) + (k % 4 === 0 ? 1 : 0) - (dz < 4 ? 1 : 0)))]!;
+    const c =
+      leaves[
+        Math.min(
+          leaves.length - 1,
+          Math.max(0, (lit ? 2 : 1) + (k % 4 === 0 ? 1 : 0) - (dz < 4 ? 1 : 0)),
+        )
+      ]!;
     cv.dot({ u: u + du, v: v + dv, z: z + dz }, flower && k % 7 === 3 ? flower : c, 0.8);
     cv.dot({ u: u + du + 0.03, v: v + dv, z: z + dz }, c, 0.8);
   }
@@ -204,7 +238,8 @@ function coppi(_look: unknown, rise: number): SlopeTex {
     const base =
       patch < 5 ? C('rust2') : patch < 8 ? C('rust3') : patch < 10 ? C('earth4') : C('rust1');
     let c: RGBA;
-    if (ch === 0) c = lighter(base); // crown of the cover tile
+    if (ch === 0)
+      c = lighter(base); // crown of the cover tile
     else if (ch === 1) c = base;
     else if (ch === 2) c = darker(base);
     else c = C('earth1'); // channel between the rows
@@ -266,7 +301,11 @@ function romeRoofs(o: OrnamentCtx): void {
       const su = dice.next();
       const sv = dice.next();
       const c = LEAVES[1 + Math.floor(dice.next() * 3) + (su - sv > 0.2 ? 0 : 1) - 1]!;
-      cv.dot({ u: u0 + (u1 - u0) * su, v: v0 + (v1 - v0) * sv, z: z + 9 + (k % 3 === 0 ? 1 : 0) }, c, 0.9);
+      cv.dot(
+        { u: u0 + (u1 - u0) * su, v: v0 + (v1 - v0) * sv, z: z + 9 + (k % 3 === 0 ? 1 : 0) },
+        c,
+        0.9,
+      );
     }
     for (let k = 0; k < 4; k++) {
       const su = dice.next();
@@ -298,12 +337,12 @@ function nasone(k: PropKit): PropSprite {
   return k.gridProp(G.NASONE, { M: 'gray2', m: 'gray1', A: 'stone4', U: 'sky' }, { shadow: 3 });
 }
 
-/** Piazza fountain: travertine basin, a shell bowl and a jet. */
-function fountain(k: PropKit): PropSprite {
+/** Piazza fountain: stone basin (`stone` swatch), a shell bowl and a jet. */
+export function basinFountain(k: PropKit, stone = 'stone4'): PropSprite {
   return k.isoProp(
     22,
     (cv) => {
-      const st = C('stone4');
+      const st = C(stone);
       cv.box(0.12, 0.12, 0, 0.88, 0.88, 4, {
         top: (u, v) => {
           const e = Math.min(u - 0.12, v - 0.12, 0.88 - u, 0.88 - v);
@@ -332,7 +371,10 @@ function fountain(k: PropKit): PropSprite {
         [0, 0.12],
       ] as const)
         for (let q = 0; q < 6; q++)
-          cv.dot({ u: 0.5 + du * (1 + q * 0.25), v: 0.5 + dv * (1 + q * 0.25), z: 12 - q * 1.4 }, C('sky'));
+          cv.dot(
+            { u: 0.5 + du * (1 + q * 0.25), v: 0.5 + dv * (1 + q * 0.25), z: 12 - q * 1.4 },
+            C('sky'),
+          );
     },
     { shadow: 0 },
   );
@@ -354,10 +396,19 @@ function column(k: PropKit): PropSprite {
     }
     rows.push(r + '..');
   }
-  rows.push('.UUUTTtt.', 'UUTTTTttt', 'UTsssssst', 'UTsTTTTst', 'UTsTTTTst', 'UTsssssst', 'UUTTTTttt', 'UUUUTTttt');
+  rows.push(
+    '.UUUTTtt.',
+    'UUTTTTttt',
+    'UTsssssst',
+    'UTsTTTTst',
+    'UTsTTTTst',
+    'UTsssssst',
+    'UUTTTTttt',
+    'UUUUTTttt',
+  );
   return k.gridProp(
     rows.join('\n'),
-    { U: 'stone5', T: 'stone4', t: 'stone3', s: 'stone2', S: 'stone1', e: 'earth3', E: 'earth4' },
+    { U: 'stone5', T: 'stone4', t: 'stone3', s: 'stone1', S: 'stone0', e: 'earth3', E: 'earth4' },
     { shadow: 5 },
   );
 }
@@ -410,7 +461,7 @@ export const rome: EnvCity = {
     leaves: true,
     ironRail: false,
     fills: {
-      sidewalk: settFill(BASALT_LIGHT, C('gray2')),
+      sidewalk: withManhole(settFill(BASALT_LIGHT, C('gray2')), 0x60),
       cobble: fanFill(BASALT, C('gray1')),
       plaza: framedFill(settFill(BASALT_LIGHT, C('gray2')), C('stone3'), TRAVERTINE, C('gray2')),
     },
@@ -455,12 +506,14 @@ export const rome: EnvCity = {
       ground: travertineBase ? C(d.pick(['stone3', 'stone4'])) : darker(C(wallName)),
       trim: C(d.pick(['stone4', 'stone4', 'stone5', 'stone3'])),
       frame: C(d.pick(['white', 'earth2', 'stone5'])),
-      shutter: C(d.weighted<string>([
-        ['green2', 6],
-        ['green1', 3],
-        ['green3', 1],
-        ['earth2', 1],
-      ])),
+      shutter: C(
+        d.weighted<string>([
+          ['green2', 6],
+          ['green1', 3],
+          ['green3', 1],
+          ['earth2', 1],
+        ]),
+      ),
       iron: C('ink'),
       ironHi: C('gray2'),
       door: C(d.pick(['earth1', 'earth2', 'earth1', 'green1'])),
@@ -620,7 +673,7 @@ export const rome: EnvCity = {
     extra: {
       'hydrant.0': nasone,
       nasone,
-      fountain,
+      fountain: (k) => basinFountain(k),
       'column.gilded': column,
     },
   },
@@ -657,14 +710,19 @@ export const rome: EnvCity = {
     puddles: false,
   },
   cars: [
+    'fiat500_rome',
     'scooter',
+    'smart_rome',
     'scooter_red',
+    'fiat500_rome_red',
+    'taxi_rome',
     'scooter',
     'hatch_white',
+    'fiat500_rome_cream',
+    'smart_rome_red',
     'hatch_silver',
-    'sedan_black',
     'delivery_van',
-    'hatch_green',
+    'bus_rome',
   ],
   minimapRoof: 'rust3',
   postcardSky: ['sky', 'rust4'],

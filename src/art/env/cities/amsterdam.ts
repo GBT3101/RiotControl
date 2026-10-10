@@ -307,14 +307,14 @@ export const amsterdam: EnvCity = {
     },
     // Red-brown klinkers in stretcher bond on the quays and lanes.
     cobble: {
-      tones: [C('rust1'), C('earth2'), C('rust1'), C('earth3'), C('rust2')],
+      tones: [C('earth2'), C('rust1'), C('earth2'), C('earth3'), C('rust1')],
       joint: C('earth1'),
       grid: { rows: 4, cols: 2, stagger: 0.5 },
     },
     plaza: {
-      tones: [C('stone2'), C('stone3'), C('gray5')],
-      border: C('rust1'),
-      joint: C('stone1'),
+      tones: [C('gray5'), C('stone2'), C('gray5')],
+      border: C('gray4'),
+      joint: C('gray3'),
     },
     grass: { base: 'grass', stripes: false, dry: 0 },
     gravel: { base: C('stone2'), dark: C('stone1'), light: C('stone3') },
@@ -333,6 +333,8 @@ export const amsterdam: EnvCity = {
     lot: C('stone1'),
     leaves: true,
     ironRail: true,
+    // GVB tram tracks down the middle of the through streets.
+    tram: { at: [0.22, 0.34, 0.66, 0.78], rail: C('gray5'), railHi: C('gray6'), groove: C('gray1') },
   },
 
   awnings: [
@@ -442,11 +444,11 @@ export const amsterdam: EnvCity = {
     slopeTex: (look, rise) => (look.slope === 'terracotta' ? RED_PANS : ANTHRACITE)(rise),
     // Street gables on every pitched roof.
     ornament: {
-      headroom: 8,
+      headroom: 10,
       paint(o) {
         if (o.roof !== 'pitched' || o.street === 'back') return;
         const L = (o.street === 'right' ? o.d : o.w) * 16;
-        if (L > 64 || L < 16) return;
+        if (L > 48 || L < 16) return;
         const d = o.dice;
         const warehouse = o.look.variant === 'warehouse';
         const kind: GableKind = warehouse
@@ -458,8 +460,8 @@ export const amsterdam: EnvCity = {
               ['spout', 1],
               ['point', L <= 32 ? 1 : 0],
             ]);
-        const R = Math.min(22, Math.round(L * 0.34) + 7);
-        if (gableTop(kind, L, R) > o.rise + 18 + 8) return;
+        const R = Math.min(26, Math.round(L * 0.45) + 5);
+        if (gableTop(kind, L, R) > o.rise + 18 + 10) return;
         const tex = o.look.slope === 'terracotta' ? RED_PANS : ANTHRACITE;
         paintGable(o, {
           kind,
@@ -484,7 +486,7 @@ export const amsterdam: EnvCity = {
     bench: { frame: 'green1', wood: 'earth4' },
     kiosk: { body: 'green1', roof: 'green2', top: { sign: 'crim1' } },
     bin: { grid: G.BIN_AMSTERDAM, keys: { B: 'gray3', b: 'gray2', A: 'crim2', d: 'ink', m: 'gray2' } },
-    bollard: { grid: G.BOLLARD_AMSTERDAM, keys: { M: 'rust1', m: 'rust0', w: 'white' } },
+    bollard: { grid: G.BOLLARD_AMSTERDAM, keys: { M: 'rust1', m: 'rust0', w: 'rust3', A: 'rust2' } },
     hydrant: { M: 'ochre3', m: 'ochre2', A: 'gray3' },
     metro: { grid: G.METRO_AMSTERDAM, shadow: 3 },
     busStop: { frame: 'gray2', roof: 'gray5', flag: 'blue1' },

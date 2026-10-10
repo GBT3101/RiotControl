@@ -25,10 +25,10 @@ import {
 
 /** Havanera: the bass drum on the havanera rhythm, a shaker. */
 const havaneraDrums: DrumFn = () => [
-  hit('kick', 0, 0.3),
-  hit('kick', 3, 0.18),
-  hit('kick', 4, 0.22),
-  hit('kick', 6, 0.2),
+  hit('kick', 0, 0.2),
+  hit('kick', 3, 0.1),
+  hit('kick', 4, 0.14),
+  hit('kick', 6, 0.12),
   hit('hat', 2, 0.08),
   hit('hat', 6, 0.08),
 ];
@@ -68,7 +68,7 @@ export const barcelona: CityMusic = {
     form: ['A', 'A', 'B', 'A'],
     sections: { A: [i_, iv, V7h, i_, VI, iv, V7h, i_], B: [I, I, V7, V7, V7, V7, I, V7h] },
     oneShot: false, lead: 'horn', harmony: 'horn', chordInst: 'pluck', chordSteps: [0, 3, 4, 6],
-    bass: 'tuba', bassSteps: [[0, 'root', 3], [3, 'fifth', 1], [4, 'third', 2], [6, 'fifth', 2]],
+    bass: 'tuba', bassSteps: [[0, 'root', 2], [3, 'fifth', 1], [4, 'third', 1.5], [6, 'fifth', 1.5]],
     rhythms: [[0, 3, 4, 6], [0, 4, 6], [0, 3, 4], [0, 2, 4, 6]], cadences: C8, glock: false, drums: havaneraDrums,
     melody: {
       // Havanera: a sung line with triplets floating over the dotted bass.

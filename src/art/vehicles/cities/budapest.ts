@@ -31,7 +31,8 @@ export function tram(spec: {
           const side = Math.abs(n[1]) > 0.6;
           if ((side || n[0] < -0.6) && q[2] > z0 && q[2] < z1) {
             const u = side ? q[0] : q[1];
-            if (side && Math.floor((u + 46) / 4.6) !== Math.floor((u + 46.7) / 4.6)) return spec.body;
+            if (side && Math.floor((u + 46) / 4.6) !== Math.floor((u + 46.7) / 4.6))
+              return spec.body;
             if (side && (Math.abs(q[0] - 6) < 1.8 || Math.abs(q[0] + 9) < 1.8)) return 'dark'; // doors
             return Math.abs(u - (q[2] - z0) * 0.8 - 2) < 0.4 && s === 'ok' ? 'glassHi' : 'glass';
           }
@@ -67,7 +68,13 @@ const taxiBudapest: Builder = sedan('yellow', (m, _f, s) => {
 export const budapest: readonly CivDef[] = [
   {
     id: 'tram_budapest',
-    build: tram({ body: 'yellow', band: 'white', skirt: 'gray', roof: 'yellow', rows: [8.2, 11.8] }),
+    build: tram({
+      body: 'yellow',
+      band: 'white',
+      skirt: 'gray',
+      roof: 'yellow',
+      rows: [8.2, 11.8],
+    }),
     burnt: true,
     hw: 5.5,
   },

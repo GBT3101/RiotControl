@@ -416,7 +416,7 @@ const organ: InstFn = (c, out, t, dur, m, vel) => {
   const ld = s.gain(0.22);
   lfo.connect(ld).connect(trem.gain);
   const g = s.gain();
-  const peak = 0.095 * vel;
+  const peak = 0.12 * vel;
   g.gain.setValueAtTime(0, t);
   g.gain.linearRampToValueAtTime(peak, t + 0.012);
   g.gain.setValueAtTime(peak, t + dur);
@@ -435,7 +435,7 @@ const mandolin: InstFn = (c, out, t, dur, m, vel) => {
     lp.frequency.setValueAtTime(Math.min(nyq, f * 9), ts);
     lp.frequency.exponentialRampToValueAtTime(Math.min(nyq, f * 1.8), ts + 0.15);
     const g = s.gain();
-    perc(g.gain, ts, 0.12 * v, 0.002, d);
+    perc(g.gain, ts, 0.16 * v, 0.002, d);
     for (const cents of [-5, 6]) {
       const osc = s.osc('sawtooth', f, ts, d);
       osc.detune.value = cents;

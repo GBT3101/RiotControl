@@ -18,6 +18,7 @@ import type { EnvCity, OrnamentCtx, SlopeTex } from '../style';
 import { hash } from '../util';
 import * as P from '../props.grid';
 import * as G from './budapest.grid';
+import { boat, fountain, stand, type BoatColours } from './central';
 
 const shadeBy = (c: RGBA, l: number): RGBA => (l > 0 ? lighter(c, l) : l < 0 ? darker(c, -l) : c);
 const mod = (a: number, m: number): number => ((a % m) + m) % m;
@@ -149,10 +150,12 @@ function ornament(o: OrnamentCtx): void {
       // Iron cresting and gilded finials along the ridge of the Zsolnay roof.
       const r = Math.min(1, Math.min(w, d) / 2);
       const z = H + rise;
-      for (let u = r; u <= w - r + 0.001; u += 0.25)
-        cv.pole({ u, v: d / 2, z }, 2, C('gray1'), 1);
-      billboard(cv, { u: r, v: d / 2, z: z + 1 }, FINIAL, gilt, 1);
-      billboard(cv, { u: w - r, v: d / 2, z: z + 1 }, FINIAL, gilt, 1);
+      if (d <= 2) {
+        for (let u = r; u <= w - r + 0.001; u += 0.25)
+          cv.pole({ u, v: d / 2, z }, 2, C('gray1'), 1);
+        billboard(cv, { u: r, v: d / 2, z: z + 1 }, FINIAL, gilt, 1);
+        billboard(cv, { u: w - r, v: d / 2, z: z + 1 }, FINIAL, gilt, 1);
+      }
       // Small lantern dome over the centre on bigger civic roofs.
       if (w >= 3 && d >= 2) {
         const cu = w / 2;
@@ -171,14 +174,23 @@ function ornament(o: OrnamentCtx): void {
             return s > 0.5 ? look.trim : darker(look.trim, s > 0.25 ? 1 : 2);
           },
         });
-        dome(cv, { cu, cv: cvv, z0: z + 6, r: 0.28, h: 9, ramp: ZSOLNAY, ribs: 8, rib: C('ochre2') });
+        dome(cv, {
+          cu,
+          cv: cvv,
+          z0: z + 6,
+          r: 0.28,
+          h: 9,
+          ramp: ZSOLNAY,
+          ribs: 8,
+          rib: C('ochre2'),
+        });
         billboard(cv, { u: cu, v: cvv, z: z + 15 }, FINIAL, gilt, 1);
       }
     }
     return;
   }
   // Corner cupola on the street corner of taller eclectic blocks.
-  if (o.storeys >= 4 && w >= 2 && d >= 2 && o.roof !== 'mansard' && dice.chance(0.32)) {
+  if (o.storeys >= 3 && w >= 2 && d >= 2 && o.roof !== 'mansard' && dice.chance(0.42)) {
     const cu = w - 0.3;
     const cvv = d - 0.3;
     const zr = o.roof === 'pitched' ? H + Math.round(rise * 0.35) : H;
@@ -250,6 +262,14 @@ function ornament(o: OrnamentCtx): void {
 
 // ----------------------------------------------------------------------------------- props --
 
+const BOAT: BoatColours = {
+  hull: 'white',
+  band: 'navy2',
+  cabin: 'white',
+  roof: 'gray6',
+  flag: ['crim2', 'white', 'green2'],
+};
+
 const LION_KEYS = { T: 'gray6', t: 'gray5', S: 'gray4', s: 'gray3', W: 'gray7', k: 'ink' };
 
 export const budapest: EnvCity = {
@@ -273,8 +293,8 @@ export const budapest: EnvCity = {
       grid: { rows: 4, cols: 4, stagger: 0.5 },
     },
     plaza: {
-      tones: [C('gray6'), C('stone3'), C('gray6')],
-      border: C('stone2'),
+      tones: [C('gray6'), C('gray6'), C('stone3'), C('gray6'), C('gray7')],
+      border: C('gray5'),
       joint: C('gray4'),
     },
     grass: { base: 'grass', stripes: false, dry: 0.2 },
@@ -400,7 +420,15 @@ export const budapest: EnvCity = {
         stampModule(f, G.BUD_SEC_WIN, x0, y0, r0, glow, glowHi);
         if (type === 'tall' || d.chance(0.25)) stampModule(f, G.BUD_SEC_TILES, x0, y0 - 1, r0);
       } else if (type === 'tall') {
-        stampModule(f, (x0 >> 1) % 2 === 0 ? G.BUD_WIN_PED : G.BUD_WIN_SEG, x0, y0, res, glow, glowHi);
+        stampModule(
+          f,
+          (x0 >> 1) % 2 === 0 ? G.BUD_WIN_PED : G.BUD_WIN_SEG,
+          x0,
+          y0,
+          res,
+          glow,
+          glowHi,
+        );
       } else stampModule(f, G.BUD_WIN, x0, y0, res, glow, glowHi);
       const r = d.next();
       if (r < 0.05) stampModule(f, M.PEEK, x0, y0, res);
@@ -408,11 +436,12 @@ export const budapest: EnvCity = {
       if (d.chance(0.03)) stampModule(f, M.SAT_DISH, x0, y0, res);
     },
     door: G.BUD_GATE,
-    shop: (d) => d.weighted<string>([
-      [G.BUD_SHOP, 4],
-      [G.BUD_SHOP_AWN, 3],
-      [G.BUD_BAR, 2],
-    ]),
+    shop: (d) =>
+      d.weighted<string>([
+        [G.BUD_SHOP, 4],
+        [G.BUD_SHOP_AWN, 3],
+        [G.BUD_BAR, 2],
+      ]),
     groundBay({ f, look, x0, y0, res, d, commercial, civic }) {
       if (civic) {
         stampModule(f, G.BUD_GRILLE, x0, y0, res, d.chance(0.3) ? GLOW : 0, GLOW_HI);
@@ -425,7 +454,8 @@ export const budapest: EnvCity = {
         return;
       }
       stampModule(f, G.BUD_GRILLE, x0, y0, res, d.chance(0.3) ? GLOW : 0, GLOW_HI);
-      if (look.variant !== 'secession' && d.chance(0.18)) stampModule(f, G.BUD_POSTERS, x0, y0, res);
+      if (look.variant !== 'secession' && d.chance(0.18))
+        stampModule(f, G.BUD_POSTERS, x0, y0, res);
     },
     shopChance: 0.35,
     pipe: 'gray3',
@@ -470,12 +500,42 @@ export const budapest: EnvCity = {
     flag: (_x, y, _W, H) => (y < H / 3 ? C('crim2') : y < (2 * H) / 3 ? C('white') : C('green2')),
     bike: { colours: ['lime'], basket: true, scooters: false },
     extra: {
+      'boat.i': (k) => boat(k, 'i', BOAT),
+      'boat.j': (k) => boat(k, 'j', BOAT),
+      // Newsagent / tobacconist (trafik) and a lángos stand.
+      'kiosk.0': (k) =>
+        stand(k, {
+          body: 'green1',
+          trim: 'gray6',
+          awning: ['green2', 'white'],
+          goods: ['white', 'gray6', 'crim2', 'ochre3', 'blue2'],
+          sign: 'crim1',
+          signText: 'white',
+        }),
+      'kiosk.1': (k) =>
+        stand(k, {
+          body: 'white',
+          trim: 'crim1',
+          awning: ['crim2', 'white'],
+          goods: ['ochre2', 'ochre3', 'earth4', 'white'],
+          sign: 'green2',
+          signText: 'ochre4',
+        }),
+      fountain: (k) => fountain(k, { stone: 'gray6', water: 'zinc2', jet: 'sky' }),
       'statue.lion': (k) => k.gridProp(G.LION_BUDAPEST, LION_KEYS, { shadow: 6 }),
       'statue.0': (k) => k.gridProp(G.STATUE_BUDAPEST, { q: 'teal1', Q: 'teal2' }, { shadow: 5 }),
       'statue.1': (k) =>
-        k.gridProp(G.STATUE_BUDAPEST, { q: 'gray3', Q: 'gray5', T: 'gray6', t: 'gray5' }, { shadow: 5 }),
+        k.gridProp(
+          G.STATUE_BUDAPEST,
+          { q: 'gray3', Q: 'gray5', T: 'gray6', t: 'gray5' },
+          { shadow: 5 },
+        ),
       'statue.equestrian': (k) =>
-        k.gridProp(G.EQUESTRIAN_BUDAPEST, { q: 'teal1', Q: 'teal2', T: 'gray6', t: 'gray5', S: 'gray4', s: 'gray3', W: 'gray7' }, { shadow: 8 }),
+        k.gridProp(
+          G.EQUESTRIAN_BUDAPEST,
+          { q: 'teal1', Q: 'teal2', T: 'gray6', t: 'gray5', S: 'gray4', s: 'gray3', W: 'gray7' },
+          { shadow: 8 },
+        ),
     },
   },
 
@@ -510,7 +570,10 @@ export const budapest: EnvCity = {
     puddles: false,
   },
   cars: [
-    'hatch_white',
+    'taxi_budapest',
+    'taxi_budapest',
+    'tram_budapest',
+    'bus_budapest',
     'hatch_white',
     'hatch_silver',
     'hatch',

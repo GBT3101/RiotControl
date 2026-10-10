@@ -10,11 +10,11 @@ export const AMS_WIN = `
 ........
 .wwwwww.
 .ffffff.
-.fGkfkf.
-.fkkfkf.
+.fGgfgf.
+.fgkfkf.
 .ffffff.
-.fkkfGf.
-.fkgfkf.
+.fggfGf.
+.fkgfgf.
 .ffffff.
 ..wwww..
 `;
@@ -23,13 +23,13 @@ export const AMS_WIN = `
 export const AMS_WIN_TALL = `
 .wwwwww.
 .ffffff.
-.fGkfkf.
-.fkkfkf.
-.fkgfkf.
-.ffffff.
-.fkkfGf.
-.fkkfkf.
+.fGgfgf.
+.fggfkf.
 .fgkfkf.
+.ffffff.
+.fggfGf.
+.fgkfgf.
+.fkkfkf.
 .ffffff.
 `;
 
@@ -39,9 +39,9 @@ export const AMS_WIN_SMALL = `
 ........
 .wwwwww.
 .ffffff.
-.fGkfkf.
+.fGgfgf.
 .ffffff.
-.fkkfkf.
+.fgkfkf.
 .ffffff.
 ..wwww..
 ........
@@ -106,11 +106,11 @@ tttttttt
 /** Ground-floor window over a barred basement window (souterrain). */
 export const AMS_GROUND_WIN = `
 .ffffff.
-.fGkfkf.
-.fkkfkf.
+.fGgfgf.
+.fgkfkf.
 .ffffff.
-.fkkfGf.
-.fkgfkf.
+.fggfGf.
+.fkgfgf.
 .ffffff.
 ........
 .iIiIii.
@@ -180,6 +180,7 @@ MMMMMmmmm
 
 /** "Amsterdammertje": red-brown cast-iron bollard with the three St Andrew's crosses. */
 export const BOLLARD_AMSTERDAM = `
+.AMm.
 .MMm.
 MMMmm
 MwMwm
@@ -190,9 +191,6 @@ MwMwm
 MMwmm
 MwMwm
 MMMmm
-MwMwm
-MMwmm
-MwMwm
 MMMmm
 .MMm.
 `;

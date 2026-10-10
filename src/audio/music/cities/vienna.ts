@@ -26,11 +26,7 @@ import {
 } from '../kit';
 
 /** Waltz brushes on the anticipated second beat; a soft kick on one. */
-const wienerDrums: DrumFn = () => [
-  hit('kick', 0, 0.22),
-  hit('hat', 3.5, 0.14),
-  hit('hat', 8, 0.1),
-];
+const wienerDrums: DrumFn = () => [hit('kick', 0, 0.22), hit('hat', 3.5, 0.14), hit('hat', 8, 0.1)];
 
 /** The march, plus the clap-along on every beat from layer 3 (on the off-beats at layer 4). */
 const klatschDrums: DrumFn = (d) => {

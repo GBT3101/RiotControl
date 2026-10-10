@@ -676,7 +676,7 @@ export function treeSprite(kind: 'elm' | 'linden', seed: number): PropSprite {
   const j = (n: number): number => (d.next() - 0.5) * n;
   if (kind === 'elm') {
     const bark = [C('gray1'), C('gray2'), C('gray3'), C('stone1')];
-    for (let y = base - 20; y <= base; y++) {
+    for (let y = base - 15; y <= base; y++) {
       const wd = y > base - 2 ? 4 : 3;
       for (let k = 0; k < wd; k++)
         setPixel(b, cx - 1 + k - (y > base - 2 ? 1 : 0), y, k === 0 ? bark[2]! : k === wd - 1 ? bark[0]! : bark[1]!);
@@ -684,27 +684,27 @@ export function treeSprite(kind: 'elm' | 'linden', seed: number): PropSprite {
     }
     // Limbs fanning out (the elm's vase).
     for (const [dx, dy] of [
-      [-9, -14],
-      [-4, -18],
-      [4, -17],
-      [10, -13],
+      [-10, -14],
+      [-4, -17],
+      [4, -16],
+      [11, -13],
     ] as const) {
-      line(b, cx, base - 19, cx + dx + Math.round(j(2)), base - 19 + dy, bark[1]!);
-      line(b, cx + 1, base - 19, cx + dx + 1 + Math.round(j(2)), base - 19 + dy, bark[0]!);
+      line(b, cx, base - 14, cx + dx + Math.round(j(2)), base - 14 + dy, bark[1]!);
+      line(b, cx + 1, base - 14, cx + dx + 1 + Math.round(j(2)), base - 14 + dy, bark[0]!);
     }
     const ramp = ['ink', 'green0', 'green1', 'green2', 'green3', 'green4'].map((n) => C(n));
-    const top = base - 52;
+    const top = base - 50;
     canopy(
       b,
       [
-        { x: cx - 10 + j(2), y: top + 10, rx: 9, ry: 6, tone: 0.4 },
-        { x: cx + j(2), y: top + 7, rx: 9, ry: 6, tone: 0.6 },
-        { x: cx + 11 + j(2), y: top + 10, rx: 8, ry: 6, tone: -0.2 },
-        { x: cx - 15 + j(2), y: top + 17, rx: 6, ry: 5, tone: 0.1 },
-        { x: cx + 15 + j(2), y: top + 17, rx: 6, ry: 5, tone: -0.5 },
-        { x: cx - 5 + j(2), y: top + 16, rx: 8, ry: 5, tone: -0.1 },
-        { x: cx + 6 + j(2), y: top + 17, rx: 7, ry: 5, tone: -0.4 },
-        { x: cx + j(3), y: top + 23, rx: 7, ry: 4, tone: -0.5 },
+        { x: cx - 10 + j(2), y: top + 10, rx: 10, ry: 7, tone: 0.4 },
+        { x: cx + j(2), y: top + 7, rx: 10, ry: 7, tone: 0.6 },
+        { x: cx + 11 + j(2), y: top + 10, rx: 9, ry: 7, tone: -0.2 },
+        { x: cx - 15 + j(2), y: top + 18, rx: 7, ry: 6, tone: 0.1 },
+        { x: cx + 15 + j(2), y: top + 18, rx: 7, ry: 6, tone: -0.5 },
+        { x: cx - 5 + j(2), y: top + 18, rx: 9, ry: 6, tone: -0.1 },
+        { x: cx + 6 + j(2), y: top + 19, rx: 8, ry: 6, tone: -0.4 },
+        { x: cx + j(3), y: top + 25, rx: 8, ry: 4, tone: -0.5 },
       ],
       ramp,
       seed,
@@ -717,7 +717,7 @@ export function treeSprite(kind: 'elm' | 'linden', seed: number): PropSprite {
       for (let k = 0; k < wd; k++)
         setPixel(b, cx - 1 + k - (y > base - 2 ? 1 : 0), y, k === 0 ? bark[2]! : k === wd - 1 ? bark[0]! : bark[1]!);
     }
-    const ramp = ['green0', 'green1', 'green2', 'green3', 'green4', 'lime'].map((n) => C(n));
+    const ramp = ['ink', 'green0', 'green1', 'green2', 'green3', 'green4'].map((n) => C(n));
     const top = base - 50;
     canopy(
       b,

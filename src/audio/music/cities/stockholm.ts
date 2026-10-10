@@ -34,10 +34,18 @@ function drone(steps: number, vel: number): NoteEvent[] {
 }
 
 /** Polska: a foot stamp on one and three, the drone. */
-const polskaDrums: DrumFn = (d) => [hit('kick', 0, 0.3), hit('kick', 8, 0.22), hit('hat', 4, 0.06), ...drone(d.steps, 0.3)];
+const polskaDrums: DrumFn = (d) => [
+  hit('kick', 0, 0.3),
+  hit('kick', 8, 0.22),
+  hit('hat', 4, 0.06),
+  ...drone(d.steps, 0.3),
+];
 
 /** Gånglåt: the march with the drone under it (thinner once the band is loud). */
-const ganglatDrums: DrumFn = (d) => [...marchDrums(d), ...drone(d.steps, d.layer >= 3 ? 0.2 : 0.28)];
+const ganglatDrums: DrumFn = (d) => [
+  ...marchDrums(d),
+  ...drone(d.steps, d.layer >= 3 ? 0.2 : 0.28),
+];
 
 // prettier-ignore
 export const stockholm: CityMusic = {

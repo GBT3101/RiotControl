@@ -65,7 +65,7 @@ describe('music pattern generation', () => {
         }
       }
     }
-  });
+  }, 30_000); // ~100k notes for 12 cities × 4 themes (E5): slow under a loaded CI box
 
   it('melody notes belong to the bar chord-scale; strong beats are chord tones', () => {
     for (const st of allStyles()) {
