@@ -48,6 +48,99 @@ const REQUIRED_STREETS: Partial<Record<CityId, string[]>> = {
     "Rue de l'Université",
     'Pont Alexandre III',
   ],
+  budapest: [
+    'Széchenyi Lánchíd',
+    'Margit híd',
+    'Alkotmány utca',
+    'Nádor utca',
+    'Bajcsy-Zsilinszky út',
+    'Andrássy út',
+    'Szent István körút',
+    'Id. Antall József rakpart',
+  ],
+  vienna: [
+    'Dr.-Karl-Renner-Ring',
+    'Universitätsring',
+    'Burgring',
+    'Opernring',
+    'Mariahilfer Straße',
+    'Herrengasse',
+    'Graben',
+    'Kärntner Straße',
+  ],
+  prague: [
+    'Karlův most',
+    'Mánesův most',
+    'Nerudova',
+    'Zámecké schody',
+    'Karlova',
+    'Národní třída',
+    'Rašínovo nábřeží',
+  ],
+  berlin: [
+    'Unter den Linden',
+    'Straße des 17. Juni',
+    'Ebertstraße',
+    'Scheidemannstraße',
+    'Paul-Löbe-Allee',
+    'Wilhelmstraße',
+    'Friedrichstraße',
+    'Marschallbrücke',
+    'Moltkebrücke',
+  ],
+  stockholm: [
+    'Riksbron',
+    'Norrbro',
+    'Stallbron',
+    'Vasabron',
+    'Centralbron',
+    'Drottninggatan',
+    'Västerlånggatan',
+    'Skeppsbron',
+    'Strömgatan',
+    'Fredsgatan',
+  ],
+  amsterdam: [
+    'Damrak',
+    'Rokin',
+    'Kalverstraat',
+    'Nieuwendijk',
+    'Raadhuisstraat',
+    'Spuistraat',
+    'Nieuwezijds Voorburgwal',
+    'Singel',
+    'Herengracht',
+    'Keizersgracht',
+    'Prinsengracht',
+  ],
+  rome: [
+    'Via del Corso',
+    'Via del Tritone',
+    'Via Nazionale',
+    'Corso Vittorio Emanuele II',
+    'Via della Scrofa',
+    'Via dei Fori Imperiali',
+    'Ponte Umberto I',
+    'Ponte Cavour',
+  ],
+  barcelona: [
+    'Gran Via de les Corts Catalanes',
+    'Passeig de Gràcia',
+    'Via Laietana',
+    'Carrer de la Marina',
+    'Passeig de Lluís Companys',
+    'La Rambla',
+    'Passeig de Sant Joan',
+  ],
+  milan: [
+    'Via Manzoni',
+    'Corso Vittorio Emanuele II',
+    'Via Torino',
+    'Via Dante',
+    'Corso Magenta',
+    'Via Montenapoleone',
+    'Via Silvio Pellico',
+  ],
 };
 
 const G = (name: (typeof GROUNDS)[number]): number => GROUNDS.indexOf(name);
@@ -158,7 +251,9 @@ describe.each(PLAYABLE_CITIES)('%s blueprint', (city) => {
   });
 
   it('places only its own city landmarks', () => {
-    expect(map.landmarks.length).toBeGreaterThanOrEqual(4);
+    // ≥ 4, or every contract landmark when the city has fewer (Berlin, Stockholm, Vienna: 3).
+    const own = Object.values(LANDMARKS).filter((l) => l.city === city).length;
+    expect(map.landmarks.length).toBeGreaterThanOrEqual(Math.min(4, own));
     for (const l of map.landmarks) expect(LANDMARKS[l.id].city).toBe(city);
   });
 

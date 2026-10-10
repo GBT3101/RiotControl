@@ -110,6 +110,48 @@ const SPECS: Partial<
       { id: 'concordeFountain', i: 12, j: 6 },
     ],
   },
+  budapest: {
+    city: 'budapest',
+    w: 16,
+    d: 6,
+    landmarks: [
+      { id: 'kossuth', i: 2, j: 7 },
+      { id: 'fishermansBastion', i: 17, j: 4 },
+    ],
+  },
+  vienna: {
+    city: 'vienna',
+    w: 12,
+    d: 7,
+    landmarks: [{ id: 'stephansdom', i: 13, j: 4 }],
+  },
+  prague: {
+    city: 'prague',
+    w: 14,
+    d: 6,
+    landmarks: [
+      { id: 'bridgeTower', i: 1, j: 8 },
+      { id: 'dancingHouse', i: 15, j: 5 },
+    ],
+  },
+  berlin: {
+    city: 'berlin',
+    w: 10,
+    d: 8,
+    landmarks: [{ id: 'victoryColumn', i: 11, j: 6 }],
+  },
+  stockholm: {
+    city: 'stockholm',
+    w: 10,
+    d: 6,
+    landmarks: [{ id: 'riddarholmen', i: 11, j: 3 }],
+  },
+  amsterdam: {
+    city: 'amsterdam',
+    w: 9,
+    d: 6,
+    landmarks: [{ id: 'nationalMonument', i: 10, j: 4 }],
+  },
 };
 
 describe('M3b previews', () => {
