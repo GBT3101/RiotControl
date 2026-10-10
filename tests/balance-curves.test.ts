@@ -10,7 +10,7 @@ import { UNITS, UNIT_IDS } from '../src/data/units';
 
 describe('owner-fixed numbers (PLAN §1.2, §1.3, §1.6) are untouched by tuning', () => {
   it('costs and Legitimacy-on-death', () => {
-    // Owner-fixed (PLAN §1.3). The playtest round's ×0.6 re-price was rejected by the owner:
+    // Owner-fixed (PLAN §1.3; owner later set Armed Cops 20, Soldiers 50). The ×0.6 re-price was rejected:
     // original costs stay and the game is meant to be hard (docs/M12.md).
     const fixed: Record<string, [number, number]> = {
       riot: [5, 5],
@@ -18,8 +18,8 @@ describe('owner-fixed numbers (PLAN §1.2, §1.3, §1.6) are untouched by tuning
       blockade: [7, 10],
       gas: [10, 15],
       mounted: [10, 15],
-      armed: [50, 20],
-      soldier: [100, 40],
+      armed: [20, 20],
+      soldier: [50, 40],
       humvee: [300, 60],
       brigade: [500, 80],
       tank: [600, 100],

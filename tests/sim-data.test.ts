@@ -42,7 +42,7 @@ describe('data tables', () => {
     expect(t('gas').ability).toMatchObject({ charge: 14, radius: 2.5, duration: 6 });
     expect(t('mounted')).toMatchObject({ cost: 10, hp: 120, commandable: true });
     expect(t('mounted').attack?.damage).toBe(20);
-    expect(t('armed')).toMatchObject({ cost: 50, legit: 20, hp: 95 });
+    expect(t('armed')).toMatchObject({ cost: 20, legit: 20, hp: 95 });
     expect(t('armed').attack).toMatchObject({
       damage: 60,
       cooldown: 1.2,
@@ -50,7 +50,7 @@ describe('data tables', () => {
       pierce: 4,
       lethal: true,
     });
-    expect(t('soldier')).toMatchObject({ cost: 100, legit: 40, hp: 140 });
+    expect(t('soldier')).toMatchObject({ cost: 50, legit: 40, hp: 140 });
     expect(t('soldier').attack).toMatchObject({
       damage: 25,
       cooldown: 1.4,
