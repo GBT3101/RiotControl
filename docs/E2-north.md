@@ -9,11 +9,15 @@ Capitol steps.
 ![Stockholm](progress/e2-north-stockholm.png)
 ![Amsterdam](progress/e2-north-amsterdam.png)
 
-| City      | Size  | Capitol (contract)         | Landmarks placed                                                 | Buildings / rooftop | Districts |
-| --------- | ----- | -------------------------- | ---------------------------------------------------------------- | ------------------- | --------- |
-| Berlin    | 76×76 | Reichstag 10×8 at (26, 25) | Brandenburger Tor, Siegessäule, Fernsehturm                      | 171 / 53            | 6         |
-| Stockholm | 72×80 | Riksdagshuset 10×6 at (38, 31) | Kungliga slottet, Stadshuset, Riddarholmskyrkan              | 103 / 54            | 5         |
-| Amsterdam | 80×80 | Koninklijk Paleis 9×6 at (46, 48) | Nationaal Monument, Nieuwe Kerk, Centraal Station, Westerkerk | 230 / 63         | 5         |
+In game at zoom 2 (Berlin, with the Reichstag art from E4 and Madrid's stand-in environment):
+
+![Berlin in game](progress/e2-north-berlin-game.png)
+
+| City      | Size  | Capitol (contract)                | Landmarks placed                                              | Buildings / rooftop | Districts |
+| --------- | ----- | --------------------------------- | ------------------------------------------------------------- | ------------------- | --------- |
+| Berlin    | 76×76 | Reichstag 10×8 at (26, 25)        | Brandenburger Tor, Siegessäule, Fernsehturm                   | 171 / 53            | 6         |
+| Stockholm | 72×80 | Riksdagshuset 10×6 at (38, 31)    | Kungliga slottet, Stadshuset, Riddarholmskyrkan               | 109 / 53            | 5         |
+| Amsterdam | 80×80 | Koninklijk Paleis 9×6 at (46, 48) | Nationaal Monument, Nieuwe Kerk, Centraal Station, Westerkerk | 230 / 63            | 5         |
 
 All three keep the M2 convention: the Capitol's front and steps face +j, toward the player
 (bottom-left of the screen in iso). Geography is drawn from memory, condensed about 2–3× around
@@ -25,6 +29,7 @@ the Capitol, with topology preserved and no mirroring.
 Reichstag's west portal ("Dem Deutschen Volke") faces +j onto the Platz der Republik.
 
 **Barriers.**
+
 - **The Spree.** It comes in from the east (top) along Schiffbauerdamm and Reichstagufer. Just
   past the Reichstag's north-east corner it turns north (the Spreebogen, a left turn here). It
   then flows west (down) past the Paul-Löbe-Haus, the Chancellery, the Hauptbahnhof and Schloss
@@ -33,6 +38,7 @@ Reichstag's west portal ("Dem Deutschen Volke") faces +j onto the Platz der Repu
   walkable but slow, with paths, the Neuer See and the Großer Stern.
 
 **Streets.**
+
 - **Behind the Reichstag (east, top):** Dorotheenstraße, Wilhelmstraße and Friedrichstraße.
   Unter den Linden (6 wide, lime trees) runs from Pariser Platz up to the top edge. Gendarmenmarkt
   (Konzerthaus) sits there, and the Fernsehturm stands on Alexanderplatz at the far east edge.
@@ -50,12 +56,14 @@ Reichstag's west portal ("Dem Deutschen Volke") faces +j onto the Platz der Repu
 Luisenstraße), Moltkebrücke (Willy-Brandt-Straße → Hauptbahnhof) and Lutherbrücke.
 
 **Chokepoints.**
+
 - **Marschallbrücke:** Wedding and Prenzlauer Berg cross here.
 - **Moltkebrücke:** Moabit crosses here.
 - **Brandenburger Tor:** the Gate is blocking, so crowds coming down Unter den Linden squeeze
   round its two ends on Pariser Platz. The flanks are kept solid with `noLanes`.
 
 **Final approaches into the Platz der Republik.**
+
 - Scheidemannstraße, from the Ebertstraße / Dorotheenstraße junction.
 - Paul-Löbe-Allee, from Reichstagufer or the Moltkebrücke.
 - Straight across the lawn from Willy-Brandt-Straße.
@@ -64,16 +72,17 @@ Crowds from Mitte arrive behind the Reichstag and must walk round it, as at the 
 
 **Kill zones.** Pariser Platz, the Platz der Republik forecourt and Potsdamer Platz.
 
-| Wave | District        | Edge / route                                                             |
-| ---- | --------------- | ------------------------------------------------------------------------ |
-| 1    | Kreuzberg       | right edge (south) → Wilhelmstraße / Ebertstraße → Scheidemannstraße     |
-| 1    | Moabit          | bottom-left across the Spree → Moltkebrücke → Willy-Brandt-Straße        |
-| 2    | Mitte           | Friedrichstadt (top right) → Pariser Platz → round the Gate              |
+| Wave | District        | Edge / route                                                               |
+| ---- | --------------- | -------------------------------------------------------------------------- |
+| 1    | Kreuzberg       | right edge (south) → Wilhelmstraße / Ebertstraße → Scheidemannstraße       |
+| 1    | Moabit          | bottom-left across the Spree → Moltkebrücke → Willy-Brandt-Straße          |
+| 2    | Mitte           | Friedrichstadt (top right) → Pariser Platz → round the Gate                |
 | 3    | Wedding         | left edge across the Spree → Luisenstraße → Marschallbrücke / Moltkebrücke |
-| 4    | Prenzlauer Berg | top-left → Torstraße → Weidendammer / Marschallbrücke → Reichstagufer    |
-| 6    | Friedrichshain  | top edge by Alexanderplatz → Dorotheenstraße, behind the Reichstag       |
+| 4    | Prenzlauer Berg | top-left → Torstraße → Weidendammer / Marschallbrücke → Reichstagufer      |
+| 6    | Friedrichshain  | top edge by Alexanderplatz → Dorotheenstraße, behind the Reichstag         |
 
 **Decor and props.**
+
 - Ampelmännchen traffic lights (`trafficlight`) at the Gate, Linden and Potsdamer Platz.
 - U-Bahn signs (`metro`) at Bundestag, Brandenburger Tor, Friedrichstraße, Potsdamer Platz and
   Hauptbahnhof.
@@ -89,6 +98,7 @@ across the Stallkanalen to Mynttorget, the square where Stockholm demonstrates, 
 Palace beyond. The Norrström lies behind it (top).
 
 **Islands and water.** The map is mostly islands; every crowd crosses water.
+
 - **Norrmalm (top):** Strömgatan, Fredsgatan, Drottninggatan (pedestrian), Hamngatan, Kungsgatan,
   Vasagatan, Regeringsgatan, Birger Jarlsgatan and Kungsträdgårdsgatan. Rosenbad, Arvfurstens
   palats, the Opera and Kulturhuset are here, along with Gustav Adolfs torg, Sergels torg,
@@ -105,6 +115,7 @@ Palace beyond. The Norrström lies behind it (top).
 - **Open water:** Riddarfjärden opens to the west and Strömmen / Saltsjön to the east.
 
 **Bridges.**
+
 - Riksbron and Norrbro cross from Norrmalm.
 - Stallbron leads to Mynttorget.
 - Vasabron and Centralbron link Norrmalm to Gamla stan and Riddarholmen. Centralbron runs on over
@@ -126,15 +137,16 @@ every district stays connected (checked by the redundancy validator).
 Drottninggatan → Riksbron → Riksgatan → Stallbron → Mynttorget → Västerlånggatan is one
 straight north–south axis, as in reality.
 
-| Wave | District    | Edge / route                                                                   |
-| ---- | ----------- | ------------------------------------------------------------------------------ |
-| 1    | Norrmalm    | top-left of centre → Drottninggatan → Riksbron                                 |
+| Wave | District    | Edge / route                                                                      |
+| ---- | ----------- | --------------------------------------------------------------------------------- |
+| 1    | Norrmalm    | top-left of centre → Drottninggatan → Riksbron                                    |
 | 1    | Södermalm   | bottom edge → Slussen (or Centralbron) → Järntorget → Västerlånggatan → Stallbron |
-| 2    | Kungsholmen | left edge → Stadshusbron / Kungsbron → Tegelbacken → Vasabron or Riksbron       |
-| 3    | Östermalm   | top-right → Hamngatan / Strömgatan → Gustav Adolfs torg → Norrbro              |
-| 5    | Vasastan    | top edge → Kungsgatan → Drottninggatan / Regeringsgatan                        |
+| 2    | Kungsholmen | left edge → Stadshusbron / Kungsbron → Tegelbacken → Vasabron or Riksbron         |
+| 3    | Östermalm   | top-right → Hamngatan / Strömgatan → Gustav Adolfs torg → Norrbro                 |
+| 5    | Vasastan    | top edge → Kungsgatan → Drottninggatan / Regeringsgatan                           |
 
 **Decor and props.**
+
 - Flags on Riksplan and at the Opera, Gustav II Adolf (equestrian), Karl XII in Kungsträdgården,
   the Sergels torg obelisk, the palace obelisk and Birger Jarl.
 - The Stortorget well, palace sentry boxes, T-bana signs, hot-dog kiosks, and ferries on
@@ -149,6 +161,7 @@ straight north–south axis, as in reality.
 +j onto the Dam, with the Nationaal Monument opposite and the Nieuwe Kerk beside it to the north.
 
 **Streets.**
+
 - **North (right):** Damrak (5 wide) runs to Stationsplein and Centraal Station on the IJ (right
   edge). Nieuwendijk runs parallel.
 - **South (left):** Rokin and Kalverstraat run to Muntplein (Munttoren).
@@ -156,6 +169,7 @@ straight north–south axis, as in reality.
   Spuistraat and the Spui.
 
 **The canal belt.**
+
 - **Shape.** Singel, Herengracht, Keizersgracht and Prinsengracht are four concentric ⌐-shapes.
   Their western reaches run across the top, bend 45° at the south-west, and their southern
   reaches run down the left side into the Amstel.
@@ -172,12 +186,14 @@ straight north–south axis, as in reality.
 with Marnixstraat and Overtoom beyond. Each canal crossing is its own bridge.
 
 **East and south-east.**
+
 - **De Wallen:** east of Damrak, with Damstraat / Oude Hoogstraat crossing the Oudezijds
   Voorburgwal and Achterburgwal canals, the Zeedijk, the Oude Kerk and the Beurs van Berlage.
 - **Centrum-Oost:** across the Amstel (Blauwbrug, Magere Brug), with Waterlooplein (Stopera),
   Weesperstraat, Plantage Middenlaan, Jodenbreestraat and Nieuwmarkt (De Waag).
 
 **Chokepoints.**
+
 - **Raadhuisstraat × Singel:** the Jordaan crowd.
 - **Muntplein:** Vijzelstraat over the Singel, for De Pijp.
 - **Damstraat × Oudezijds Voorburgwal:** Centrum-Oost and De Wallen.
@@ -203,7 +219,31 @@ Stationsplein, rather than parallel to the water.
 
 ## Playtests (10 min, `--bots balanced --seeds 1`)
 
-See the report section at the end of this file.
+`node tools/playtest.mjs --cities berlin,stockholm,amsterdam --bots balanced --seeds 1 --minutes 10`
+ran all three cities without errors. The originals with the same settings are listed for
+comparison.
+
+| City      | Waves | Level | Peak crowd | Min. Capitol integrity | Rams | Climbs | Officers lost     |
+| --------- | ----- | ----- | ---------- | ---------------------- | ---- | ------ | ----------------- |
+| Berlin    | 10    | 3     | 59         | 99 %                   | 7    | 7      | 16 riot, 1 sniper |
+| Stockholm | 8     | 5     | 74         | 82 %                   | 38   | 15     | 40 riot, 4 sniper |
+| Amsterdam | 10    | 3     | 69         | 100 %                  | 4    | 0      | 12 riot           |
+| Madrid    | 9     | 3     | 67         | 100 %                  | 5    | 0      | 13 riot           |
+| London    | 8     | 5     | 102        | 41 %                   | 42   | 10     | 37 riot, 2 sniper |
+| Paris     | 9     | 6     | 76         | 69 %                   | 38   | 12     | 52 riot, 4 sniper |
+
+**Crowd flow.**
+
+- **Stockholm** is the most contested of the three. The bot's blockades on the island bridges
+  get rammed (38 rams, 15 climbs), and the crowds that cross reach Riksplan, so the Capitol takes some
+  damage.
+- **Berlin** splits its pressure between the Platz der Republik and the bridge landings, a
+  little like Madrid.
+- **Amsterdam's** narrow canal bridges stretch the crowds into long single files that the
+  balanced bot holds easily: no climbs, and the Capitol was never touched in 10 minutes.
+
+**Balance.** Levels and peaks are in Madrid's range. E6's balance pass may want slightly more
+pressure for Amsterdam, for example earlier waves for De Wallen and Centrum-Oost.
 
 ## Notes and limitations
 
@@ -214,7 +254,7 @@ See the report section at the end of this file.
   of blocked embankments.
 - **Costed flow-field bug (reported, not changed).** In `src/maps/flow.ts`, `distanceField`
   stores distances as Float32 but compares the Float64 heap key with `d > dist[k]`. A tile whose
-  costed distance rounds *down* in float32 is therefore never expanded. Typical cases are
+  costed distance rounds _down_ in float32 is therefore never expanded. Typical cases are
   non-integer costs such as cobble 1.1, grass 1.6 and parkPath 1.2.
   - **Effect on validators and the viewer.** The costed field has holes (Madrid 540, London 242,
     Paris 149 tiles at seed 0), so viewer routes and the `choke.flow` validator stop short on
@@ -226,6 +266,16 @@ See the report section at the end of this file.
   - **Workaround here.** Main routes avoid cobble: Riksgatan, Västerlånggatan, Mynttorget,
     Järntorget, Kalverstraat, Paleisstraat and Nieuwendijk use `plaza` paving. Cobble stays on
     side streets and quays.
+- **The same bug can blow up.** With the Float64/Float32 mismatch, equal-cost relaxations
+  re-push tiles whose float32 distance rounds _up_. In big grid-like areas with fractional
+  distances this re-expands combinatorially. Stockholm first took **240 s** for one costed field,
+  because Södermalm inherited fractional distances through two cobble crossings on
+  Västerlånggatan; vitest timed out and a worker was SIGKILLed.
+  - **Fix in this file.** Västerlånggatan is painted after its cobble cross streets, so the
+    pedestrian axis stays plaza.
+  - **Result.** Costed fields now take ≤ 20 ms for every seed 0–12 in all three cities.
+  - **Recommendation.** Fix `flow.ts` (`Math.fround` on the relaxed distance) together with the
+    Paris chokepoint tweak, so future maps can't hit this.
 - **Landmark-count test.** `places only its own city landmarks` required ≥ 4 landmarks, but
   Berlin, Stockholm and Vienna have only 3 contract landmarks. The test now requires
   `min(4, contract landmarks of the city)`.

@@ -98,7 +98,7 @@ export const stockholm: Blueprint = {
     { ground: 'plaza', shape: rect(33, 46, 40, 49), layer: 'top', name: 'Mynttorget' },
     { ground: 'cobble', shape: rect(45, 46, 57, 47), layer: 'top', name: 'Lejonbacken' },
     { ground: 'cobble', shape: rect(56, 48, 58, 56), layer: 'top', name: 'Slottsbacken' },
-    { ground: 'cobble', shape: rect(40, 54, 44, 59), layer: 'top', name: 'Stortorget' },
+    { ground: 'cobble', shape: rect(40, 54, 44, 57), layer: 'top', name: 'Stortorget' },
     { ground: 'plaza', shape: rect(37, 63, 45, 65), layer: 'top', name: 'Järntorget' },
     { ground: 'cobble', shape: rect(15, 50, 19, 52), layer: 'top', name: 'Birger Jarls torg' },
   ],
@@ -356,8 +356,7 @@ export const stockholm: Blueprint = {
       name: 'Österlånggatan',
       path: [
         [54, 56],
-        [54, 64],
-        [45, 64],
+        [54, 66],
       ],
       width: 2,
       surface: 'cobble',
@@ -543,8 +542,7 @@ export const stockholm: Blueprint = {
       shape: rect(27, 46, 59, 66),
       storeys: [4, 5],
       residential: 0.75,
-      maxLen: 3,
-      maxDepth: 3,
+      maxLen: 4,
       roofs: { pitched: 9, mansard: 1 },
     },
     // Riddarholmen: palaces, no homes.
