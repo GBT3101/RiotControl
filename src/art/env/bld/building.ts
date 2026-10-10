@@ -203,12 +203,13 @@ function paint(spec: Spec): BuildingArt {
   const city = spec.style as CityId;
   const dice = new Dice(hash(spec.seed, w * 7 + d, spec.storeys));
   const kind = spec.kind;
-  const look = makeLook(city, kind, dice);
+  const look = makeLook(city, kind, dice, { w, d, storeys: spec.storeys, roof: spec.roof });
   const roof = spec.roof;
   const wallStoreys = roof === 'mansard' ? Math.max(1, spec.storeys - 1) : spec.storeys;
   const H = wallStoreys * STOREY + CORNICE;
   const rp = planRoof(spec, H);
-  const headroom = 18;
+  const ornament = envStyle(city).roofs.ornament;
+  const headroom = 18 + (ornament?.headroom ?? 0);
   const top = rp.rise + headroom;
   const W = (w + d) * 16 + 4;
   const ox = d * 16 + 2;
@@ -311,6 +312,22 @@ function paint(spec: Spec): BuildingArt {
   if (rp.type === 'pitched') paintPitched(cv, spec, look, H, rp, rd);
   else if (rp.type === 'mansard') paintMansard(cv, spec, look, H, rd, leftLay, rightLay);
   else paintFlat(cv, spec, look, H, rp.type === 'terrace', rd);
+  // City skyline parts (E3: RoofStyle.ornament — gables, domes, statues, spires).
+  ornament?.paint({
+    cv,
+    look,
+    kind,
+    roof,
+    w,
+    d,
+    H,
+    rise: rp.rise,
+    storeys: wallStoreys,
+    seed: spec.seed,
+    dice: new Dice(hash(spec.seed, 0x0a7e)),
+    bays: { left: leftLay, right: rightLay },
+    street: doorL.size ? 'left' : doorR.size ? 'right' : 'back',
+  });
 
   // Coloured outline around the silhouette (ink-dark of the touching material).
   const img = cv.img;

@@ -310,7 +310,28 @@ export interface CityMats {
   leaves: boolean;
   /** Bridge balustrades are cast-iron railings (else stone balusters). */
   ironRail: boolean;
+  /**
+   * Optional paving patterns (E3 South): replace the default fill of these grounds with the
+   * city's own pattern (sampietrini fans, Panot flower tiles, granite slabs …). Detail stamps,
+   * markings, kerbs and edges are still drawn on top. Cities without it are unchanged.
+   */
+  fills?: Readonly<Partial<Record<PatternGround, GroundFill>>>;
+  /**
+   * Optional tram tracks (E3 South): road centre lines (`dashI` / `dashJ`) get rails at these
+   * across-road offsets (tile units, 0..1) instead of the painted dash.
+   */
+  tram?: { at: readonly number[]; rail: RGBA; railHi: RGBA; groove: RGBA };
 }
+
+/** Grounds whose fill a city may replace (CityMats.fills). */
+export type PatternGround = 'sidewalk' | 'cobble' | 'plaza' | 'quay' | 'bridge' | 'parkPath';
+
+/**
+ * A city paving pattern: colour of tile-local pixel (x, y) of the 32×16 diamond, with (u, v) its
+ * tile coordinates (0..1 along i / j) and `seed` the tile's detail-variant seed. The pattern must
+ * be tile-periodic (neighbouring tiles are painted independently and must join seamlessly).
+ */
+export type GroundFill = (x: number, y: number, u: number, v: number, seed: number) => RGBA;
 
 // Per-city values: src/art/env/cities/<city>.ts (`ground`), read through envStyle(city).
 
@@ -915,6 +936,10 @@ function drawKerbLines(t: PixelBuffer, rels: Rels, m: CityMats): void {
 function drawMarking(t: PixelBuffer, mk: Marking, m: CityMats): void {
   if (mk === 'none') return;
   const axisI = mk.endsWith('I');
+  if (m.tram && mk.startsWith('dash')) {
+    drawTram(t, axisI, m.tram);
+    return;
+  }
   for (let y = 0; y < 16; y++) {
     for (let x = 0; x < 32; x++) {
       if (!inTileDiamond(x, y)) continue;
@@ -930,6 +955,22 @@ function drawMarking(t: PixelBuffer, mk: Marking, m: CityMats): void {
       // Worn paint: a few pixels show tarmac through, deterministic.
       const wear = hash(x, y, 91) % 13 === 0;
       setPixel(t, x, y, wear ? m.paintWorn : m.paint);
+    }
+  }
+}
+
+/** Tram tracks along the road (CityMats.tram): steel rail with a dark groove on its far side. */
+function drawTram(t: PixelBuffer, axisI: boolean, tr: NonNullable<CityMats['tram']>): void {
+  for (let y = 0; y < 16; y++) {
+    for (let x = 0; x < 32; x++) {
+      if (!inTileDiamond(x, y)) continue;
+      const [u0, v0] = uvOf(x, y);
+      const b = axisI ? v0 : u0;
+      for (const r of tr.at) {
+        const db = (b - r) * 32;
+        if (db >= -1 && db < 1) setPixel(t, x, y, db < 0 ? tr.railHi : tr.rail);
+        else if (db >= 1 && db < 2) setPixel(t, x, y, tr.groove);
+      }
     }
   }
 }
@@ -1126,6 +1167,14 @@ function paintGround(ctx: GroundCtx): PixelBuffer {
     default:
       fill = lotFill(m);
       break;
+  }
+  // A city's own paving pattern (CityMats.fills) replaces the default fill.
+  const own = m.fills?.[g as PatternGround];
+  if (own) {
+    fill = (x, y) => {
+      const [u, v] = uvOf(x, y);
+      return own(x, y, u, v, seed);
+    };
   }
   for (let y = 0; y < 16; y++)
     for (let x = 0; x < 32; x++) if (inTileDiamond(x, y)) setPixel(t, x, y, fill(x, y));

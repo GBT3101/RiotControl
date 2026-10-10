@@ -5,3 +5,5 @@
 export { madrid } from './madrid';
 export { london } from './london';
 export { paris } from './paris';
+export { budapest } from './budapest';
+export { rome } from './rome';

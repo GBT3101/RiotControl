@@ -6,8 +6,11 @@
  * body under a darker filter. Glockenspiel = sine partials at 1 : 2.76 : 5.4. E-piano = 1:1 FM
  * with a decaying index (the elevator Rhodes). Accordion = three saws detuned ±14 cents
  * (musette beating) through a nasal band-pass. Drums are filtered noise + pitched thumps.
+ * E5 added the folk/street patches of the Europe city themes: fiddle, nyckelharpa (sympathetic
+ * ring + cold echo), cimbalom and mandolin (tremolo on held notes), clarinet, street organ
+ * (celeste + tremulant) and hand claps.
  */
-import { burst, perc, pulseWave, Synth, tone } from '../sfx/kit';
+import { ahr, burst, perc, pulseWave, Synth, tone } from '../sfx/kit';
 
 export const INST_IDS = [
   'tuba',
@@ -26,6 +29,14 @@ export const INST_IDS = [
   'castanet',
   'hat',
   'timpani',
+  // E5 (Europe city themes): folk / street patches.
+  'fiddle',
+  'nyckel',
+  'cimbalom',
+  'clarinet',
+  'organ',
+  'mandolin',
+  'clap',
 ] as const;
 export type InstId = (typeof INST_IDS)[number];
 
@@ -35,6 +46,7 @@ export const PERCUSSION: ReadonlySet<InstId> = new Set<InstId>([
   'cymbal',
   'castanet',
   'hat',
+  'clap',
 ]);
 
 export interface NoteOpts {
@@ -254,6 +266,197 @@ const pluck: InstFn = (c, out, t, dur, m, vel) => {
   lp.connect(g).connect(out);
 };
 
+// ── E5: folk and street patches for the Europe city themes ──────────────────────────────
+
+/** Bowed string: saw through a wooden body (low cut, 2.8 kHz bite), bow attack, late vibrato. */
+function bowed(
+  c: BaseAudioContext,
+  out: AudioNode,
+  t: number,
+  dur: number,
+  m: number,
+  vel: number,
+  o: NoteOpts | undefined,
+  level: number,
+  buzz: number,
+): Synth {
+  const s = new Synth(c, out, t, rnd);
+  const f = mtof(m);
+  const rel = 0.1;
+  const nyq = c.sampleRate * 0.45;
+  const hp = s.filter('highpass', 190, 0.7);
+  const body = s.filter('peaking', 2800, 1.1);
+  body.gain.value = 7;
+  const lp = s.filter('lowpass', Math.min(nyq, Math.max(2200, f * 7)), 0.8);
+  const oscs = [s.osc('sawtooth', f, t, dur + rel)];
+  if (buzz > 0) {
+    const sq = s.osc('square', f * 1.004, t, dur + rel);
+    const sg = s.gain(buzz);
+    sq.connect(sg).connect(hp);
+    oscs.push(sq);
+  }
+  oscs[0]!.connect(hp);
+  for (const osc of oscs) pitchShape(osc.frequency, f, t, dur, 0.985, o?.bend);
+  vibrato(s, oscs.map((x) => x.frequency), f, t, dur, o?.vib ?? 0.16);
+  const g = s.gain();
+  const peak = level * vel;
+  const a = Math.min(0.06, dur * 0.3);
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(peak, t + a);
+  g.gain.setTargetAtTime(peak * 0.8, t + a, 0.12);
+  g.gain.setValueAtTime(peak * 0.8, t + dur);
+  g.gain.exponentialRampToValueAtTime(1e-4, t + dur + rel);
+  hp.connect(body).connect(lp).connect(g).connect(out);
+  // Rosin: a short scratch of noise at the bow change.
+  burst(s, { t, type: 'bandpass', f: Math.min(nyq, f * 4), q: 1.5, peak: 0.02 * vel, decay: 0.05 });
+  return s;
+}
+
+/** Violin (csárdás lead). */
+const fiddle: InstFn = (c, out, t, dur, m, vel, o) => {
+  bowed(c, out, t, dur, m, vel, o, 0.12, 0);
+};
+
+/**
+ * Nyckelharpa: a buzzier bowed tone, sympathetic strings ringing an octave and a twelfth up
+ * after the bow stops, and a cold slap-back echo (the hall's stone).
+ */
+const nyckel: InstFn = (c, out, t, dur, m, vel, o) => {
+  const s = bowed(c, out, t, dur, m, vel, { vib: 0.07, ...o }, 0.085, 0.35);
+  const f = mtof(m);
+  const ring = Math.max(1.2, dur + 0.9);
+  tone(s, { t: t + 0.02, f0: f * 2, peak: 0.016 * vel, attack: 0.08, decay: ring });
+  tone(s, { t: t + 0.02, f0: f * 3, peak: 0.008 * vel, attack: 0.1, decay: ring * 0.7 });
+  // Echo: a darker, quieter repeat of the note 230 ms later.
+  const e = s.osc('sawtooth', f, t + 0.23, dur);
+  const elp = s.filter('lowpass', Math.min(c.sampleRate * 0.45, f * 2.5), 0.7);
+  const eg = s.gain();
+  ahr(eg.gain, t + 0.23, 0.022 * vel, 0.06, Math.max(0, dur - 0.1), 0.5);
+  e.connect(elp).connect(eg).connect(out);
+};
+
+/**
+ * Cimbalom (hammered dulcimer): a course of detuned strings struck by felt hammers, bright
+ * then mellowing; held notes become the player's tremolo (alternating hammers, ~13 Hz).
+ */
+const cimbalom: InstFn = (c, out, t, dur, m, vel) => {
+  const s = new Synth(c, out, t, rnd);
+  const f = mtof(m);
+  const nyq = c.sampleRate * 0.45;
+  const strike = (ts: number, v: number, d: number): void => {
+    const lp = s.filter('lowpass', Math.min(nyq, f * 12), 0.9);
+    lp.frequency.setValueAtTime(Math.min(nyq, f * 12), ts);
+    lp.frequency.exponentialRampToValueAtTime(Math.min(nyq, f * 2.5), ts + 0.3);
+    const g = s.gain();
+    perc(g.gain, ts, 0.12 * v, 0.002, d);
+    for (const cents of [-6, 5]) {
+      const osc = s.osc('sawtooth', f, ts, d);
+      osc.detune.value = cents;
+      osc.connect(lp);
+    }
+    lp.connect(g).connect(out);
+  };
+  const trem = dur >= 0.6;
+  const n = trem ? Math.min(12, Math.floor(dur * 13)) : 1;
+  for (let k = 0; k < n; k++) {
+    const last = k === n - 1;
+    strike(t + k / 13, vel * (k === 0 ? 1 : 0.55 + 0.15 * ((k * 7) % 3) / 2), last ? Math.max(0.9, dur * 0.8) : 0.25);
+  }
+  // Metallic hammer tick and the ringing octave partial.
+  burst(s, { t, type: 'bandpass', f: Math.min(nyq, 4200), q: 2, peak: 0.05 * vel, decay: 0.012 });
+  tone(s, { t, f0: f * 2.005, peak: 0.02 * vel, attack: 0.002, decay: Math.max(0.8, dur) });
+};
+
+/** Clarinet: odd harmonics (square) through a woody low-pass, breath on the attack. */
+const clarinet: InstFn = (c, out, t, dur, m, vel, o) => {
+  const s = new Synth(c, out, t, rnd);
+  const f = mtof(m);
+  const rel = 0.06;
+  const nyq = c.sampleRate * 0.45;
+  const osc = s.osc('square', f, t, dur + rel);
+  pitchShape(osc.frequency, f, t, dur, 0.99, o?.bend);
+  vibrato(s, [osc.frequency], f, t, dur, o?.vib ?? 0.05);
+  const lp = s.filter('lowpass', Math.min(nyq, f * 3.2), 1.1);
+  lp.frequency.setValueAtTime(Math.min(nyq, f * 2), t);
+  lp.frequency.linearRampToValueAtTime(Math.min(nyq, f * 4.5 * (0.7 + 0.3 * vel)), t + 0.05);
+  lp.frequency.setTargetAtTime(Math.min(nyq, f * 3.2), t + 0.06, 0.12);
+  const g = s.gain();
+  const peak = 0.075 * vel;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(peak, t + 0.025);
+  g.gain.setValueAtTime(peak * 0.9, t + dur);
+  g.gain.exponentialRampToValueAtTime(1e-4, t + dur + rel);
+  osc.connect(lp).connect(g).connect(out);
+  burst(s, { t, type: 'bandpass', f: Math.min(nyq, f * 3), q: 1, peak: 0.012 * vel, decay: 0.06 });
+};
+
+/**
+ * Street organ (draaiorgel) pipe: a flue + reed pair detuned as a celeste, a wheezy tremulant
+ * on the bellows and a little wind noise.
+ */
+const organ: InstFn = (c, out, t, dur, m, vel) => {
+  const s = new Synth(c, out, t, rnd);
+  const f = mtof(m);
+  const rel = 0.05;
+  const nyq = c.sampleRate * 0.45;
+  const mix = s.filter('lowpass', Math.min(nyq, Math.max(1800, f * 6)), 0.9);
+  const flue = s.osc('triangle', f, t, dur + rel);
+  const reed = s.osc('sawtooth', f, t, dur + rel);
+  reed.detune.value = 11;
+  const rg = s.gain(0.45);
+  flue.connect(mix);
+  reed.connect(rg).connect(mix);
+  const oct = s.osc('square', f * 2, t, dur + rel);
+  oct.detune.value = -6;
+  const og = s.gain(0.12);
+  oct.connect(og).connect(mix);
+  const trem = s.gain();
+  trem.gain.value = 1;
+  const lfo = s.osc('sine', 6.3, t, dur + rel);
+  const ld = s.gain(0.22);
+  lfo.connect(ld).connect(trem.gain);
+  const g = s.gain();
+  const peak = 0.095 * vel;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(peak, t + 0.012);
+  g.gain.setValueAtTime(peak, t + dur);
+  g.gain.exponentialRampToValueAtTime(1e-4, t + dur + rel);
+  mix.connect(trem).connect(g).connect(out);
+  burst(s, { t, kind: 'pink', type: 'bandpass', f: Math.min(nyq, f * 2), q: 3, peak: 0.01 * vel, attack: 0.02, decay: dur + rel });
+};
+
+/** Mandolin: a doubled steel course; notes longer than a beat-fraction are tremolo-picked. */
+const mandolin: InstFn = (c, out, t, dur, m, vel) => {
+  const s = new Synth(c, out, t, rnd);
+  const f = mtof(m);
+  const nyq = c.sampleRate * 0.45;
+  const pick = (ts: number, v: number, d: number): void => {
+    const lp = s.filter('lowpass', Math.min(nyq, f * 9), 1.4);
+    lp.frequency.setValueAtTime(Math.min(nyq, f * 9), ts);
+    lp.frequency.exponentialRampToValueAtTime(Math.min(nyq, f * 1.8), ts + 0.15);
+    const g = s.gain();
+    perc(g.gain, ts, 0.12 * v, 0.002, d);
+    for (const cents of [-5, 6]) {
+      const osc = s.osc('sawtooth', f, ts, d);
+      osc.detune.value = cents;
+      osc.connect(lp);
+    }
+    lp.connect(g).connect(out);
+  };
+  const trem = dur >= 0.22;
+  const n = trem ? Math.min(16, Math.max(2, Math.floor(dur * 14))) : 1;
+  for (let k = 0; k < n; k++) pick(t + k / 14, vel * (k % 2 ? 0.7 : k === 0 ? 1 : 0.85), k === n - 1 ? 0.35 : 0.12);
+};
+
+/** Hand clap (palmas, the clap-along): three smeared slaps and a short room tail. */
+const clap: InstFn = (c, out, t, _dur, _m, vel) => {
+  const s = new Synth(c, out, t, rnd);
+  for (const [dt, v] of [[0, 0.8], [0.009, 0.6], [0.019, 1]] as const) {
+    burst(s, { t: t + dt, type: 'bandpass', f: 1250 * s.v(0.08), q: 1.3, peak: 1.1 * vel * v, decay: 0.014 });
+  }
+  burst(s, { t: t + 0.022, type: 'bandpass', f: 1500, q: 0.9, peak: 0.45 * vel, decay: 0.09 });
+};
+
 const snare: InstFn = (c, out, t, _dur, _m, vel) => {
   const s = new Synth(c, out, t, rnd);
   const d = 0.06 + 0.1 * vel;
@@ -314,4 +517,11 @@ export const INSTRUMENTS: Readonly<Record<InstId, InstFn>> = {
   castanet,
   hat,
   timpani,
+  fiddle,
+  nyckel,
+  cimbalom,
+  clarinet,
+  organ,
+  mandolin,
+  clap,
 };

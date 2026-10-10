@@ -1050,8 +1050,18 @@ const AXIS_KINDS = new Set<string>(['hedge', 'bench', 'busstop', 'cafe', 'tape',
 export function propSprite(kind: string, cityId: CityId, seed = 0, axis: 'i' | 'j' = 'i'): string {
   const city = envCity(cityId);
   // The city's own props (EnvCity.props.extra) win over the shared catalogue.
-  if (envStyle(city).props.extra?.[kind]) return `prop.${kind}.${city}`;
+  const extra = envStyle(city).props.extra;
+  if (extra?.[kind]) return `prop.${kind}.${city}`;
   const h = hash(seed >>> 0, 0x9a1);
+  // Seeded variants `<kind>.0 … <kind>.<n-1>` and axis variants `<kind>[.<v>].i|j` of a city prop.
+  if (extra && (extra[`${kind}.0`] || extra[`${kind}.0.i`] || extra[`${kind}.i`])) {
+    let k = kind;
+    let n = 0;
+    while (extra[`${kind}.${n}`] || extra[`${kind}.${n}.i`]) n++;
+    if (n > 0) k = `${kind}.${h % n}`;
+    if (extra[`${k}.${axis}`]) k = `${k}.${axis}`;
+    if (extra[k]) return `prop.${k}.${city}`;
+  }
   const ax = AXIS_KINDS.has(kind) ? `.${axis}` : '';
   if (kind.startsWith('tree.')) return `prop.${kind}.${h % TREE_VARIANTS}`;
   switch (kind) {

@@ -243,8 +243,9 @@ export function paintFace(look: Look, plan: FacePlan): Face {
   // Ground floor.
   paintGroundFloor(f, look, plan, groundTop, nb, bx, d, vars);
 
-  // 5. Top: cornice / eaves / parapet.
+  // 5. Top: cornice / eaves / parapet (+ the city's own finishing pass, FacadeStyle.finish).
   paintTop(f, look, plan.roof, len);
+  fs.finish?.({ f, look, plan, d: new Dice(hash(plan.seed, plan.side === 'left' ? 0xf1 : 0xf2)) });
 
   // 6. Drainpipes.
   const pipe = C(fs.pipe);

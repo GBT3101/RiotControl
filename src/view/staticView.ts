@@ -14,7 +14,7 @@ import { PROP_FALLBACK, propSprite } from '../art/env/props';
 import { depthKey, tileToWorld } from '../core/iso';
 import type { BuildingInfo, LandmarkInfo, PieceInfo } from '../game/assets/jobs';
 import type { CityArt } from '../game/assets';
-import type { MapData } from '../maps/contract';
+import { GROUNDS, type MapData } from '../maps/contract';
 import { pieceDepthKey } from './depth';
 import type { ViewLayers } from './layers';
 import { setTex } from './sprites';
@@ -226,12 +226,14 @@ export class StaticView {
   private buildProps(): void {
     const city = this.map.city;
     for (const d of this.map.decor) {
-      if (d.kind === 'boat' || d.kind === 'pigeon' || d.kind === 'litter') continue;
+      if (d.kind === 'pigeon' || d.kind === 'litter') continue;
       let kind = d.kind;
-      let name = propSprite(kind, city, d.seed ?? 0, d.axis ?? 'i');
+      // Boats lie along the water they are moored on (only cities with boat art draw them).
+      const axis = kind === 'boat' ? waterAxis(this.map, d.i, d.j) : (d.axis ?? 'i');
+      let name = propSprite(kind, city, d.seed ?? 0, axis);
       if (!art.has(name) && PROP_FALLBACK[kind]) {
         kind = PROP_FALLBACK[kind]!;
-        name = propSprite(kind, city, d.seed ?? 0, d.axis ?? 'i');
+        name = propSprite(kind, city, d.seed ?? 0, axis);
       }
       if (!art.has(name)) continue;
       const clip = art.anim(name);
@@ -398,6 +400,17 @@ export class StaticView {
       l.alpha = Math.min(1, d * 1.4);
     }
   }
+}
+
+/** Axis of the water a boat floats on: 'i' when the water runs along i at (i, j). */
+function waterAxis(map: MapData, i: number, j: number): 'i' | 'j' {
+  const water = (x: number, y: number): number =>
+    x >= 0 && y >= 0 && x < map.w && y < map.h && GROUNDS[map.ground[y * map.w + x]!] === 'water'
+      ? 1
+      : 0;
+  const alongI = water(i - 1, j) + water(i + 1, j) + water(i - 2, j) + water(i + 2, j);
+  const alongJ = water(i, j - 1) + water(i, j + 1) + water(i, j - 2) + water(i, j + 2);
+  return alongJ > alongI ? 'j' : 'i';
 }
 
 function roofOf(i0: number, j0: number, info: BuildingInfo, frontKey: number): RoofInfo {

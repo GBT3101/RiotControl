@@ -10,15 +10,25 @@ import type { BuildingKind, CityId, RoofType } from '../../maps/contract';
 import { cityTable, citiesOf, resolveCities, type CityTable } from '../../maps/cityTable';
 import type { RGBA } from '../palette';
 import type { Face, KeyResolver } from './bld/face';
-import type { FloorType } from './bld/facade';
+import type { FacePlan, FloorType } from './bld/facade';
 import type { Look } from './bld/looks';
 import * as ENV_MODULES from './cities';
 import type { CityMats } from './ground';
+import type { IsoCanvas } from './raster';
+import type { BayLayout } from './bld/facade';
 import type { PropKit, PropSprite } from './props';
 import type { Dice } from './util';
 
 /** The city-specific part of a building's palette roll (looks.ts adds awning, signs, cloth). */
 export type CityLook = Omit<Look, 'city' | 'awning' | 'sign' | 'signText' | 'cloth' | 'lit'>;
+
+/** Footprint, height and roof of the building being rolled (EnvCity.look's optional 3rd arg). */
+export interface BuildingSite {
+  w: number;
+  d: number;
+  storeys: number;
+  roof: RoofType;
+}
 
 /** One upper-storey bay to paint (facade.ts → FacadeStyle.upperBay). */
 export interface BayCtx {
@@ -73,6 +83,20 @@ export interface FacadeStyle {
   dentilParapet: boolean;
   /** Chance of a spray tag at street level. */
   tagChance: number;
+  /**
+   * Optional finishing pass (E3 South), run after the cornice / eaves and before drainpipes and
+   * weathering: city cornices (Roman cornicione, Modernista crests), corner tribunes, peeling
+   * plaster … with fresh dice. Cities without it are unchanged.
+   */
+  finish?(c: FacadeFinishCtx): void;
+}
+
+/** What FacadeStyle.finish sees: the painted face, its look and plan (bld/facade.ts). */
+export interface FacadeFinishCtx {
+  f: Face;
+  look: Look;
+  plan: FacePlan;
+  d: Dice;
 }
 
 /** Slope texture: a = px along the eave, b = px of rise above the eave, light −1 | 0 | 1. */
@@ -92,6 +116,41 @@ export interface RoofStyle {
   clutter: boolean;
   /** Optional custom slope texture (copper, glazed tiles …); `look.slope` still picks ridges. */
   slopeTex?: (look: Look, rise: number) => SlopeTex;
+  /**
+   * Optional skyline parts painted after the roof (E3): gables, domes, attic statues, spires,
+   * corner turrets … (helpers in bld/ornaments.ts). Cities without it are unchanged.
+   */
+  ornament?: RoofOrnament;
+}
+
+/** Extra roof / skyline parts (RoofStyle.ornament), drawn into the building's iso canvas. */
+export interface RoofOrnament {
+  /** Extra sprite headroom (px) above the usual 18 px for parts that rise above the roof. */
+  headroom: number;
+  paint(o: OrnamentCtx): void;
+}
+
+/** What an ornament painter knows about the building (bld/building.ts). */
+export interface OrnamentCtx {
+  cv: IsoCanvas;
+  look: Look;
+  kind: BuildingKind;
+  roof: RoofType;
+  /** Footprint (tiles): u runs along w (+u face = right, shaded), v along d (+v face = left, lit). */
+  w: number;
+  d: number;
+  /** Wall-top height (px) and the roof's rise above it (pitched / mansard). */
+  H: number;
+  rise: number;
+  /** Storeys with facade. */
+  storeys: number;
+  seed: number;
+  /** Fresh dice for the ornaments (the roof's own rolls are unaffected). */
+  dice: Dice;
+  /** Bay layouts of the left (+v, length w·16) and right (+u, length d·16) faces. */
+  bays: { left: BayLayout; right: BayLayout };
+  /** Visible face with the street door(s) (left wins), or 'back' if none is on a visible face. */
+  street?: 'left' | 'right' | 'back';
 }
 
 /** Street furniture (props.ts). Swatch names; grids are props.grid.ts-style strings. */
@@ -153,7 +212,7 @@ export interface EnvCity {
   ground: CityMats;
   /** Building palette: awning colour pairs [stripe, alt] and the per-building roll. */
   awnings: ReadonlyArray<readonly [string, string]>;
-  look(kind: BuildingKind, d: Dice): CityLook;
+  look(kind: BuildingKind, d: Dice, site?: BuildingSite): CityLook;
   facade: FacadeStyle;
   roofs: RoofStyle;
   props: PropStyle;

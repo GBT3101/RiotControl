@@ -6,7 +6,7 @@
 import type { BuildingKind, CityId } from '../../../maps/contract';
 import type { RGBA } from '../../palette';
 import { C } from '../color';
-import { envStyle } from '../style';
+import { envStyle, type BuildingSite } from '../style';
 import type { Dice } from '../util';
 
 export type WallMat = 'stucco' | 'brick' | 'ashlar' | 'smooth';
@@ -32,6 +32,8 @@ export interface Look {
   /** Flat-roof surface colour. */
   flat: RGBA;
   quoins: boolean;
+  /** City-defined building type tag for the facade / roof hooks (e.g. Berlin 'platte'). */
+  variant?: string;
   /** Probability a window is lit at night. */
   lit: number;
   cloth: RGBA[];
@@ -63,7 +65,7 @@ const SHOP_SIGNS: ReadonlyArray<readonly [string, string]> = [
 ];
 
 /** Roll a building's palette: shared shop colours, then the city's own roll (EnvCity.look). */
-export function makeLook(city: CityId, kind: BuildingKind, d: Dice): Look {
+export function makeLook(city: CityId, kind: BuildingKind, d: Dice, site?: BuildingSite): Look {
   const style = envStyle(city);
   const aw = pick(d, style.awnings);
   const sg = pick(d, SHOP_SIGNS);
@@ -76,5 +78,5 @@ export function makeLook(city: CityId, kind: BuildingKind, d: Dice): Look {
     cloth,
     lit: 0.4,
   };
-  return { ...base, ...style.look(kind, d) };
+  return { ...base, ...style.look(kind, d, site) };
 }
