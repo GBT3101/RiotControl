@@ -6,6 +6,7 @@ import type { KeyMap } from '../lib/grid';
 import { LEG_PARTS } from './body.grid';
 import { mergeBooks, parseParts, type UnitDef } from './kit';
 import { cycle } from './poses';
+import { rammedAnim } from './rammed';
 import { RIOT_PARTS } from './riot.grid';
 
 export const RIOT_KEYS: KeyMap = {
@@ -58,6 +59,10 @@ const WALK_ARM_NE = [1, 1, 0, -1, -1, -1, 0, 1];
 const RUN_BOB = [0, 1, -1, 0, 1, -1];
 const RUN_ARM = ['fwd', 'rest', 'back', 'back', 'rest', 'fwd'];
 const RUN_ARM_NE = [1, 0, -1, -1, 0, 1];
+
+/** Rammed over: sitting in the street with the shield dropped beside him, head lolling. */
+const RAMMED_SIT = (hx: number, hy: number): string =>
+  `_shadow shield.ground+0,1 ko.body ko.head+${hx},${hy}`;
 
 const FALL = [
   '_shadow.long fall shield.ground',
@@ -241,6 +246,37 @@ export const RIOT: UnitDef = {
       se: ['_shadow.long lie.flat shield.ground'],
       ne: ['_shadow.long lie.flat shield.ground'],
     },
+    rammedAnim(
+      [
+        '_shadow legs.brace >-2,0 torso head.hurt arm.up > shield.tilt+4,-3',
+        '_shadow.long fall shield.ground+1,0',
+        '_shadow.long lie+0,-1 shield.ground',
+        '_shadow.long lie shield.ground',
+        '_shadow.long lie.flat shield.ground',
+        '_shadow.long lie.flat shield.ground',
+        RAMMED_SIT(-1, 0),
+        RAMMED_SIT(0, 1),
+        RAMMED_SIT(1, 0),
+        '_shadow legs.crouch shield.ground >-1,3 torso head.hurt arm.back',
+        se('legs.brace', '0,1', 'head', 'arm.rest', 'shield+0,1'),
+        se('legs.stand', '0,0', 'head', 'arm.rest', 'shield'),
+      ],
+      [
+        '_shadow legs.brace shield.ne+-3,-3 >-2,0 torso.ne head.ne arm.ne.up',
+        '_shadow.long fall.ne shield.ground+1,0',
+        '_shadow.long lie+0,-1 shield.ground',
+        '_shadow.long lie shield.ground',
+        '_shadow.long lie.flat shield.ground',
+        '_shadow.long lie.flat shield.ground',
+        RAMMED_SIT(-1, 0),
+        RAMMED_SIT(0, 1),
+        RAMMED_SIT(1, 0),
+        '_shadow legs.crouch shield.ground >-1,3 torso.ne head.ne arm.ne.rest',
+        ne('legs.brace', '0,1', 'head.ne', 'arm.ne.rest', 'shield.ne+0,1'),
+        ne('legs.stand', '0,0', 'head.ne', 'arm.ne.rest', 'shield.ne'),
+      ],
+      'Rammed over by the mob (1.2 s): shoved, shield flies, flat on his back, sits up dazed, grabs the shield, back up.',
+    ),
     {
       anim: 'ko',
       fps: 6,
