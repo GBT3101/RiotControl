@@ -614,6 +614,5 @@ export const vienna: Blueprint = {
     { text: 'Volksgarten', at: [40, 34] },
     { text: 'Heldenplatz', at: [30, 34] },
     { text: 'Innere Stadt', at: [50, 58] },
-    { text: 'Donaukanal', at: [74, 50] },
   ],
 };

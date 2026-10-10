@@ -88,11 +88,11 @@ export function buildOrszaghaz(state: DamageState): Build {
   );
   const scorch = scorchZones(
     state === 3
-      ? [[4.6, 2.2, 0.9]]
+      ? [[4.6, 3.0, 1.0]]
       : state >= 4
         ? [
-            [4.4, 2.2, 1.4],
-            [11.6, 2.6, 1.2],
+            [4.5, 2.9, 1.4],
+            [11.4, 3.0, 1.2],
             [13.4, 2.2, 0.8],
             [2.2, 2.6, 0.7],
           ]
@@ -104,12 +104,12 @@ export function buildOrszaghaz(state: DamageState): Build {
       ? (u: number, v: number): boolean =>
           scorch(u, v) === 2 && hash(Math.floor(u * 3), Math.floor(v * 3)) < 0.75
       : undefined;
-  if (state >= 3) ov.push({ sprite: 'lm.fx.smoke', u: 4.6, v: 2.2, z: 84 });
+  if (state >= 3) ov.push({ sprite: 'lm.fx.smoke', u: 4.6, v: 2.9, z: 74 });
   if (state >= 4) {
-    ov.push({ sprite: 'lm.fx.fire.l', u: 4.4, v: 2.4, z: 70 });
-    ov.push({ sprite: 'lm.fx.fire.m', u: 11.6, v: 2.6, z: 72 });
+    ov.push({ sprite: 'lm.fx.fire.l', u: 4.5, v: 3.0, z: 66 });
+    ov.push({ sprite: 'lm.fx.fire.m', u: 11.4, v: 3.0, z: 66 });
     ov.push({ sprite: 'lm.fx.fire.m', u: 13.4, v: 2.4, z: 60 });
-    ov.push({ sprite: 'lm.fx.smoke', u: 11.6, v: 2.4, z: 86 });
+    ov.push({ sprite: 'lm.fx.smoke', u: 11.4, v: 2.9, z: 76 });
   }
 
   // Burning windows on the front range (upper row): soot plumes + fire overlays.
@@ -664,8 +664,8 @@ export function buildOrszaghaz(state: DamageState): Build {
   for (const u of [6.6, 9.4, 1.4, 14.6])
     s.sprite(lp.img, 2, 14, u, 5.95, 1, { emit: state >= 2 ? undefined : lp.night });
 
-  banner(s, state, 2.4, 5.6, 4.04, 30, 9, 'ELEG!');
-  banner(s, state, 10.4, 13.6, 4.04, 30, 9, 'NEM!');
+  banner(s, state, 3.7, 5.3, 4.04, 30, 9, 'ELEG!');
+  banner(s, state, 10.7, 12.3, 4.04, 30, 9, 'NEM!');
   rubble(s, state, 1.0, 15.0, 4.1, 4.7, 1, 14, seed);
   rubble(s, state, 6.5, 9.5, 5.0, 5.9, 1, 8, seed + 1);
   if (state >= 4) {

@@ -449,7 +449,7 @@ function kossuth(): Build {
 
 export const LANDMARKS_BUDAPEST: Readonly<Partial<Record<LandmarkId, SecondaryArt>>> = {
   stStephens: { top: 108, frames: 1, fps: 0, build: stStephens },
-  budaCastle: { top: 84, frames: 1, fps: 0, build: budaCastle },
+  budaCastle: { top: 92, frames: 1, fps: 0, build: budaCastle },
   fishermansBastion: { top: 60, frames: 1, fps: 0, build: fishermansBastion },
   kossuth: { top: 44, frames: 1, fps: 0, build: kossuth },
 };

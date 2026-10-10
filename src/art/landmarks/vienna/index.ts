@@ -9,7 +9,7 @@ import { LANDMARKS_VIENNA } from './landmarks';
 import { buildParlament, PARLAMENT_D, PARLAMENT_W } from './parlament';
 
 export const vienna: LandmarkCity = {
-  capitol: { w: PARLAMENT_W, d: PARLAMENT_D, top: 72, build: buildParlament },
+  capitol: { w: PARLAMENT_W, d: PARLAMENT_D, top: 50, build: buildParlament },
   stepStone: R.granite,
   landmarks: LANDMARKS_VIENNA,
   flags: { at: AUSTRIA },

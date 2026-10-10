@@ -626,6 +626,8 @@ export const prague: Blueprint = {
   labels: [
     { text: 'Hradčany', at: [2, 4] },
     { text: 'Petřín', at: [8, 32] },
-    { text: 'Vltava', at: [43, 50] },
+    { text: 'Václavské náměstí', at: [60, 44] },
+    { text: 'Staroměstské náměstí', at: [57, 12] },
+    { text: 'Malá Strana', at: [30, 24] },
   ],
 };

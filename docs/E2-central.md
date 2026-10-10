@@ -100,10 +100,11 @@ The outer districts come round the Parlament's flanks or down the Ring.
   Ring from the Volksgarten. The Ring legs (Universitätsring, Burgring, Opernring) feed them.
 - **Chokepoints:** Stadiongasse, Schmerlingplatz and Löwelstraße.
 - **Spawn waves:**
-  - W1: Josefstadt via Stadiongasse, and Neubau via Museumstraße or Reichsratsstraße to
-    Schmerlingplatz.
-  - W2: Alsergrund.
-  - W3: Wieden, via the Opernring and Burgring.
+  - W1: Neubau via Museumstraße or Reichsratsstraße to Schmerlingplatz, and Wieden via the
+    Opernring and Burgring. These are the two longer marches; Josefstadt sits right behind the
+    Parlament, only 30 tiles from the steps.
+  - W2: Josefstadt, via Landesgerichtsstraße and Stadiongasse.
+  - W3: Alsergrund, via Landesgerichtsstraße and Stadiongasse.
   - W4: Innere Stadt, via Löwelstraße.
   - W6: Mariahilf, via Mariahilfer Straße.
 
@@ -158,7 +159,51 @@ the panorama over the Malá Strana roofs, faces +j onto the **Na Valech** rampar
 
 ## Verification
 
-FLOW_PLACEHOLDER
+- **Validators:** `validateMap` reports no errors for seeds 0–12 in all three cities, and
+  `npx vitest run tests/maps-blueprints.test.ts -t "budapest|vienna|prague"` passes (47 tests).
+  Every spawn door and rally point reaches the steps, and every final approach is redundant.
+- **Headless playtests:** `npm run playtest -- --cities <city> --bots balanced --seeds 1 --minutes 10`
+  runs without errors for all three. At 10 minutes the Capitol's integrity is 100% in Budapest,
+  53% in Vienna and 98% in Prague. For comparison, London is at 41% and Paris at 69% with the
+  same probe on the current tree.
+
+  I also ran full-length games (balanced bot, seeds 1–2). Budapest won once (51 min, integrity
+  never below 100%) and lost once (13 min). Vienna lost twice (12 and 14 min) and Prague lost
+  twice (32 and 34 min). The original cities show the same spread on the current tree: Madrid
+  won once and lost once (47 min), London lost at 9 and 11 min, and Paris lost at 16 and 31 min.
+  Per-city balance is left to E6.
+
+- **Crowd flow:** I ran a 10-minute balanced-bot game and counted the unique protesters seen on
+  each chokepoint and approach. Protesters do use the bridges and chokepoints.
+
+  **Budapest**
+  - Alkotmány utca: 83 protesters, from Terézváros and Erzsébetváros, the two wave-1 districts.
+  - Nádor utca: 66, from Erzsébetváros and Belváros.
+  - Falk Miksa utca: 41, from Újlipótváros.
+  - Széchenyi Lánchíd: 36, from Víziváros.
+  - Margit híd: 72, from Rózsadomb and northern Víziváros.
+  - Andrássy út also carries part of Erzsébetváros.
+
+  **Vienna**
+  - Stadiongasse: 110, from Josefstadt and Alsergrund.
+  - Schmerlingplatz: 45, from Neubau, Wieden and Mariahilf.
+  - Löwelstraße: 37, all from the Innere Stadt.
+  - The Burgring and Opernring carry Wieden.
+  - The crossing over the Ring from the Volksgarten is never chosen. It stays as a redundant way
+    in.
+
+  **Prague**
+  - Mánesův most: 100, from Josefov and the north of the Old Town.
+  - Karlův most: 22–52, from the Staré Město.
+  - Most Legií: Nové Město and Vinohrady.
+  - Nerudova: 87.
+  - Ke Hradu: 81, from Hradčany and Malá Strana.
+  - Old Castle Steps: 63.
+  - Zámecké schody: 20–27.
+
+- **Visual checks:** I took flat-colour viewer screenshots (above) and flat-iso viewer screenshots,
+  and an in-game shot with the stand-in art. Kossuth tér reads as Kossuth tér, with the
+  Országház art that E4 already has in progress.
 
 ## Known simplifications
 
@@ -176,3 +221,24 @@ FLOW_PLACEHOLDER
 - **No city-only decor kinds are used.** Every kind is shared (flag, lamp, statue, statue.lion,
   statue.equestrian, fountain, metro, kiosk, boat, tree.*), so each city resolves its props through
   `PROP_FALLBACK` until E3 adds its own.
+
+## Requested shared changes
+
+1. **A bug in the tool-side flow field** (`src/maps/flow.ts`, shared). `distanceField` stores its
+   distances in a `Float32Array` but pushes the float64 sum onto the heap. When the float32 copy
+   rounds down, the pop-time check `d > dist[k]` discards the node, so it is never expanded.
+   - **Effect:** with `costs: true`, whole regions reached only through cobble, grass or parkPath
+     (costs 1.1, 1.6, 1.2) come back as `Infinity`. Madrid's La Latina rally is one example
+     already.
+   - **Who notices:** the validator's `choke.flow` check (which follows costed routes) and the
+     viewer's heat map. The game is not affected: `src/sim/nav.ts` already has the fix ("push the
+     float32-rounded value").
+   - **Fix (one line):** push `dist[to]` after storing it, `heap.push(dist[to]!, to)`, or keep a
+     `Float64Array`.
+   - **Workaround in these blueprints:** the streets on validated routes use cost-1 surfaces.
+     Prague's stairways and Nerudova are paved (`plaza`), not `cobble`, and the rally points sit
+     on asphalt or plaza.
+2. **Optional: deployable stair tiles.** A ground for stairs that is both walkable and
+   `PLACEABLE_ROAD` would let E3 draw Prague's Zámecké schody and Staré zámecké schody as real
+   steps. Today the only `steps` tiles belong to the Capitol, and they are excluded from
+   `AreaGround` and from road surfaces.

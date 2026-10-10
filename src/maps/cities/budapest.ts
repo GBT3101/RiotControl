@@ -649,7 +649,6 @@ export const budapest: Blueprint = {
   noLanes: [rect(23, 22, 58, 42)],
 
   labels: [
-    { text: 'Duna', at: [40, 14] },
     { text: 'Várhegy', at: [14, 1] },
     { text: 'Margitsziget', at: [71, 12] },
   ],

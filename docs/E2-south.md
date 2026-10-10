@@ -231,6 +231,48 @@ decor kind plus E3 art: a `tree.palm` for Barcelona's seafront and Plaça Reial,
 - Playtest (`npm run playtest -- --cities <id> --bots balanced --seeds 1 --minutes 10`): see
   _Playtest_ below.
 
+## Playtest
+
+`node tools/playtest.mjs --cities rome,barcelona,milan --bots balanced --seeds 1 --minutes 10`
+ran all three cities for 10 simulated minutes without errors. Madrid and Paris were run with the
+same settings for comparison.
+
+| City      | waves | peak crowd | spawned | min Capitol integrity | rams | climbs | ms/tick |
+| --------- | ----- | ---------- | ------- | --------------------- | ---- | ------ | ------- |
+| Rome      | 9     | 68         | 423     | 99 %                  | 13   | 9      | 1.37    |
+| Barcelona | 9     | 63         | 420     | 100 %                 | 10   | 2      | 1.40    |
+| Milan     | 8     | 66         | 371     | 85 %                  | 16   | 0      | 1.58    |
+| Madrid    | 9     | 67         | —       | 100 %                 | 5    | 0      | 0.97    |
+| Paris     | 9     | 76         | —       | 69 %                  | 38   | 12     | 1.12    |
+
+The machine was heavily loaded by parallel agents, so treat ms/tick as relative only.
+
+**Crowd flow:** each district's costed shortest route to the steps, from the exact field.
+- **Rome:** the crowds funnel into three alleys.
+  - Monti (69) and Esquilino (52) come up the Corso through Piazza Colonna. The bots' riot
+    lines meet them at Largo Chigi.
+  - Prati (47, over Ponte Umberto I) and Flaminio (35, down Via di Ripetta) take Via della Scrofa
+    into Via degli Uffici del Vicario.
+  - Testaccio (57) and Trastevere (68, over Ponte Sisto) come up through Campo de' Fiori. They
+    split between Via della Rotonda → Via della Maddalena and Corso del Rinascimento →
+    Uffici del Vicario (near-equal costs), so the Pantheon side stays busy.
+  - The rooftops along the Corso and the centro carry the snipers (9 climbs: protesters scale
+    the low palazzi).
+- **Barcelona:** the park railings make the three gates the only ways in.
+  - Poblenou (26) and Sant Martí (58) use Carrer de Wellington.
+  - L'Eixample (48) marches down Passeig de Sant Joan, under the Arc de Triomf and along Lluís
+    Companys.
+  - El Raval (57), La Barceloneta (44) and Gràcia (90, via Passeig de Gràcia → Plaça de
+    Catalunya → Ronda de Sant Pere → Passeig de Picasso) converge on the Portal de Picasso.
+  - The long park avenues give defenders depth; the Capitol was never seriously threatened in
+    10 minutes.
+- **Milan:** the shortest routes, with four entries into a small piazza.
+  - Porta Venezia (32) and Isola (38) come down Via Manzoni, and Brera (37) down Via Verdi.
+  - Città Studi (47) arrives along Corso Vittorio Emanuele II via San Babila and Via Marino.
+  - Navigli (59, via Via Torino) and Sant'Ambrogio (46, via Cordusio/Piazza dei Mercanti) cross
+    Piazza del Duomo and squeeze past the Galleria on Via Silvio Pellico.
+  - The short Manzoni/Verdi legs explain the deeper integrity dip (85 %, still above Paris's 69 %).
+
 ## Known issue found: `src/maps/flow.ts` costed fields drop cobbled tiles
 
 `distanceField` stores distances in a `Float32Array` but keys the heap with the unrounded float64
