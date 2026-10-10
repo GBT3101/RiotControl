@@ -13,36 +13,36 @@ import { PROTESTERS, PROTESTER_IDS, PT, protesterDef } from '../src/data/protest
 import { UNITS, UNIT_IDS } from '../src/data/units';
 
 describe('data tables', () => {
-  // Costs / Legitimacy are owner-fixed (PLAN §1.3); HP, timings and ranges are the M12-tuned
-  // values (docs/M12.md) — update both together.
-  it('has all 11 player units with PLAN §1.3 numbers (M12-tuned stats)', () => {
+  // Legitimacy is owner-fixed (PLAN §1.3); costs (×0.6), HP, timings and ranges are the M12 /
+  // playtest-round values (docs/M12.md) — update both together.
+  it('has all 11 player units with PLAN §1.3 numbers (playtest-round stats)', () => {
     expect(UNIT_IDS).toHaveLength(11);
     const t = (id: keyof typeof UNITS) => UNITS[id];
     expect([t('riot').cost, t('riot').legit, t('riot').hp, t('riot').meleeSlots]).toEqual([
-      5, 5, 100, 3,
+      3, 5, 60, 3,
     ]);
-    expect(t('riot').attack).toMatchObject({ damage: 10, cooldown: 1, lethal: false });
+    expect(t('riot').attack).toMatchObject({ damage: 12, cleave: 2, cooldown: 1, lethal: false });
     expect(t('riot').armour.melee).toBe(0.3);
-    expect(t('sniper')).toMatchObject({ cost: 7, legit: 10, placement: 'rooftop', hp: 70 });
+    expect(t('sniper')).toMatchObject({ cost: 4, legit: 10, placement: 'rooftop', hp: 40 });
     expect(t('sniper').attack).toMatchObject({
-      damage: 20,
+      damage: 22,
       cooldown: 1.8,
       range: 9,
       lethal: false,
     });
     expect(t('blockade')).toMatchObject({
-      cost: 7,
+      cost: 4,
       legit: 10,
-      hp: 1000,
+      hp: 600,
       maxTiles: 3,
       attack: null,
     });
-    expect(t('gas')).toMatchObject({ cost: 10, legit: 15, hp: 120 });
+    expect(t('gas')).toMatchObject({ cost: 6, legit: 15, hp: 70 });
     expect(t('gas').attack).toMatchObject({ range: 3, damage: 10, stun: 0.4 });
     expect(t('gas').ability).toMatchObject({ charge: 14, radius: 2.5, duration: 6 });
-    expect(t('mounted')).toMatchObject({ cost: 10, hp: 200, commandable: true });
+    expect(t('mounted')).toMatchObject({ cost: 6, hp: 120, commandable: true });
     expect(t('mounted').attack?.damage).toBe(20);
-    expect(t('armed')).toMatchObject({ cost: 50, legit: 20, hp: 160 });
+    expect(t('armed')).toMatchObject({ cost: 30, legit: 20, hp: 95 });
     expect(t('armed').attack).toMatchObject({
       damage: 60,
       cooldown: 1.2,
@@ -50,21 +50,21 @@ describe('data tables', () => {
       pierce: 4,
       lethal: true,
     });
-    expect(t('soldier')).toMatchObject({ cost: 100, legit: 40, hp: 240 });
+    expect(t('soldier')).toMatchObject({ cost: 60, legit: 40, hp: 140 });
     expect(t('soldier').attack).toMatchObject({
       damage: 25,
       cooldown: 1.4,
       range: 8,
       burst: { count: 3 },
     });
-    expect(t('humvee')).toMatchObject({ cost: 300, legit: 60, hp: 800, commandable: true });
+    expect(t('humvee')).toMatchObject({ cost: 180, legit: 60, hp: 480, commandable: true });
     expect(t('humvee').attack).toMatchObject({ damage: 15, range: 8 });
     expect(t('humvee').attack!.cooldown).toBeCloseTo(0.1);
     expect(t('humvee').armour.melee).toBe(0.5);
     expect(t('brigade')).toMatchObject({
-      cost: 500,
+      cost: 300,
       legit: 80,
-      hp: 150,
+      hp: 90,
       squad: 3,
       placement: 'rooftop',
     });
@@ -75,9 +75,9 @@ describe('data tables', () => {
       splash: { radius: 1 },
     });
     expect(t('tank')).toMatchObject({
-      cost: 600,
+      cost: 360,
       legit: 100,
-      hp: 3000,
+      hp: 1800,
       crushes: true,
       commandable: true,
     });
@@ -89,7 +89,7 @@ describe('data tables', () => {
     });
     expect(t('tank').attack!.aoe!.friendlyFire).toBeGreaterThan(0);
     expect(t('heli')).toMatchObject({
-      cost: 1000,
+      cost: 600,
       placement: 'air',
       invulnerable: true,
       commandable: true,
@@ -102,34 +102,34 @@ describe('data tables', () => {
     for (const l of LEVELS) expect(UNITS[l.unit].level).toBe(l.level);
   });
 
-  it('has protester types incl. Breta & paparazzi with §1.4 numbers (M12-tuned weapons)', () => {
+  it('has protester types incl. Breta & paparazzi with §1.4 numbers (playtest-round weapons)', () => {
     expect(PROTESTER_IDS).toHaveLength(9);
     PROTESTERS.forEach((p, i) => expect(p.index).toBe(i));
-    expect(protesterDef('student')).toMatchObject({ hp: 30, speed: 1, capitolDps: 1 });
+    expect(protesterDef('student')).toMatchObject({ hp: 35, speed: 1, capitolDps: 1 });
     expect(protesterDef('student').loadouts[0]!.melee).toBeNull();
     expect(protesterDef('woke')).toMatchObject({ hp: 40, speed: 1.05, climbs: true });
     expect(protesterDef('woke').loadouts[0]!.melee!.dps).toBe(4);
-    expect(protesterDef('mob').loadouts[0]!.melee!.dps).toBe(6);
+    expect(protesterDef('mob').loadouts[0]!.melee!.dps).toBe(5);
     const vv = protesterDef('veryViolent').loadouts[0]!;
-    expect(vv.melee!.dps).toBe(8);
-    expect(vv.ranged).toMatchObject({ weapon: 'molotov', range: 4, damage: 18, cooldown: 8 });
+    expect(vv.melee!.dps).toBe(6);
+    expect(vv.ranged).toMatchObject({ weapon: 'molotov', range: 4, damage: 11, cooldown: 12 });
     expect(vv.ranged!.fire!.duration).toBe(4);
     expect(protesterDef('crazy').loadouts[0]!.ranged).toMatchObject({
-      damage: 10,
-      cooldown: 1.8,
+      damage: 4,
+      cooldown: 3,
       range: 6,
     });
     const cult = protesterDef('cultist');
-    expect(cult.hp).toBe(90);
+    expect(cult.hp).toBe(65);
     expect(cult.loadouts.map((l) => l.id)).toEqual(['machete', 'rifle', 'bazooka']);
     expect(cult.loadouts[2]!.ranged).toMatchObject({
-      damage: 60,
+      damage: 20,
       range: 7,
-      cooldown: 10,
+      cooldown: 14,
       targetsRooftops: true,
     });
     expect(protesterDef('prophet').explode).toMatchObject({
-      damage: 150,
+      damage: 60,
       radius: 2,
       vsTankFraction: 0.5,
     });
@@ -163,10 +163,11 @@ describe('data tables', () => {
 
   it('economy constants and wave curve', () => {
     expect(BALANCE.startHate).toBe(100);
-    expect(BALANCE.hatePerUnitDeath).toBe(10);
+    expect(BALANCE.hatePerUnitDeath).toBe(1);
+    expect(BALANCE.protestersPerHate).toBe(3);
     expect(waveSize(1, 0, 0)).toBe(30);
     expect(waveSize(2, 0, 0)).toBeGreaterThan(30);
-    expect(waveSize(30, 10, 36 * 60)).toBeGreaterThanOrEqual(1500);
+    expect(waveSize(40, 10, 48 * 60)).toBeGreaterThanOrEqual(1500);
     for (let k = 1; k < 30; k++)
       expect(waveSize(k + 1, 3, 0)).toBeGreaterThanOrEqual(waveSize(k, 3, 0));
     expect(breatherSeconds(1)).toBeLessThanOrEqual(24);

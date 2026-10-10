@@ -71,7 +71,7 @@ export const BALANCE = {
 
   // ── Capitol ───────────────────────────────────────────────────────────────────────────
   /** Integrity HP (UI shows %). */
-  capitolHp: 25000,
+  capitolHp: 40000,
   /** Protesters within this flow distance (tiles) of the steps attack the Capitol. */
   capitolReach: 1.2,
   /** Integrity fractions below which the Capitol enters damage states 1..5 (graffiti → collapsing). */
@@ -85,7 +85,7 @@ export const BALANCE = {
    * ground units within `supportRadius`, weighted by `UnitDef.mobWeight`). Protester melee
    * hits it × (1 + `slope` × (odds − `UnitDef.mobHold`)), clamped to [`minMult`, `maxMult`]:
    * a lone officer in a mob melts, a tight squad shrugs blows off. Rooftop units count the
-   * climbers on their roof against themselves alone.
+   * climbers on their roof against themselves (ground cover nearby counts as a second defender).
    */
   mob: {
     radius: 1.2,
@@ -108,12 +108,12 @@ export const BALANCE = {
 
   // ── Climbing / rooftops (PLAN §1.4) ───────────────────────────────────────────────────
   /** Base reach (tiles from the footprint) at which a passing climber notices a rooftop unit. */
-  climbDetectRadius: 3,
+  climbDetectRadius: 4,
   /** A Riot Control / horse within this many tiles of the footprint: nobody climbs. */
   guardRadius: 2.5,
   climbSecondsPerStorey: 1.5,
   /** Climbers per roof when the rooftop unit has ground cover… */
-  maxClimbersPerRoof: 2,
+  maxClimbersPerRoof: 1,
   /** …and when it is isolated. */
   maxClimbersIsolated: 4,
   /** Seconds a protester may spend walking to its climb point. */
@@ -121,15 +121,17 @@ export const BALANCE = {
   climb: {
     /** No friendly ground unit within this many tiles of the footprint = isolated. */
     coverRadius: 6,
-    /** Covered rooftop units are noticed this much less often / from this much less far. */
-    coveredFactor: 0.2,
+    /** A covered rooftop unit is noticed this much less often (× chance)… */
+    coveredFactor: 0.1,
+    /** …and from this much less far (× reach). */
+    coveredReach: 0.5,
     /** Per protester decision (≈ 0.27 s): base chance to divert once in reach. */
-    chance: 0.06,
+    chance: 0.04,
     /** Rage: the rooftop unit's shooting at the crowd (seconds, decays at half speed). At
      *  `rageFull` seconds the chance is ×`rageChance` and the reach grows by `rageReach`. */
-    rageFull: 25,
-    rageChance: 5,
-    rageReach: 5,
+    rageFull: 15,
+    rageChance: 6,
+    rageReach: 6,
     /** Roof brawl: climbers grapple for at least this many DPS (plus the outnumbering bonus;
      *  a roof holds `UnitDef.mobHold` climbers per defender). */
     brawlDps: 8,
@@ -155,7 +157,7 @@ export const BALANCE = {
     /** +fraction per elapsed minute of the run… */
     perMinute: 0.01,
     /** …plus this × minutes² (the late-game surge: big hordes after ~25 min). */
-    perMinute2: 0.0007,
+    perMinute2: 0.0002,
     maxSize: 3500,
     groupSize: [6, 24] as [number, number],
     /** Seconds between emissions from one door group. */

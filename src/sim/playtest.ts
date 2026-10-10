@@ -38,6 +38,9 @@ export interface PlaytestResult extends PlaytestJob {
   hateEarned: number;
   hateSpent: number;
   breta: [number, number];
+  /** Outnumbering knockdowns and climbs started (playtest round). */
+  rammed: number;
+  climbs: number;
   trace: BalanceTrace;
 }
 
@@ -70,6 +73,8 @@ export function runPlaytest(job: PlaytestJob): PlaytestResult {
     hateEarned: s.hateEarned,
     hateSpent: s.hateSpent,
     breta: [s.bretaSpawned, s.bretaDowned],
+    rammed: s.officersRammed,
+    climbs: s.climbsStarted,
     trace: r.trace,
   };
 }

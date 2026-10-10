@@ -165,15 +165,18 @@ function clearWalk(w: World, x0: number, y0: number, x1: number, y1: number): bo
  * Climbers (Violent Woke, Violent Mob, Very Violent Mob) divert to rooftop units that are not
  * guarded by a melee unit next to the facade. The pull grows with the rooftop unit's isolation
  * (no friendly ground unit within `climb.coverRadius`: more climbers, noticed from further)
- * and with its `rage` — how long it has been shooting at the crowd (playtest round: lone,
- * far-off snipers get stormed within ~20–40 s of contact; covered ones much less).
+ * and with its `rage` — how long it has been shooting at the crowd (playtest round: a lone
+ * sniper is stormed within ~5–20 s of opening fire and thrown off within ~15–30 s; one with
+ * ground cover takes one climber at a time and usually holds).
  */
 export const climber: ProtesterBehaviour = {
   id: 'climber',
   think(w, s) {
     const c = w.crowd;
     const st = c.state[s]!;
-    if (st !== PS.MARCH && st !== PS.RALLY && st !== PS.GATHER) return;
+    // Marching, gathering or rioting on the steps (a sniper picking off the Capitol crowd
+    // gets stormed too); not while held in melee.
+    if (st !== PS.MARCH && st !== PS.RALLY && st !== PS.GATHER && st !== PS.CAPITOL) return;
     if (w.roofBuildings.length === 0) return;
     const x = c.x[s]!;
     const y = c.y[s]!;
@@ -188,7 +191,7 @@ export const climber: ProtesterBehaviour = {
       if (w.roofClimbers[b]! >= cap) continue;
       const heat = Math.min(1, ru.rage / C.rageFull);
       const iso = covered ? C.coveredFactor : 1;
-      const R = BALANCE.climbDetectRadius + C.rageReach * heat * iso;
+      const R = (BALANCE.climbDetectRadius + C.rageReach * heat) * (covered ? C.coveredReach : 1);
       const B = w.map.buildings[b]!;
       const dx = Math.max(B.i - x, 0, x - (B.i + B.w));
       const dy = Math.max(B.j - y, 0, y - (B.j + B.d));

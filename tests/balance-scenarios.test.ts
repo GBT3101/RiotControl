@@ -3,7 +3,8 @@
  * The full 35–50 min seeds × bots × cities sweep lives in `npm run playtest` (docs/M12.md);
  * these keep the important shape of the curve from silently regressing:
  *
- * - doing nothing loses fast; a passive player loses between waves 6 and 15;
+ * - doing nothing loses fast; a passive player (a lone officer now and then gets rammed over,
+ *   playtest round) loses by wave 8;
  * - a competent (balanced) player holds the Capitol through the first 15 minutes and
  *   climbs the early levels on schedule;
  * - bots are deterministic (same seed → same state hash);
@@ -25,12 +26,12 @@ describe('balance scenarios (real maps, headless bots)', () => {
   });
 
   it.each(['madrid', 'london'] as const)(
-    'passive player (%s): a lone riot cop now and then is not enough — loses in waves 6–15',
+    'passive player (%s): a lone riot cop now and then is not enough — loses by wave 8',
     (city) => {
       const r = runHeadless({ map: loadMap(city), bot: 'passive', seed: 2, seconds: 25 * 60 });
       expect(r.phase).toBe('defeat');
-      expect(r.wave).toBeGreaterThanOrEqual(6);
-      expect(r.wave).toBeLessThanOrEqual(15);
+      expect(r.wave).toBeGreaterThanOrEqual(4);
+      expect(r.wave).toBeLessThanOrEqual(8);
     },
     LONG,
   );
@@ -48,11 +49,11 @@ describe('balance scenarios (real maps, headless bots)', () => {
       // Waves grow from dozens toward hundreds.
       expect(r.trace.waves[0]!.size).toBe(30);
       expect(r.trace.waves.at(-1)!.size).toBeGreaterThan(100);
-      // Economy: not starved, not swimming in Hate.
+      // Economy (playtest round: kills pay a third): tight, but not starved.
       const hs = r.trace.hateSamples;
       const avg = hs.reduce((a, b) => a + b, 0) / hs.length;
-      expect(avg).toBeGreaterThan(40);
-      expect(avg).toBeLessThan(2500);
+      expect(avg).toBeGreaterThan(20);
+      expect(avg).toBeLessThan(400);
     },
     LONG,
   );
@@ -75,9 +76,9 @@ describe('balance scenarios (real maps, headless bots)', () => {
       const peak = (quality: 'mobile' | 'desktop'): { peak: number; size: number } => {
         const w = new World(loadMap('madrid'), { seed: 5, quality });
         w.economy.level = 10;
-        w.time = 36 * 60; // late game: the time term of the wave curve
+        w.time = 54 * 60; // late game: the time term of the wave curve
         w.startWaves();
-        for (let k = 0; k < 29; k++) {
+        for (let k = 0; k < 44; k++) {
           w.director.toSpawn = 0;
           (w.director as unknown as { beginWave(w: World): void }).beginWave(w);
         }
@@ -102,8 +103,8 @@ describe('balance scenarios (real maps, headless bots)', () => {
       expect(mobile.peak).toBeLessThanOrEqual(BALANCE.concurrency.mobile + 11);
       expect(mobile.peak).toBeGreaterThan(BALANCE.concurrency.mobile * 0.8);
       const desktop = peak('desktop');
-      // The horde is the spectacle: desktop is not held to the mobile cap. (Defended late runs
-      // in `npm run playtest` peak at ~2000–2300 as waves stack up against the lines.)
+      // The horde is the spectacle: desktop is not held to the mobile cap. (Slow late runs in
+      // `npm run playtest` peak at ~1800 as waves stack up against the lines.)
       expect(desktop.peak).toBeGreaterThan(BALANCE.concurrency.mobile + 100);
       expect(desktop.peak).toBeLessThanOrEqual(BALANCE.concurrency.desktop + 11);
     },

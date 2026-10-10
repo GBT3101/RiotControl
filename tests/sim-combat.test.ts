@@ -47,16 +47,18 @@ describe('combat', () => {
     for (const d of died) expect(d.lethal).toBe(false);
     const hits = eventsOf(ev, 'attacked').filter((a) => a.attackerId === u.id);
     expect(hits.length).toBeGreaterThan(0);
-    expect(hits[0]).toMatchObject({ damage: 10, dmgType: 'melee', targetKind: 'protester' });
+    expect(hits[0]).toMatchObject({ damage: 12, dmgType: 'melee', targetKind: 'protester' });
   });
 
   it('armour: the riot shield removes 30% of melee damage (and some bullets/fire, M12)', () => {
     const w = avenueWorld();
     const u = w.deploy('riot', 7, 9)!;
+    // Before any outnumbering pass the multiplier is neutral (sim/mob.ts).
+    const m = u.mob;
     hurtUnit(w, u, 10, DMG.melee, true, 'protester', -1);
-    expect(u.hp).toBeCloseTo(93);
+    expect(u.hp).toBeCloseTo(60 - 7 * m);
     hurtUnit(w, u, 10, DMG.bullet, true, 'protester', -1);
-    expect(u.hp).toBeCloseTo(93 - 10 * (1 - UNITS.riot.armour.bullet!));
+    expect(u.hp).toBeCloseTo(60 - 7 * m - 10 * (1 - UNITS.riot.armour.bullet!));
     const before = u.hp;
     hurtUnit(w, u, 10, DMG.crush, true, 'protester', -1);
     expect(u.hp).toBeCloseTo(before - 10); // no armour entry → full damage
@@ -84,10 +86,11 @@ describe('combat', () => {
     w.economy.hate = 200;
     const u = w.deploy('soldier', 7, 13)!;
     const s = frozen(w, PT.cultist, 7.5, 9.5);
+    w.crowd.hp[s] = w.crowd.maxHp[s] = 100;
     const ev = run(w, 0.6);
     const shots = eventsOf(ev, 'fired').filter((f) => f.shooterId === u.id);
     expect(shots).toHaveLength(3);
-    expect(w.crowd.hp[s]).toBeCloseTo(90 - 75);
+    expect(w.crowd.hp[s]).toBeCloseTo(100 - 75);
   });
 
   it('Tank shells are ballistic AOE and hurt own units (friendly fire)', () => {
@@ -207,7 +210,8 @@ describe('combat', () => {
     w.economy.level = 1;
     w.economy.hate = 100;
     w.deploy('sniper', 12, 6);
-    w.deploy('riot', 10, 9); // within 2.5 tiles of the footprint
+    const guard = w.deploy('riot', 10, 9)!; // within 2.5 tiles of the footprint
+    guard.hp = guard.maxHp = 1e6; // (outlives the test crowd)
     for (let k = 0; k < 4; k++) {
       const s = w.spawnProtester(PT.woke, 8.5 + k * 0.3, 3.5);
       w.crowd.hp[s] = 5000;

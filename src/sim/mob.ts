@@ -3,12 +3,13 @@
  * few vs many").
  *
  * Every `BALANCE.mob.everyTicks` each ground unit counts the protesters around it and its
- * support (itself + friendly ground units nearby, weighted by `UnitDef.mobWeight`). The ratio is
- * its `odds`; beyond `UnitDef.mobHold` attackers per supporter, protester melee hits it harder
- * (below it, softer: `Unit.mob`, applied in `combat.hurtUnit`), and a rammable unit facing long odds may be
- * knocked down: a crush hit that ignores armour plus a short stun (an `attacked` event with
- * `dmgType: 'crush'`, so the view flashes the hit and the audio plays its crunch). Rooftop units
- * count the climbers on their roof against themselves alone.
+ * support (itself + friendly ground units nearby, weighted by `UnitDef.mobWeight`). The ratio
+ * is its `odds`. Beyond `UnitDef.mobHold` attackers per supporter protester melee hits it
+ * harder, below it softer (`Unit.mob`, applied in `combat.hurtUnit`). A rammable unit facing
+ * long odds may be knocked down: a crush hit that ignores armour plus a short stun (an
+ * `attacked` event with `dmgType: 'crush'`, so the view flashes the hit and the audio plays its
+ * crunch). Rooftop units count the climbers on their roof against themselves (ground cover
+ * nearby counts as a second defender).
  *
  * The same pass accumulates rooftop units' `rage` (seconds spent shooting at the crowd), which
  * makes climbers more eager (behaviours/protester/specials.ts).
@@ -66,8 +67,9 @@ export function updateMob(w: World): void {
     if (!u.alive || u.def.invulnerable) continue;
     const def = u.def;
     if (u.building >= 0) {
-      // Rooftop: climbers vs the lone defender; rage while it keeps shooting at the crowd.
-      u.odds = u.roofAttackers;
+      // Rooftop: climbers vs the defender (ground cover nearby counts as a second one); rage
+      // while it keeps shooting at the crowd.
+      u.odds = u.roofAttackers / (w.roofCovered[u.building] ? 2 : 1);
       u.mob = mobMultiplier(u.odds, def.mobHold);
       const firing = u.lastAttack >= 0 && w.time - u.lastAttack < (def.attack?.cooldown ?? 1) + 1;
       u.rage = firing ? u.rage + step : Math.max(0, u.rage - step * 0.5);

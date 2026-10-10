@@ -23,7 +23,11 @@ describe('capitol', () => {
     expect(w.capitol.hp).toBeGreaterThan(BALANCE.capitolHp - 20);
     const dmg = eventsOf(ev, 'capitolDamaged');
     expect(dmg.length).toBeGreaterThan(0);
-    expect(dmg.reduce((a, e) => a + e.amount, 0)).toBeCloseTo(BALANCE.capitolHp - w.capitol.hp);
+    // Aggregated once per `capitolEventInterval`: at most the last interval is still pending.
+    const reported = dmg.reduce((a, e) => a + e.amount, 0);
+    const lost = BALANCE.capitolHp - w.capitol.hp;
+    expect(reported).toBeLessThanOrEqual(lost);
+    expect(reported).toBeGreaterThanOrEqual(lost - 2 * BALANCE.capitolEventInterval);
   });
 
   it('five damage states by integrity thresholds', () => {

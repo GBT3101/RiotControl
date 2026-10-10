@@ -95,7 +95,7 @@ describe('wave director', () => {
     w.economy.level = 10;
     w.startWaves();
     // Jump to a big wave.
-    for (let k = 0; k < 20; k++) {
+    for (let k = 0; k < 30; k++) {
       w.director.toSpawn = 0;
       (w.director as unknown as { beginWave(w: World): void }).beginWave(w);
     }
@@ -121,7 +121,10 @@ describe('wave director', () => {
     }
     expect(counts.get(PT.prophet)).toBeUndefined();
     expect(counts.get(PT.cultist)).toBeUndefined();
-    expect(counts.get(PT.crazy)!).toBeGreaterThan(counts.get(PT.woke)!);
+    // Crazy Mob (weight 3) is boosted ×newestBoost against the Violent Woke (weight 7).
+    const ratio = counts.get(PT.crazy)! / counts.get(PT.woke)!;
+    expect(ratio).toBeGreaterThan(3 / 7 + 0.1);
+    expect(ratio).toBeCloseTo((3 * BALANCE.waves.newestBoost) / 7, 1);
     expect(counts.get(PT.student)).toBeGreaterThan(0);
   });
 

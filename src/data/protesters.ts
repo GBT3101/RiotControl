@@ -1,5 +1,6 @@
 /**
- * Protester table — PLAN.md §1.4. Baseline numbers; tuned in M12.
+ * Protester table — PLAN.md §1.4. Baseline numbers; tuned in M12 and in the playtest feedback
+ * round (cheaper Hate → softer mid/late tiers: less HP, fewer resistances, weaker ranged kits).
  *
  * Speeds are multipliers of `BALANCE.walkSpeed` (tiles/s). Melee attacks are expressed as
  * DPS delivered in hits every `interval` seconds (hit damage = dps × interval).
@@ -202,7 +203,7 @@ export const PROTESTERS: readonly ProtesterDef[] = [
       }),
     ],
     weight: 5,
-    chosen: ['molotov aoe r=1.2', 'fire patch 8 dps', 'capitolDps 4'],
+    chosen: ['molotov aoe r=1.2', 'fire patch 2 dps', 'capitolDps 4'],
   },
   {
     id: 'crazy',
@@ -227,7 +228,7 @@ export const PROTESTERS: readonly ProtesterDef[] = [
         lethal: true,
       }),
     ],
-    weight: 5,
+    weight: 3,
     chosen: ['capitolDps 3'],
   },
   {
@@ -256,14 +257,14 @@ export const PROTESTERS: readonly ProtesterDef[] = [
           lethal: true,
         },
         'rifle',
-        3,
+        2,
       ),
       kit(
         null,
         {
           weapon: 'bazooka',
           delivery: 'ballistic',
-          damage: 30,
+          damage: 20,
           cooldown: 14,
           range: 7,
           dmgType: 'explosion',
@@ -273,11 +274,11 @@ export const PROTESTERS: readonly ProtesterDef[] = [
           targetsRooftops: true,
         },
         'bazooka',
-        2,
+        1,
       ),
     ],
     weight: 5,
-    chosen: ['loadout weights 5/3/2', 'rifle cd 1.2', 'bazooka aoe r=1.5', 'capitolDps 5'],
+    chosen: ['loadout weights 5/2/1', 'rifle cd 2.5', 'bazooka aoe r=1.5', 'capitolDps 5'],
   },
   {
     id: 'prophet',
@@ -292,7 +293,7 @@ export const PROTESTERS: readonly ProtesterDef[] = [
     climbs: false,
     resist: { rubber: 0.3, gas: 0.3 },
     loadouts: [kit(null, null)],
-    explode: { damage: 90, radius: 2, vsTankFraction: 0.5, crowdFactor: 0.5, capitolDamage: 40 },
+    explode: { damage: 60, radius: 2, vsTankFraction: 0.5, crowdFactor: 0.5, capitolDamage: 40 },
     weight: 3,
     chosen: ['blast hurts crowd at 50%', 'capitol blast 40'],
   },

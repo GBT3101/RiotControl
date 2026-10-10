@@ -14,8 +14,8 @@
  *                   vehicles/horses/helicopters to the densest crowd near the Capitol.
  * - `escalate`    — always saves for and buys the newest / most expensive unlocked unit.
  * - `sacrificial` — feeds officers to the crowd far up the approaches to farm Legitimacy
- *                   (each Riot Control death nets +5 Hate and +5 Legitimacy), with a thin
- *                   defence at the Capitol.
+ *                   (a Riot Control death: 3 Hate spent, 1 refunded, 5 Legitimacy), with a
+ *                   thin defence at the Capitol.
  *
  * Map knowledge is derived from the flow field: every spawn door is traced down the Capitol
  * distance field and the visited road tiles (smeared across the carriageway) accumulate
@@ -592,7 +592,7 @@ export class Bot {
 
   private balanced(): void {
     this.gasAndCall(250, 0.75);
-    this.feedIfStalled(150, 120);
+    this.feedIfStalled(90, 30);
     this.commandMobiles(16);
     this.defend(1);
   }
@@ -694,7 +694,7 @@ export class Bot {
     this.gasAndCall(120, 0.6);
     this.commandMobiles(14);
     // Feed the crowd while the Capitol is safe: riot control and blockades far up the
-    // approaches (each riot death nets +5 Hate and +5 Legitimacy).
+    // approaches (each riot death: 3 Hate spent, 1 refunded, 5 Legitimacy).
     // Half of the deploy budget goes to feeding (every other decision).
     const safe = w.capitol.integrity > 0.5 && this.threat(6) < 10;
     if (safe && w.director.phase === 'wave' && (w.tick / 30) % 2 < 1) {

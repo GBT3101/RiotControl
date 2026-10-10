@@ -5,7 +5,8 @@
  * loop's business (`core/loop.FixedStepLoop` calls `step()`).
  *
  * Step order: prev positions → director (spawns) → flow field (throttled) → spatial hash +
- * unit grid → roof guards → outnumbering (mob.ts) → units → crowd → projectiles → areas → bodies → Capitol.
+ * unit grid → roof guards → outnumbering (mob.ts) → units → crowd → projectiles → areas →
+ * bodies → Capitol.
  */
 import { BALANCE, type QualityTier } from '../data/balance';
 import { WIN_LEGITIMACY } from '../data/levels';

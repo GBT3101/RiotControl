@@ -9,7 +9,9 @@
  *
  * Flags: --bots a,b  --cities madrid,london,paris  --seeds N | a,b,c  --minutes M (cap, default 65)
  *        --quality desktop|mobile|low  --jobs J (default min(4, cores))  --json file  --verbose
- *        --set path=value,... (patch balance data for this sweep, e.g. waves.growth=1.15,units.riot.hp=90)
+ *        --set path=value,... (patch balance data for this sweep, e.g. waves.growth=1.15,units.riot.hp=90,
+ *        mob.maxMult=1, or bot.spread=3 to spread the bots' officers out of each other's support)
+ * Columns: rams = officers rammed over by a mob, climbs = protesters that started up a facade.
  */
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { availableParallelism } from 'node:os';
@@ -79,7 +81,7 @@ if (!isMainThread) {
       `${minutes} min cap, ${quality}, ${jobsN} workers${set ? `, set ${set}` : ''}`,
   );
   console.info(
-    'city    bot          seed  out    min  wave lvl  legit   L1   L2   L4   L6   L8  L10  peak minInt hateAvg hateMax  ms/t  officers lost',
+    'city    bot          seed  out    min  wave lvl  legit   L1   L2   L4   L6   L8  L10  peak minInt hateAvg hateMax  ms/t  rams climbs  officers lost',
   );
   const print = (r) => {
     const lt = r.trace.levelTimes;
@@ -88,7 +90,7 @@ if (!isMainThread) {
     console.info(
       `${r.city.padEnd(7)} ${r.bot.padEnd(12)} ${pad(r.seed, 4)}  ${outcome(r)} ${pad(fmtMin(r.time), 5)} ${pad(r.wave, 5)} ${pad(r.level, 3)} ${pad(r.legit, 6)} ` +
         [1, 2, 4, 6, 8, 10].map((l) => pad(fmtMin(lt[l]), 4)).join(' ') +
-        ` ${pad(r.peakCrowd, 5)} ${pad((r.trace.minIntegrity * 100).toFixed(0) + '%', 6)} ${pad(avg.toFixed(0), 7)} ${pad(Math.max(...hs), 7)} ${pad(r.avgTickMs.toFixed(2), 5)}  ${officers(r.officersLost)}`,
+        ` ${pad(r.peakCrowd, 5)} ${pad((r.trace.minIntegrity * 100).toFixed(0) + '%', 6)} ${pad(avg.toFixed(0), 7)} ${pad(Math.max(...hs), 7)} ${pad(r.avgTickMs.toFixed(2), 5)} ${pad(r.rammed, 5)} ${pad(r.climbs, 6)}  ${officers(r.officersLost)}`,
     );
     if (verbose) {
       console.info(
