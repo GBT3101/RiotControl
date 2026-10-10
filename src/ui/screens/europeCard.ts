@@ -14,7 +14,14 @@ import { levelRibbon } from '../campaign';
 import { dossier } from './common';
 
 /** The construction stamp (same art everywhere: card and tests). */
-export function constructionStamp(): PixelBuffer {
+export function constructionStamp(compact = false): PixelBuffer {
+  if (compact)
+    return rubberStamp('UNDER', 'rust1', {
+      font: FONTS.smallBold,
+      sub: 'CONSTRUCTION',
+      tilt: -0.05,
+      seed: 9,
+    });
   return rubberStamp('UNDER CONSTRUCTION', 'rust1', {
     font: FONTS.smallBold,
     tilt: -0.05,
@@ -26,20 +33,19 @@ export function constructionStamp(): PixelBuffer {
 export function ribbonBadge(text: string): PixelBuffer {
   const m = measureText(FONTS.smallBold, text);
   const w = m.w + 10;
-  const h = FONTS.smallBold.capHeight + 6;
+  const h = m.h + 6;
   const b = buf(w, h);
   rect(b, 0, 0, w, h, 'rust0');
   rect(b, 1, 1, w - 2, h - 2, 'crim2');
   hline(b, 1, 1, w - 2, 'rust4');
   hline(b, 1, h - 2, w - 2, 'crim1');
   // Swallow-tail notches.
-  for (const x of [0, w - 1]) {
-    px(b, x, Math.floor(h / 2), 'rust0');
-    px(b, x === 0 ? 1 : w - 2, Math.floor(h / 2), 'rust0');
-  }
-  b.data.fill(0, ((h >> 1) * w + 0) * 4, ((h >> 1) * w + 1) * 4);
-  b.data.fill(0, ((h >> 1) * w + w - 1) * 4, ((h >> 1) * w + w) * 4);
-  drawText(b, FONTS.smallBold, text, 5, 3, 'white');
+  const my = h >> 1;
+  b.data.fill(0, my * w * 4, (my * w + 1) * 4);
+  b.data.fill(0, (my * w + w - 1) * 4, (my * w + w) * 4);
+  px(b, 1, my, 'rust0');
+  px(b, w - 2, my, 'rust0');
+  drawText(b, FONTS.smallBold, text, Math.floor(w / 2), 3, 'white', { align: 'center' });
   return b;
 }
 
@@ -111,7 +117,7 @@ export function constructionCard(
   const boxes: Record<string, Box> = {};
   const oy = 10;
   const bottom = oy + h - 4;
-  const st = constructionStamp();
+  const st = constructionStamp(horizontal);
   const ribbon = levelRibbon(c);
   const rb = ribbon ? ribbonBadge(ribbon) : null;
   const put = (
@@ -137,7 +143,8 @@ export function constructionCard(
     return box.y + box.h + 3 + font.ascent;
   };
   if (horizontal) {
-    const pw = Math.min(104, Math.floor(w * 0.42));
+    // The photo yields width so the stamp fits beside it.
+    const pw = Math.min(104, Math.floor(w * 0.42), w - st.w - 30);
     const ph = h - 22;
     stamp(b, blueprintPhoto(pw, ph, c.id.length * 7 + c.lat), 6, oy + 6);
     boxes.photo = { x: 6, y: oy + 6, w: pw + 6, h: ph + 6 };
@@ -146,18 +153,17 @@ export function constructionCard(
     // The stamp sits at the bottom right; text flows above / beside it.
     const sb = { x: w - 6 - st.w, y: bottom - st.h, w: st.w, h: st.h };
     let y = oy + 7;
-    if (rb) {
-      stamp(b, rb, x - 2, y - 2);
-      boxes.ribbon = { x: x - 2, y: y - 2, w: rb.w, h: rb.h };
-      y += rb.h + 2;
+    if (rb && ribbon) {
+      const r = rb.w <= tw + 4 ? rb : ribbonBadge(ribbon.replace(' · ', '\n'));
+      stamp(b, r, x - 2, y - 2);
+      boxes.ribbon = { x: x - 2, y: y - 2, w: r.w, h: r.h };
+      y += r.h + 2;
     }
-    y = put('name', FONTS.large, c.name.toUpperCase(), x, y, tw, 'ink', false);
-    y = put('country', FONTS.small, c.country.toUpperCase(), x, y - 2, tw, 'stone1', false);
+    y = put('name', FONTS.large, c.name.toUpperCase(), x, y, tw, 'ink', false, [sb]);
+    y = put('country', FONTS.small, c.country.toUpperCase(), x, y - 2, tw, 'stone1', false, [sb]);
     put('note', FONTS.small, c.note, x, y, tw, 'rust1', false, [sb]);
-    if (sb.y > (boxes.note ?? boxes.country ?? boxes.name)!.y) {
-      stamp(b, st, sb.x, sb.y);
-      boxes.stamp = sb;
-    }
+    stamp(b, st, sb.x, sb.y);
+    boxes.stamp = sb;
     return { buf: b, boxes };
   }
   const pw = w - 16;

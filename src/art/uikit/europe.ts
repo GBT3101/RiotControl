@@ -12,7 +12,7 @@
 import { buf, col, hline, line, prng, px, rect, stamp, vline } from '../fx/draw';
 import type { SpriteRegistry } from '../lib/registry';
 import { createBuffer, setPixel, type PixelBuffer } from '../lib/pixels';
-import { SHADOW_ALPHA, resolveColor } from '../palette';
+import { resolveColor } from '../palette';
 import {
   LAKE,
   MAP_H,
@@ -40,6 +40,11 @@ export const MAP_OX = SHEET_OVER + SHEET_PAD.left;
 export const MAP_OY = SHEET_OVER + SHEET_PAD.top;
 export const SHEET_W = MAP_W + SHEET_PAD.left + SHEET_PAD.right + SHEET_OVER * 2;
 export const SHEET_H = MAP_H + SHEET_PAD.top + SHEET_PAD.bottom + SHEET_OVER * 2;
+/** Compass rose (with its N) and scale bar on the sheet (sheet px): printed text tags avoid. */
+export const PRINTED_BOXES = [
+  { x: MAP_OX + 20, y: MAP_OY + 130, w: 31, h: 41 },
+  { x: MAP_OX + 7, y: MAP_OY + 182, w: 58, h: 15 },
+] as const;
 
 /** Sea bands by distance from land: surf, shallows, deep. */
 const SEA_SURF = 'zinc3';
@@ -919,15 +924,10 @@ const PIN_COLS: Record<PinKind, Record<string, string>> = {
   unbuilt: { o: 'gray2', H: 'white', l: 'gray7', m: 'gray6', d: 'gray4', n: 'gray5', N: 'gray3' },
 };
 
-/** A push pin (needle tip at PIN_ANCHOR) with its shadow: red when built, grey when not. */
+/** A push pin (needle tip at PIN_ANCHOR): red when built, grey when not. Opaque (UI kit). */
 export function pinSprite(kind: PinKind, lifted = false): PixelBuffer {
   const b = createBuffer(PIN_W + 3, PIN_H);
   const lift = lifted ? 1 : 0;
-  // Shadow falls to the lower right of the needle.
-  const sh = (resolveColor('ink') & 0xffffff00) | SHADOW_ALPHA;
-  setPixel(b, PIN_ANCHOR.x + 1, PIN_ANCHOR.y + 1, sh);
-  setPixel(b, PIN_ANCHOR.x + 2, PIN_ANCHOR.y + 1, sh);
-  if (lifted) setPixel(b, PIN_ANCHOR.x + 3, PIN_ANCHOR.y, sh);
   PIN_ROWS.forEach((row, y) => {
     [...row].forEach((ch, x) => {
       const ref = PIN_COLS[kind][ch];
@@ -958,7 +958,7 @@ export function tagSize(text: string, ribbon?: string, hazard = false): { w: num
   const h = FONTS.small.capHeight + 6;
   if (!ribbon) return { w, h };
   const r = measureText(FONTS.smallBold, ribbon);
-  return { w: Math.max(w, r.w + 6), h: h + FONTS.smallBold.capHeight + 5 };
+  return { w: Math.max(w, r.w + 6), h: h + r.h + 5 };
 }
 
 /**
@@ -975,12 +975,13 @@ export function tagSprite(
   const b = buf(w, h);
   let y0 = 0;
   if (ribbon) {
-    const rh = FONTS.smallBold.capHeight + 5;
+    // The ribbon may be stacked over two lines ("LEVEL 1\nTUTORIAL") on narrow screens.
+    const rm = measureText(FONTS.smallBold, ribbon);
+    const rh = rm.h + 5;
     rect(b, 0, 0, w, rh, 'rust0');
     rect(b, 1, 1, w - 2, rh - 2, 'crim2');
     hline(b, 1, 1, w - 2, 'rust4');
-    const rw = measureText(FONTS.smallBold, ribbon).w;
-    drawText(b, FONTS.smallBold, ribbon, Math.floor((w - rw) / 2), 2, 'white');
+    drawText(b, FONTS.smallBold, ribbon, Math.floor(w / 2), 2, 'white', { align: 'center' });
     y0 = rh;
   }
   const th = h - y0;
@@ -1032,18 +1033,16 @@ export function thread(b: PixelBuffer, ox: number, oy: number, x: number, y: num
 /* ── Registration ───────────────────────────────────────────────────────────────────── */
 
 export function registerEurope(reg: SpriteRegistry): void {
-  const g = 'europe';
+  const g = 'ui';
   reg.add('ui.europe.pin.built', {
     group: g,
     frames: pinSprite('built'),
     anchor: PIN_ANCHOR,
-    hasShadow: true,
   });
   reg.add('ui.europe.pin.unbuilt', {
     group: g,
     frames: pinSprite('unbuilt'),
     anchor: PIN_ANCHOR,
-    hasShadow: true,
   });
   reg.add('ui.europe.compass', { group: g, frames: compassRose() });
   reg.add('ui.europe.desk', { group: g, frames: deskTile(), anchor: { x: 0, y: 0 } });

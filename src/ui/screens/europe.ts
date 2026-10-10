@@ -17,6 +17,7 @@ import type { PixelBuffer } from '../../art/lib/pixels';
 import {
   MAP_OX,
   MAP_OY,
+  PRINTED_BOXES,
   PIN_ANCHOR,
   SHEET_H,
   SHEET_OVER,
@@ -108,21 +109,33 @@ export function coreBox(): Box {
 export type TagStyleName = 'built' | 'unbuilt' | 'selected';
 
 /** Tag size for a city (its ribbon included). */
-export function cityTagSize(c: CampaignCity): { w: number; h: number } {
-  return tagSize(c.name, levelRibbon(c), !isBuilt(c.id));
+export function cityTagSize(c: CampaignCity, narrow = false): { w: number; h: number } {
+  return tagSize(c.name, tagRibbon(c, narrow), !isBuilt(c.id));
+}
+
+/** The tag's ribbon text: stacked on two lines on narrow (portrait) screens. */
+export function tagRibbon(c: CampaignCity, narrow: boolean): string | undefined {
+  const r = levelRibbon(c);
+  return r && narrow ? r.replace(' · ', '\n') : r;
 }
 
 /**
  * Tag layout at zoom `z` (device px per map px) and UI scale `k`, in "sheet UI px" (the sheet's
  * top-left at 0,0). Ranks: the selected city first, Level 1 next, then built cities.
  */
-export function cityTags(z: number, k: number, selected: CityId, prefer?: Box): TagOut[] {
+export function cityTags(
+  z: number,
+  k: number,
+  selected: CityId,
+  prefer?: Box,
+  narrow = false,
+): TagOut[] {
   const pts = pinPoints();
   const s = z / k;
   return layoutTags(
     CAMPAIGN.map((c) => {
       const p = pts.get(c.id)!;
-      const sz = cityTagSize(c);
+      const sz = cityTagSize(c, narrow);
       return {
         id: c.id,
         x: Math.round((p.x + 0.5) * s),
@@ -132,8 +145,14 @@ export function cityTags(z: number, k: number, selected: CityId, prefer?: Box): 
         rank: c.id === selected ? 0 : c.level === 1 ? 1 : isBuilt(c.id) ? 2 : 3,
       };
     }),
-    { x: 0, y: 0, w: Math.floor(SHEET_W * s), h: Math.floor(SHEET_H * s) },
-    [],
+    // Tags may hang a little over the desk around the sheet.
+    { x: -40, y: -40, w: Math.floor(SHEET_W * s) + 80, h: Math.floor(SHEET_H * s) + 80 },
+    PRINTED_BOXES.map((b) => ({
+      x: Math.floor(b.x * s),
+      y: Math.floor(b.y * s),
+      w: Math.ceil(b.w * s),
+      h: Math.ceil(b.h * s),
+    })),
     prefer,
   );
 }
@@ -189,8 +208,9 @@ function tagWithThread(
   t: TagOut,
   tipX: number,
   tipY: number,
+  narrow: boolean,
 ): { buf: PixelBuffer; origin: { x: number; y: number } } {
-  const tag = tagSprite(c.name, TAG_STYLES[style], levelRibbon(c), !isBuilt(c.id));
+  const tag = tagSprite(c.name, TAG_STYLES[style], tagRibbon(c, narrow), !isBuilt(c.id));
   const r = t.tag!;
   const rx = r.x - tipX;
   const ry = r.y - tipY;
@@ -543,6 +563,9 @@ export class EuropeScreen implements Screen {
     const k = this.app.k;
     this.off.x = (plan.free.x + plan.free.w / 2) * k - x * this.z;
     this.off.y = (plan.free.y + plan.free.h / 2) * k - y * this.z;
+    // A sheet shorter than the free area sits centred in it (no desk band on one side only).
+    if (SHEET_H * this.z <= plan.free.h * k)
+      this.off.y = (plan.free.y + plan.free.h / 2) * k - (SHEET_H * this.z) / 2;
     this.clampOffset();
   }
 
@@ -581,6 +604,7 @@ export class EuropeScreen implements Screen {
       { w: plan.free.w * k, h: plan.free.h * k },
       { w: SHEET_W, h: SHEET_H },
       core,
+      k,
     );
     this.desk.width = l.W;
     this.desk.height = l.H;
@@ -638,7 +662,9 @@ export class EuropeScreen implements Screen {
       const ribbon = levelRibbon(c);
       const photo = card.boxes.photo;
       if (ribbon && photo) {
-        const r = ribbonBadge(ribbon);
+        // Pinned across the photo's top edge; stacked when the photo is narrow.
+        let r = ribbonBadge(ribbon);
+        if (r.w > photo.w - 4) r = ribbonBadge(ribbon.replace(' · ', '\n'));
         stamp(b, r, photo.x + Math.floor((photo.w - r.w) / 2), photo.y - 3);
       }
       this.deploy.visible = true;
@@ -682,7 +708,7 @@ export class EuropeScreen implements Screen {
       w: f.w - 8,
       h: f.h - 8,
     };
-    const tags = cityTags(zr, k, this.selected, prefer);
+    const tags = cityTags(zr, k, this.selected, prefer, this.plan!.horizontal);
     const vis = visibleLabels(tags, zr, k);
     for (const { l, s } of this.labels) s.visible = vis.has(l.id);
     const s = zr / k;
@@ -733,10 +759,11 @@ export class EuropeScreen implements Screen {
       const style = this.styleOf(id);
       const tipX = Math.round(v.sx * s);
       const tipY = Math.round(v.sy * s);
-      const key = `${id}:${style}:${t.tag.x - tipX},${t.tag.y - tipY}:${t.leader}`;
+      const narrow = !!this.plan?.horizontal;
+      const key = `${id}:${style}:${t.tag.x - tipX},${t.tag.y - tipY}:${t.leader}:${narrow}`;
       let e = this.tagTex.get(key);
       if (!e) {
-        const art = tagWithThread(v.c, style, t, tipX, tipY);
+        const art = tagWithThread(v.c, style, t, tipX, tipY, narrow);
         e = { t: ownTex(art.buf, 'ui:europe-tag'), origin: art.origin };
         this.tagTex.set(key, e);
       }

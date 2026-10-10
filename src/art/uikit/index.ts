@@ -8,6 +8,7 @@ import { registerFontSpecimens } from './fontSpecimen';
 import { registerBanners } from './banners';
 import { registerButtons } from './buttons';
 import { registerCards } from './cards';
+import { registerEurope } from './europe';
 import { registerIcons } from './icons';
 import { registerLogo } from './logo';
 import { registerNewspaper } from './newspaper';
@@ -26,4 +27,5 @@ export function registerUiKit(reg: SpriteRegistry): void {
   registerLogo(reg);
   registerNewspaper(reg);
   registerSpecialUi(reg);
+  registerEurope(reg);
 }

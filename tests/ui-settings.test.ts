@@ -44,7 +44,7 @@ describe('game settings persistence', () => {
     };
     expect(loadGameSettings(broken).quality).toBe('auto');
     expect(saveGameSettings(DEFAULT_GAME_SETTINGS, broken)).toBe(false);
-    const s = sanitizeGameSettings({ speed: 9, quality: 'ultra', shake: 'yes', lastCity: 'rome' });
+    const s = sanitizeGameSettings({ speed: 9, quality: 'ultra', shake: 'yes', lastCity: 'atlantis' });
     expect(s.speed).toBe(1);
     expect(s.quality).toBe('auto');
     expect(s.shake).toBe(true);

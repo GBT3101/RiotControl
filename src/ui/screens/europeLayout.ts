@@ -34,11 +34,17 @@ export function zoomPlan(
   free: { w: number; h: number },
   sheet: { w: number; h: number },
   core: { w: number; h: number },
+  k = 1,
+  tagPadUi = 24,
 ): ZoomPlan {
   const fitAll = Math.floor(Math.min(dev.w / sheet.w, free.h / sheet.h));
   const min = Math.max(1, fitAll);
+  // Default: the closest zoom that still frames the core with room for the outer tags (UI px,
+  // so they do not grow with the map), never past 1 map px per UI px (tags would only spread).
+  const pad = tagPadUi * k * 2;
   let def = min;
-  for (let z = min; z <= min + 6; z++) if (core.w * z <= free.w && core.h * z <= free.h) def = z;
+  for (let z = min; z <= Math.max(min, k); z++)
+    if (core.w * z + pad <= free.w && core.h * z + pad / 2 <= free.h) def = z;
   return { min, max: def + 3, def };
 }
 
@@ -73,7 +79,8 @@ export function screenPlan(W: number, H: number, safe: Safe): ScreenPlan {
   const headerX = back.x + BACK_SIZE.w + 6;
   const headerW = W - safe.right - 5 - headerX - (portrait ? 0 : BACK_SIZE.w + 6);
   const headerLines: 1 | 2 = portrait || H < 260 ? 1 : 2;
-  const headerH = headerLines === 2 ? 30 : BACK_SIZE.h;
+  // Two-line plaque: small caps + large caps + brass padding (europe.ts headerPlaque).
+  const headerH = headerLines === 2 ? 36 : BACK_SIZE.h;
   const header = { x: headerX, y: top, w: headerW, h: headerH };
   const below = top + Math.max(headerH, BACK_SIZE.h) + 4;
   if (portrait) {
@@ -137,7 +144,14 @@ function candidates(w: number, h: number): Array<{ dx: number; dy: number; leade
     { dx: -(w >> 1), dy: PIN_BOX.y - 2 - h, leader: false },
     { dx: -(w >> 1), dy: 4, leader: false },
   ];
-  for (const r of [8, 16, 26, 38]) {
+  // Above / below with the tag's end at the pin (left- or right-aligned) before threads.
+  out.push(
+    { dx: -w + 6, dy: PIN_BOX.y - 2 - h, leader: false },
+    { dx: -5, dy: PIN_BOX.y - 2 - h, leader: false },
+    { dx: -w + 6, dy: 4, leader: false },
+    { dx: -5, dy: 4, leader: false },
+  );
+  for (const r of [8, 16, 26, 38, 52, 68, 90, 120]) {
     out.push(
       { dx: 8 + r, dy: head - (h >> 1), leader: true },
       { dx: -7 - w - r, dy: head - (h >> 1), leader: true },
@@ -161,6 +175,18 @@ function segmentHits(ax: number, ay: number, bx: number, by: number, r: Box): bo
     if (x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h) return true;
   }
   return false;
+}
+
+/** Do two thread segments cross (proper intersection)? */
+function crosses(a: readonly number[], b: readonly number[]): boolean {
+  const o = (px: number, py: number, qx: number, qy: number, rx: number, ry: number): number =>
+    Math.sign((qx - px) * (ry - py) - (qy - py) * (rx - px));
+  const [ax, ay, bx, by] = a as [number, number, number, number];
+  const [cx, cy, dx, dy] = b as [number, number, number, number];
+  return (
+    o(ax, ay, bx, by, cx, cy) * o(ax, ay, bx, by, dx, dy) < 0 &&
+    o(cx, cy, dx, dy, ax, ay) * o(cx, cy, dx, dy, bx, by) < 0
+  );
 }
 
 /** Nearest point of box `r` to (x, y): where a leader thread meets its tag. */
@@ -202,12 +228,18 @@ export function layoutTags(
       const iy = Math.max(0, Math.min(t.y + t.h, prefer.y + prefer.h) - Math.max(t.y, prefer.y));
       return t.w * t.h - ix * iy;
     };
+    // A spot right beside the pin that is only a little off screen beats a long thread (the
+    // camera pans it in); otherwise on-screen spots first, then the least off-screen.
+    const tier = (c: { leader: boolean }, o: number, area: number): number =>
+      o === 0 ? 0 : !c.leader && o <= area * 0.2 ? 0 : 1;
     const tries = prefer
       ? all
           .map((c, i) => ({ c, i, o: offArea(c) }))
           .sort(
             (a, b) =>
-              (a.o > 0 ? 1 : 0) - (b.o > 0 ? 1 : 0) || (a.o > 0 ? a.o - b.o : 0) || a.i - b.i,
+              tier(a.c, a.o, p.w * p.h) - tier(b.c, b.o, p.w * p.h) ||
+              (tier(a.c, a.o, p.w * p.h) ? a.o - b.o : 0) ||
+              a.i - b.i,
           )
           .map((e) => e.c)
       : all;
@@ -226,6 +258,7 @@ export function layoutTags(
         const others = [...pinBoxes.entries()].filter(([id]) => id !== p.id).map(([, b]) => b);
         if (others.some((b) => segmentHits(hx, hy, e.x, e.y, b))) continue;
         if (placed.some((b) => segmentHits(hx, hy, e.x, e.y, b))) continue;
+        if (threads.some((q) => crosses(q, [hx, hy, e.x, e.y]))) continue;
         thread = [hx, hy, e.x, e.y];
       }
       best = { id: p.id, pin: pb, tag: t, leader: c.leader };
