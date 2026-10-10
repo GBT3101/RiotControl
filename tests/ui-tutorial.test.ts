@@ -4,6 +4,7 @@ import {
   completeTutorial,
   dimRects,
   placeAdvisor,
+  shouldGreet,
   shouldRunTutorial,
   tutorialParam,
   intersects,
@@ -12,6 +13,7 @@ import { TUTORIAL_STEPS, TutorialMachine, type StepDef } from '../src/ui/tutoria
 import { loadGameSettings, saveGameSettings } from '../src/ui/settings';
 import { memoryStorage } from '../src/ui/storage';
 import { TUTORIAL_TEXT } from '../src/ui/text/tutorial';
+import { CAMPAIGN, FIRST_CITY, TUTORIAL_CITY } from '../src/ui/campaign';
 
 function harness(steps?: readonly StepDef[]) {
   const log: string[] = [];
@@ -154,7 +156,14 @@ describe('tutorial gating & persistence', () => {
   });
 
   it('runs on first visit / replay, never in attract or with tutorial=0', () => {
-    const g = { param: null, attract: false, debugRun: false, replay: false, done: false };
+    const g = {
+      param: null,
+      attract: false,
+      debugRun: false,
+      replay: false,
+      done: false,
+      tutorialCity: true,
+    };
     expect(shouldRunTutorial(g)).toBe(true);
     expect(shouldRunTutorial({ ...g, done: true })).toBe(false);
     expect(shouldRunTutorial({ ...g, done: true, replay: true })).toBe(true);
@@ -164,14 +173,44 @@ describe('tutorial gating & persistence', () => {
     expect(shouldRunTutorial({ ...g, attract: true, param: true })).toBe(false);
   });
 
+  it('runs only in Budapest, the first level; other cities just greet once', () => {
+    expect(TUTORIAL_CITY).toBe('budapest');
+    expect(FIRST_CITY).toBe(TUTORIAL_CITY);
+    expect(CAMPAIGN.find((c) => c.level === 1)?.id).toBe(TUTORIAL_CITY);
+    const g = {
+      param: null,
+      attract: false,
+      debugRun: false,
+      replay: false,
+      done: false,
+      tutorialCity: false,
+    };
+    // Madrid, London, Paris & co: no briefing, first visit or not, replay or not.
+    expect(shouldRunTutorial(g)).toBe(false);
+    expect(shouldRunTutorial({ ...g, replay: true })).toBe(false);
+    expect(shouldRunTutorial({ ...g, done: true, replay: true })).toBe(false);
+    // …only forced with ?tutorial=1 (screenshots, tests).
+    expect(shouldRunTutorial({ ...g, param: true })).toBe(true);
+    // The welcome line instead, once.
+    expect(shouldGreet(g)).toBe(true);
+    expect(shouldGreet({ ...g, done: true })).toBe(false);
+    expect(shouldGreet({ ...g, param: false })).toBe(false);
+    expect(shouldGreet({ ...g, param: true })).toBe(false);
+    expect(shouldGreet({ ...g, debugRun: true })).toBe(false);
+    expect(shouldGreet({ ...g, attract: true })).toBe(false);
+    // Budapest briefs instead of greeting.
+    expect(shouldGreet({ ...g, tutorialCity: true })).toBe(false);
+    expect(shouldRunTutorial({ ...g, tutorialCity: true })).toBe(true);
+  });
+
   it('persists the done flag per city and clears replay', () => {
     const st = memoryStorage();
     const s = loadGameSettings(st);
     s.replayTutorial = true;
-    completeTutorial(s, 'london');
+    completeTutorial(s, 'budapest');
     saveGameSettings(s, st);
     const back = loadGameSettings(st);
-    expect(back.tutorialDone).toEqual({ london: true });
+    expect(back.tutorialDone).toEqual({ budapest: true });
     expect(back.replayTutorial).toBe(false);
     expect(
       shouldRunTutorial({
@@ -179,7 +218,8 @@ describe('tutorial gating & persistence', () => {
         attract: false,
         debugRun: false,
         replay: back.replayTutorial,
-        done: !!back.tutorialDone.london,
+        done: !!back.tutorialDone.budapest,
+        tutorialCity: true,
       }),
     ).toBe(false);
   });

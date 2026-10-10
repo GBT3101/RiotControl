@@ -5,8 +5,11 @@
  * via `TutorialMachine`. Never pauses or blocks the game: the overlay is not interactive,
  * only the SKIP BRIEFING button is.
  *
- * Runs on the first run per city (settings.tutorialDone), when Settings → TUTORIAL REPLAY is
- * on, or with `?tutorial=1`; never with `?tutorial=0`, in the attract game or debug-jump runs.
+ * Runs only in the tutorial city (Budapest, the campaign's level 1 — PLAN §8.1): on its first
+ * run (settings.tutorialDone), or when Settings → TUTORIAL REPLAY is on (the flag waits for the
+ * next Budapest run; the Europe map steers there). `?tutorial=1` forces it in any city; never
+ * with `?tutorial=0`, in the attract game or debug-jump runs. Every other city plays without
+ * it: on its first visit the Minister only says the city's welcome line.
  * `?tstep=N` starts at step N (screenshots).
  */
 import { Container, Graphics, Sprite } from 'pixi.js';
@@ -18,15 +21,18 @@ import type { CityId } from '../../maps/contract';
 import { Button, stampFaces } from '../core/button';
 import type { Rect } from '../core/node';
 import { uiTex } from '../core/tex';
+import { TUTORIAL_CITY } from '../campaign';
 import { CITY_COPY } from '../text/cities';
 import { TUTORIAL_TEXT, TUTORIAL_UI, fillTutorial } from '../text/tutorial';
 import type { UiApp } from '../app';
 import { pointerArt } from './art';
 import {
+  capitolChoke,
   completeTutorial,
   dimRects,
   inflate,
   placeAdvisor,
+  shouldGreet,
   shouldRunTutorial,
   tutorialParam,
   type AdvisorSpot,
@@ -108,14 +114,23 @@ export class Tutorial {
     this.stop();
     const search = typeof location !== 'undefined' ? location.search : '';
     const s = this.app.settings;
-    const run = shouldRunTutorial({
+    const gate = {
       param: tutorialParam(search),
       attract: game.attract,
       debugRun: isDebugRun(runParams),
       replay: s.replayTutorial,
       done: !!s.tutorialDone[city],
-    });
-    if (!run) return;
+      tutorialCity: city === TUTORIAL_CITY,
+    };
+    if (shouldGreet(gate)) {
+      // First visit to a city without a briefing: just the Minister's welcome.
+      completeTutorial(s, city);
+      s.replayTutorial = gate.replay; // a pending replay still waits for Budapest
+      this.app.saveSettings();
+      void this.app.advisor.say(CITY_COPY[city].welcome, 'idle');
+      return;
+    }
+    if (!shouldRunTutorial(gate)) return;
     if (s.replayTutorial) {
       s.replayTutorial = false;
       this.app.hints.resetProfile();
@@ -410,20 +425,7 @@ export class Tutorial {
 
 /** The chokepoint nearest the Capitol's front steps (the busiest approach). */
 export function nearestChoke(game: GameController): { i: number; j: number; name: string } | null {
-  const map = game.world.map;
-  const cap = map.capitol;
-  const ci = cap.i + cap.w / 2;
-  const cj = cap.j + cap.d + 1;
-  let out: { i: number; j: number; name: string } | null = null;
-  let best = Infinity;
-  for (const c of map.chokepoints) {
-    const d = (c.i - ci) ** 2 + (c.j - cj) ** 2;
-    if (d < best) {
-      best = d;
-      out = { i: c.i, j: c.j, name: c.name };
-    }
-  }
-  return out;
+  return capitolChoke(game.world.map);
 }
 
 /**

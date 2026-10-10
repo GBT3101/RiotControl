@@ -2,7 +2,7 @@
  * Pure helpers for the tutorial overlay (unit-tested): when to run it, dim rectangles around
  * highlight holes, and where the advisor may sit without covering a highlighted thing.
  */
-import type { CityId } from '../../maps/contract';
+import type { CityId, MapData } from '../../maps/contract';
 import type { Rect } from '../core/node';
 import type { GameSettings } from '../settings';
 
@@ -25,13 +25,27 @@ export interface TutorialGate {
   replay: boolean;
   /** This city's briefing was completed (or skipped) before. */
   done: boolean;
+  /**
+   * The city hosts the basic tutorial (Budapest, the campaign's level 1 — PLAN §8.1). Every
+   * other city plays without it (only `?tutorial=1` forces it there, for screenshots/tests).
+   */
+  tutorialCity: boolean;
 }
 
 export function shouldRunTutorial(g: TutorialGate): boolean {
   if (g.attract || g.param === false) return false;
   if (g.param === true) return true;
-  if (g.debugRun) return false;
+  if (g.debugRun || !g.tutorialCity) return false;
   return g.replay || !g.done;
+}
+
+/**
+ * Other cities, first visit: the Minister only says the city's welcome line (no briefing).
+ * Same gates as the briefing minus the tutorial-city rule and the replay flag.
+ */
+export function shouldGreet(g: TutorialGate): boolean {
+  if (g.attract || g.param === false || g.param === true || g.debugRun) return false;
+  return !g.tutorialCity && !g.done;
 }
 
 /** The briefing for `city` is over (finished or skipped): never auto-run it again there. */
@@ -133,4 +147,24 @@ export function placeAdvisor(
     }
   }
   return best === def.bottom ? def : { ...def, bottom: best };
+}
+
+/**
+ * The chokepoint nearest the Capitol's front steps (the busiest approach): the briefing's
+ * `{choke}` (Budapest: Alkotmány utca).
+ */
+export function capitolChoke(map: MapData): { i: number; j: number; name: string } | null {
+  const cap = map.capitol;
+  const ci = cap.i + cap.w / 2;
+  const cj = cap.j + cap.d + 1;
+  let out: { i: number; j: number; name: string } | null = null;
+  let best = Infinity;
+  for (const c of map.chokepoints) {
+    const d = (c.i - ci) ** 2 + (c.j - cj) ** 2;
+    if (d < best) {
+      best = d;
+      out = { i: c.i, j: c.j, name: c.name };
+    }
+  }
+  return out;
 }

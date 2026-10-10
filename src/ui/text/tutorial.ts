@@ -102,9 +102,12 @@ export const TUTORIAL_UI = {
   skipped: 'Fine. Improvise. That is how we wrote the constitution.',
 };
 
-/** Fill `{choke}` / `{city}` placeholders. */
+/**
+ * Fill `{choke}` / `{city}` placeholders. Street names come from the blueprints, so letters the
+ * bitmap fonts lack are spelled out (Vienna's Löwelstraße → Löwelstrasse).
+ */
 export function fillTutorial(text: string, vars: { choke?: string; city?: string }): string {
   return text
-    .replace('{choke}', vars.choke ?? 'the avenue')
+    .replace('{choke}', (vars.choke ?? 'the avenue').replace(/ß/g, 'ss'))
     .replace('{city}', vars.city ?? 'the city');
 }

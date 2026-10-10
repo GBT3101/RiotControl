@@ -163,8 +163,9 @@ try {
   const tu = await tuctx.newPage();
   const tuerr = [];
   tu.on('pageerror', (e) => tuerr.push(e.message));
-  // Fresh profile, no params: the briefing runs on the first visit to a city.
-  await tu.goto(new URL('index.html?city=paris', base).href);
+  // Fresh profile, no params: the briefing runs on the first visit to Budapest (level 1; the
+  // only city with the tutorial — PLAN §8.1).
+  await tu.goto(new URL('index.html?city=budapest', base).href);
   await tu.waitForFunction(() => document.documentElement.dataset.ready === 'true', null, {
     timeout: 60000,
   });
@@ -200,7 +201,7 @@ try {
   check(!(await tu.evaluate(() => window.__riot.ui.tutorial.active)), 'SKIP BRIEFING ends it');
   check(
     await tu.evaluate(
-      () => JSON.parse(localStorage.getItem('riot.settings.v1')).tutorialDone.paris === true,
+      () => JSON.parse(localStorage.getItem('riot.settings.v1')).tutorialDone.budapest === true,
     ),
     'the done flag is persisted',
   );
@@ -211,6 +212,16 @@ try {
   check(
     !(await tu.evaluate(() => window.__riot.ui.tutorial.active)),
     'no briefing on the next visit',
+  );
+  // Any other city: no briefing, only the Minister's welcome line on the first visit.
+  await tu.goto(new URL('index.html?city=paris', base).href);
+  await tu.waitForFunction(() => document.documentElement.dataset.ready === 'true', null, {
+    timeout: 60000,
+  });
+  await tu.waitForTimeout(500);
+  check(
+    await tu.evaluate(() => !window.__riot.ui.tutorial.active && window.__riot.ui.advisor.speaking),
+    'other cities: no briefing, just the welcome line',
   );
   check(tuerr.length === 0, `no tutorial page errors (${tuerr.join('; ')})`);
   await tuctx.close();

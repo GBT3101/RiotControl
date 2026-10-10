@@ -123,6 +123,9 @@ export const CAMPAIGN: readonly CampaignCity[] = [
 /** The first level (basic tutorial); steered to on a first visit. */
 export const FIRST_CITY: CityId = 'budapest';
 
+/** The only city that runs the Minister's briefing (PLAN §8.1): the first level. */
+export const TUTORIAL_CITY: CityId = FIRST_CITY;
+
 /** Can this city be played yet (its map is built)? Data-driven: blueprints light pins up. */
 export function isBuilt(id: CityId): boolean {
   return isPlayable(id);

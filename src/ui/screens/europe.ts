@@ -3,7 +3,8 @@
  * taped to a desk — with a push pin on every campaign city. Tapping a pin (or its tag) opens
  * that city's dossier card beside the map: built cities get the postcard with records and
  * DEPLOY (exactly the old city select's run start); cities still being built show "UNDER
- * CONSTRUCTION". Budapest is Level 1 (the tutorial) and is selected on a first visit.
+ * CONSTRUCTION". Budapest is Level 1 (the tutorial) and is selected on a first visit (and while
+ * Settings → TUTORIAL REPLAY waits for the next Budapest run).
  *
  * The map lives at its own integer zoom (device px per map px, like the world camera): drag to
  * pan, pinch / wheel / + − to zoom (fractional while the fingers move, settling on an integer).
@@ -290,11 +291,13 @@ export class EuropeScreen implements Screen {
     const store = browserStorage();
     const seen = readJson(store, SEEN_KEY) as { seen?: boolean } | null;
     const last = app.settings.lastCity;
-    this.selected = !seen?.seen
-      ? FIRST_CITY
-      : last && CAMPAIGN.some((c) => c.id === last)
-        ? last
-        : FIRST_CITY;
+    // Steer to the tutorial (level 1) on a first visit, and while TUTORIAL REPLAY is pending.
+    this.selected =
+      !seen?.seen || app.settings.replayTutorial
+        ? FIRST_CITY
+        : last && CAMPAIGN.some((c) => c.id === last)
+          ? last
+          : FIRST_CITY;
     writeJson(store, SEEN_KEY, { seen: true });
     this.reduced =
       !app.settings.shake ||

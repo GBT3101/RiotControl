@@ -6,7 +6,10 @@ import { describe, expect, it } from 'vitest';
 import { FONTS, measureText } from '../src/art/uikit/text';
 import { PROTESTERS } from '../src/data/protesters';
 import { UNIT_ORDER } from '../src/data/units';
+import { PLAYABLE_CITIES, loadMap } from '../src/maps';
 import { citiesOf } from '../src/maps/cityTable';
+import { TUTORIAL_CITY } from '../src/ui/campaign';
+import { capitolChoke } from '../src/ui/tutorial/geometry';
 import {
   CAPITOL_COPY,
   CITY_COPY,
@@ -56,19 +59,29 @@ function advisorLine(label: string, s: string): void {
   ).toBeLessThanOrEqual(5);
 }
 
-/** Longest chokepoint name in the shipped maps ("Carrera de San Jerónimo"). */
-const LONG_CHOKE = 'Carrera de San Jerónimo';
+/**
+ * `{choke}` of every playable city: the chokepoint nearest its Capitol steps (the briefing runs
+ * in Budapest, but `?tutorial=1` can force it anywhere).
+ */
+const CHOKES = PLAYABLE_CITIES.map((c) => capitolChoke(loadMap(c))?.name ?? '');
 
 describe('writing: tutorial & hints (advisor bubbles)', () => {
-  it('tutorial lines fit the bubble (with the longest street name)', () => {
+  it('tutorial lines fit the bubble (with every chokepoint name)', () => {
     for (const [id, lines] of Object.entries(TUTORIAL_TEXT))
-      for (const l of lines) {
-        advisorLine(`tutorial.${id}`, fillTutorial(l.text, { choke: LONG_CHOKE, city: 'Madrid' }));
-        if (l.touch)
-          advisorLine(`tutorial.${id}.touch`, fillTutorial(l.touch, { choke: LONG_CHOKE }));
-      }
+      for (const l of lines)
+        for (const choke of l.text.includes('{choke}') || l.touch?.includes('{choke}')
+          ? CHOKES
+          : ['']) {
+          advisorLine(`tutorial.${id} (${choke})`, fillTutorial(l.text, { choke, city: 'Madrid' }));
+          if (l.touch)
+            advisorLine(`tutorial.${id}.touch (${choke})`, fillTutorial(l.touch, { choke }));
+        }
     advisorLine('skipped', TUTORIAL_UI.skipped);
     check('skip', TUTORIAL_UI.skip, 16);
+  });
+
+  it('the Budapest briefing points at Alkotmány utca', () => {
+    expect(capitolChoke(loadMap(TUTORIAL_CITY))?.name).toBe('Alkotmány utca');
   });
 
   it('hint lines, quips, level blurbs and Capitol reactions fit', () => {

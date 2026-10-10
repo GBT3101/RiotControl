@@ -221,6 +221,7 @@ export const barcelona: Blueprint = {
         [55.5, 13],
       ],
       width: 3,
+      trees: 'tree.palm',
       cafes: true,
     },
     {
@@ -239,7 +240,8 @@ export const barcelona: Blueprint = {
         [81, COLOM_J],
       ],
       width: 4,
-      trees: 'tree.plane',
+      // The port quay (Moll de la Fusta): palms, as on the real promenade.
+      trees: 'tree.palm',
       labelPath: [
         [56, COLOM_J],
         [63, COLOM_J],

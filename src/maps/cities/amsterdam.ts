@@ -705,7 +705,7 @@ export const amsterdam: Blueprint = {
   chokepoints: [
     { name: 'Raadhuisstraat (Singel)', at: [RAADHUIS_I, SINGEL.c], radius: 2 },
     { name: 'Muntplein', at: [SINGEL.s, VIJZEL_J], radius: 2 },
-    { name: 'Damstraat (Oudezijds Voorburgwal)', at: [DAMSTRAAT_I, OZV_J], radius: 2 },
+    { name: 'Damstraat (OZ Voorburgwal)', at: [DAMSTRAAT_I, OZV_J], radius: 2 },
   ],
 
   approaches: [

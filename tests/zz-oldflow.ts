@@ -3,7 +3,7 @@
  * 8-connected). Used by the validators and the map viewer's flow preview; M6 builds its own
  * production flow fields but can reuse this for tooling.
  */
-import { GROUNDS, GROUND_COST, WALKABLE, type MapData, type TilePos } from './contract';
+import { GROUNDS, GROUND_COST, WALKABLE, type MapData, type TilePos } from '../src/maps/contract';
 
 const COST = new Float32Array(GROUNDS.length);
 GROUNDS.forEach((g, k) => {
@@ -94,10 +94,7 @@ export function distanceField(
     const nd = d + (useCost ? COST[ground[to]!]! : 1) * mul;
     if (nd < dist[to]!) {
       dist[to] = nd;
-      // Key the heap with the float32-stored value: pushing the float64 `nd` made the pop-time
-      // `d > dist[k]` check discard every tile whose cost rounded down in float32 (cobble,
-      // grass, parkPath, steps), so whole regions behind them stayed Infinity (as src/sim/nav.ts).
-      heap.push(dist[to]!, to);
+      heap.push(nd, to);
     }
   };
   while (heap.size) {
